@@ -98,11 +98,11 @@ export default function AboutView({ setView }: AboutViewProps) {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12 lg:gap-8 justify-items-center pb-10">
             
             {/* Founder 1 */}
-            <div className="relative group animate-on-scroll opacity-0 translate-y-24 transition-all duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)] max-w-[18rem] w-full">
+            <div className="relative group animate-on-scroll opacity-0 translate-y-24 transition-all duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)] max-w-[16rem] w-full">
               <div className="absolute inset-0 bg-[#5B0E2D] transform translate-x-3 translate-y-3 rounded-2xl transition-transform group-hover:translate-x-5 group-hover:translate-y-5" />
               <div className="relative bg-[#FDFBF7] p-3 pb-32 rounded-2xl shadow-2xl transform -rotate-2">
                 <div className="aspect-[4/5] overflow-hidden rounded-xl bg-gray-200">
-                  <img src={kamlaDeviImg} alt="Kamla Devi" className="w-full h-full object-cover filter contrast-125 saturate-50 transition-all duration-700 group-hover:saturate-100 group-hover:scale-105" />
+                  <img src={kamlaDeviImg} alt="Kamla Devi" className="w-full h-full object-cover transition-all duration-700 group-hover:scale-105" />
                 </div>
                 <div className="absolute bottom-4 left-4 right-4 text-center space-y-2">
                   <div>
@@ -117,11 +117,11 @@ export default function AboutView({ setView }: AboutViewProps) {
             </div>
 
             {/* Founder 2 */}
-            <div className="relative group animate-on-scroll opacity-0 translate-y-24 transition-all duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)] max-w-[18rem] w-full delay-100 mt-0 lg:mt-8">
+            <div className="relative group animate-on-scroll opacity-0 translate-y-24 transition-all duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)] max-w-[16rem] w-full delay-100 mt-0 lg:mt-8">
               <div className="absolute inset-0 bg-[#E8C39E] transform -translate-x-3 translate-y-3 rounded-2xl transition-transform group-hover:-translate-x-5 group-hover:translate-y-5" />
               <div className="relative bg-[#FDFBF7] p-3 pb-32 rounded-2xl shadow-2xl transform rotate-3">
                 <div className="aspect-[4/5] overflow-hidden rounded-xl bg-gray-200">
-                  <img src={priyankaYadavImg} alt="Priyanka Yadav" className="w-full h-full object-cover filter contrast-125 saturate-50 transition-all duration-700 group-hover:saturate-100 group-hover:scale-105" />
+                  <img src={priyankaYadavImg} alt="Priyanka Yadav" className="w-full h-full object-cover transition-all duration-700 group-hover:scale-105" />
                 </div>
                 <div className="absolute bottom-4 left-4 right-4 text-center space-y-2">
                   <div>
@@ -136,11 +136,11 @@ export default function AboutView({ setView }: AboutViewProps) {
             </div>
 
             {/* Founder 3 */}
-            <div className="relative group animate-on-scroll opacity-0 translate-y-24 transition-all duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)] max-w-[18rem] w-full delay-200 mt-0 lg:mt-4">
+            <div className="relative group animate-on-scroll opacity-0 translate-y-24 transition-all duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)] max-w-[16rem] w-full delay-200 mt-0 lg:mt-4">
               <div className="absolute inset-0 bg-[#5B0E2D] transform translate-x-3 -translate-y-3 rounded-2xl transition-transform group-hover:translate-x-5 group-hover:-translate-y-5" />
               <div className="relative bg-[#FDFBF7] p-3 pb-32 rounded-2xl shadow-2xl transform -rotate-1">
                 <div className="aspect-[4/5] overflow-hidden rounded-xl bg-gray-200">
-                  <img src={vandanaYadavImg} alt="Vandana Yadav" className="w-full h-full object-cover filter contrast-125 saturate-50 transition-all duration-700 group-hover:saturate-100 group-hover:scale-105" />
+                  <img src={vandanaYadavImg} alt="Vandana Yadav" className="w-full h-full object-cover transition-all duration-700 group-hover:scale-105" />
                 </div>
                 <div className="absolute bottom-4 left-4 right-4 text-center space-y-2">
                   <div>
