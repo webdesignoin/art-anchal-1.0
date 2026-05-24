@@ -76,7 +76,7 @@ export default function ArtisanStoriesView({
                       <ResponsiveImage
                         src={artisan.imageUrl}
                         alt={artisan.name}
-                        className="w-full h-full object-cover grayscale lg:hover:grayscale-0 transition duration-500"
+                        className="w-full h-full object-cover transition duration-500"
                       />
                       {isLatest && (
                         <span className="absolute top-2 left-2 lg:top-3 lg:left-3 bg-[#5B0E2D] text-brand-ivory text-[8px] font-bold uppercase tracking-wider px-2 py-0.5 shadow-md">
