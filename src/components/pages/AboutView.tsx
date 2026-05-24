@@ -163,7 +163,7 @@ export default function AboutView({ setView }: AboutViewProps) {
         <img 
           src={placeholderWomenImg} 
           alt="Weavers in action" 
-          className="absolute inset-0 w-full h-full object-cover filter grayscale brightness-50"
+          className="absolute inset-0 w-full h-full object-cover brightness-50"
         />
         <div className="relative z-10 p-8 max-w-4xl text-center mix-blend-difference">
           <h2 className="text-6xl sm:text-8xl font-serif text-white font-black leading-[0.8] mb-8">
