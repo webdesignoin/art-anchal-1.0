@@ -6,29 +6,29 @@
 import { Saree, Artisan, Testimonial, Collection } from "../types";
 
 // Asset references
-import heroPath from "../assets/images/hero_banarasi_saree_1779547508532.png";
-import artisanPath from "../assets/images/artisan_weaving_1779547529004.png";
-import katanPath from "../assets/images/katan_collection_1779547545862.png";
+const heroPath = "/images/hero_banarasi_saree_1779547508532.png";
+const artisanPath = "/images/artisan_weaving_1779547529004.png";
+const katanPath = "/images/katan_collection_1779547545862.png";
 
 // Artisan Images
-import femaleArtist1 from "../assets/images/artisans/female_artist_1.webp";
-import femaleArtist2 from "../assets/images/artisans/female_artist_2.webp";
-import femaleArtist3 from "../assets/images/artisans/female_artist_3.webp";
-import maleArtist1 from "../assets/images/artisans/male_artist_1.webp";
-import maleArtist2 from "../assets/images/artisans/male_artist_2.webp";
-import maleArtist3 from "../assets/images/artisans/male_artist_3.webp";
-import maleArtist4 from "../assets/images/artisans/male_artist_4.webp";
-import maleArtist5 from "../assets/images/artisans/male_artist_5.webp";
-import maleArtist6 from "../assets/images/artisans/male_artist_6.webp";
-import maleArtist7 from "../assets/images/artisans/male_artist_7.webp";
+const femaleArtist1 = "/images/artisans/female_artist_1.webp";
+const femaleArtist2 = "/images/artisans/female_artist_2.webp";
+const femaleArtist3 = "/images/artisans/female_artist_3.webp";
+const maleArtist1 = "/images/artisans/male_artist_1.webp";
+const maleArtist2 = "/images/artisans/male_artist_2.webp";
+const maleArtist3 = "/images/artisans/male_artist_3.webp";
+const maleArtist4 = "/images/artisans/male_artist_4.webp";
+const maleArtist5 = "/images/artisans/male_artist_5.webp";
+const maleArtist6 = "/images/artisans/male_artist_6.webp";
+const maleArtist7 = "/images/artisans/male_artist_7.webp";
 
 // Collection Images
-import katanColImg from "../assets/images/collections/katan_collection.webp";
-import organzaColImg from "../assets/images/collections/organza_collection.webp";
-import shikargahColImg from "../assets/images/collections/shikargah_collection.webp";
-import tissueColImg from "../assets/images/collections/tissue_collection.webp";
-import kadwaColImg from "../assets/images/collections/kadwa_collection.webp";
-import tanchoiColImg from "../assets/images/collections/tanchoi_collection.webp";
+const katanColImg = "/images/collections/katan_collection.webp";
+const organzaColImg = "/images/collections/organza_collection.webp";
+const shikargahColImg = "/images/collections/shikargah_collection.webp";
+const tissueColImg = "/images/collections/tissue_collection.webp";
+const kadwaColImg = "/images/collections/kadwa_collection.webp";
+const tanchoiColImg = "/images/collections/tanchoi_collection.webp";
 
 export const CUSTOM_ASSETS = {
   hero: heroPath,

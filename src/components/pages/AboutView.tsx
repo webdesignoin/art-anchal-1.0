@@ -3,12 +3,12 @@ import { ViewState } from "../../types";
 import { Helmet } from "react-helmet-async";
 import { MapPin, Phone } from "lucide-react";
 
-import kamlaDeviImg from '../../assets/images/about/kamla_devi.jpg';
-import priyankaYadavImg from '../../assets/images/about/priyanka_yadav.jpg';
-import vandanaYadavImg from '../../assets/images/about/vandana_yadav.jpg';
-import placeholderWomenImg from '../../assets/images/about/placeholder_women.jpg';
-import shoppingWomenImg from '../../assets/images/about/shopping_women.jpg';
-import varanasiGhatsImg from '../../assets/images/about/varanasi ghats.jpg';
+const kamlaDeviImg = "/images/about/kamla_devi.jpg";
+const priyankaYadavImg = "/images/about/priyanka_yadav.jpg";
+const vandanaYadavImg = "/images/about/vandana_yadav.jpg";
+const placeholderWomenImg = "/images/about/placeholder_women.jpg";
+const shoppingWomenImg = "/images/about/shopping_women.jpg";
+const varanasiGhatsImg = "/images/about/varanasi ghats.jpg";
 
 interface AboutViewProps {
   setView: (view: ViewState) => void;
