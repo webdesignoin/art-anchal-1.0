@@ -37,6 +37,8 @@ export default function Navbar({
   const [searchInp, setSearchInp] = useState("");
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLDivElement>(null);
+  const searchToggleRef = useRef<HTMLButtonElement>(null);
   
   // State for scroll-based styling
   const [isScrolled, setIsScrolled] = useState(false);
@@ -60,6 +62,14 @@ export default function Navbar({
     const handler = (e: MouseEvent) => {
       if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
         setIsProfileOpen(false);
+      }
+      if (
+        searchRef.current && 
+        !searchRef.current.contains(e.target as Node) &&
+        searchToggleRef.current &&
+        !searchToggleRef.current.contains(e.target as Node)
+      ) {
+        setIsSearchOpen(false);
       }
     };
     document.addEventListener("mousedown", handler);
@@ -169,6 +179,7 @@ export default function Navbar({
           {/* ── Right: Action Icons ────────────────────────────────── */}
           <div className="flex-1 flex items-center justify-end space-x-5 sm:space-x-8">
             <button
+              ref={searchToggleRef}
               onClick={() => setIsSearchOpen(!isSearchOpen)}
               className={`transition-colors cursor-pointer ${isDarkGlass ? 'text-brand-maroon hover:text-brand-gold' : 'text-brand-ivory hover:text-brand-gold'}`}
               aria-label="Open search"
@@ -270,6 +281,7 @@ export default function Navbar({
 
       {/* Expanded Search Bar */}
       <div
+        ref={searchRef}
         className={`fixed top-0 left-0 w-full bg-[#FDFBF7] shadow-2xl z-[60] transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
           isSearchOpen ? "translate-y-0" : "-translate-y-full"
         }`}

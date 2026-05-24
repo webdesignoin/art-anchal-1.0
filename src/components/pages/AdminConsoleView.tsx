@@ -45,8 +45,10 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
   const [activeTab, setActiveTab] = useState<TabType>("overview");
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState("");
-
-  // Data stores
+  const [viewState, setViewState] = useState<"list" | "pos" | "history">("list");
+  
+  const interactionPanelRef = useRef<HTMLDivElement>(null);
+  const customerDropdownRef = useRef<HTMLDivElement>(null);
   const [dbSarees, setDbSarees] = useState<any[]>([]);
   const [dbArtisans, setDbArtisans] = useState<any[]>([]);
   const [dbCollections, setDbCollections] = useState<any[]>([]);
@@ -78,6 +80,8 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
 
   // POS states
   const [posSearch, setPosSearch] = useState("");
+  const [posCustomerSearch, setPosCustomerSearch] = useState("");
+  const [isCustomerDropdownOpen, setIsCustomerDropdownOpen] = useState(false);
   const [selectedProfileId, setSelectedProfileId] = useState("");
   const [isNewProfileModalOpen, setIsNewProfileModalOpen] = useState(false);
   const [profileForm, setProfileForm] = useState({ ...emptyProfile });
@@ -124,6 +128,16 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
     if (userSession?.is_admin) fetchAllData();
   }, [userSession]);
 
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (customerDropdownRef.current && !customerDropdownRef.current.contains(event.target as Node)) {
+        setIsCustomerDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   // ── KPI helpers ───────────────────────────────────────────────────────────
   const totalRevenue = dbOrders.reduce((s, o) => s + Number(o.total || 0), 0);
   const activeLeads = dbLeads.filter(l => l.status !== "won" && l.status !== "lost").length;
@@ -139,6 +153,11 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
       .eq("lead_id", lead.id)
       .order("created_at", { ascending: false });
     setLeadInteractions(data || []);
+    
+    // Auto-scroll on mobile
+    if (window.innerWidth < 1024 && interactionPanelRef.current) {
+      setTimeout(() => interactionPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+    }
   };
 
   const handleAddInteraction = async (e: FormEvent) => {
@@ -681,7 +700,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
               </div>
 
               {/* KPI Cards */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {[
                   { label: "Total Revenue", value: `₹${totalRevenue.toLocaleString("en-IN")}`, icon: IndianRupee, color: "text-emerald-700", bg: "bg-emerald-500/10 border-emerald-500/20" },
                   { label: "Total Orders", value: dbOrders.length, icon: ShoppingBag, color: "text-[#5B0E2D]", bg: "bg-[#5B0E2D]/10 border-[#5B0E2D]/20" },
@@ -726,7 +745,8 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                 <div className="px-5 py-4 border-b border-brand-gold/15">
                   <h3 className="font-serif text-lg text-brand-maroon font-semibold">Recent Orders</h3>
                 </div>
-                <div className="divide-y divide-brand-gold/10">
+                <div className="overflow-x-auto">
+                  <div className="divide-y divide-brand-gold/10 min-w-[300px]">
                   {dbOrders.slice(0, 5).map(o => (
                     <div key={o.id} className="px-5 py-3.5 flex justify-between items-center text-xs">
                       <div>
@@ -744,6 +764,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                   {dbOrders.length === 0 && (
                     <p className="px-5 py-8 text-center text-xs text-brand-warm-gray italic">No orders yet.</p>
                   )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -870,7 +891,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
               </div>
 
               {/* Status summary */}
-              <div className="grid grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {[
                   { label: "New", status: "new", color: "bg-blue-50 border-blue-200 text-blue-700" },
                   { label: "Contacted", status: "contacted", color: "bg-amber-50 border-amber-200 text-amber-700" },
@@ -934,7 +955,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                 </div>
 
                 {/* Interaction panel */}
-                <div className="lg:col-span-5 space-y-4">
+                <div ref={interactionPanelRef} className="lg:col-span-5 space-y-4">
                   <h3 className="font-serif text-lg text-brand-maroon border-b border-brand-gold/15 pb-2">Interaction Log</h3>
                   {selectedLead ? (
                     <div className="space-y-4 animate-fade-in">
@@ -1026,25 +1047,53 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                         <Plus className="w-3 h-3" /> New Customer
                       </button>
                     </div>
-                    <select value={selectedProfileId} onChange={e => setSelectedProfileId(e.target.value)}
-                      className="w-full bg-brand-ivory border border-brand-gold/20 px-3 py-2.5 text-xs focus:outline-none focus:border-brand-maroon">
-                      <option value="">— Select a customer —</option>
-                      {dbProfiles.map(p => (
-                        <option key={p.id} value={p.id}>
-                          {p.name} {p.phone ? `• ${p.phone}` : ""} {p.email ? `• ${p.email}` : ""}
-                        </option>
-                      ))}
-                    </select>
-                    {selectedProfileId && (() => {
-                      const p = dbProfiles.find(x => x.id === selectedProfileId);
-                      return p ? (
-                        <div className="bg-emerald-50 border border-emerald-200 rounded p-3 text-xs space-y-0.5">
-                          <p className="font-bold text-emerald-800">{p.name}</p>
-                          {p.phone && <p className="text-emerald-700 font-mono">{p.phone}</p>}
-                          {p.email && <p className="text-emerald-700">{p.email}</p>}
+                    <div className="relative">
+                      {selectedProfileId ? (
+                        (() => {
+                          const p = dbProfiles.find(x => x.id === selectedProfileId);
+                          return p ? (
+                            <div className="bg-emerald-50 border border-emerald-200 rounded p-3 text-xs space-y-0.5 relative group">
+                              <p className="font-bold text-emerald-800">{p.name}</p>
+                              {p.phone && <p className="text-emerald-700 font-mono">{p.phone}</p>}
+                              {p.email && <p className="text-emerald-700">{p.email}</p>}
+                              <button onClick={() => { setSelectedProfileId(""); setPosCustomerSearch(""); }}
+                                className="absolute top-3 right-3 text-emerald-600 hover:text-emerald-900 text-[10px] font-bold uppercase underline">
+                                Change
+                              </button>
+                            </div>
+                          ) : null;
+                        })()
+                      ) : (
+                        <div ref={customerDropdownRef} className="space-y-1">
+                          <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-brand-warm-gray" />
+                            <input
+                              type="text"
+                              value={posCustomerSearch}
+                              onChange={e => { setPosCustomerSearch(e.target.value); setIsCustomerDropdownOpen(true); }}
+                              onFocus={() => setIsCustomerDropdownOpen(true)}
+                              placeholder="Search by name, phone or email..."
+                              className="w-full bg-brand-ivory border border-brand-gold/20 pl-9 pr-4 py-2.5 text-xs focus:outline-none focus:border-brand-maroon"
+                            />
+                          </div>
+                          {isCustomerDropdownOpen && (
+                            <div className="absolute z-10 w-full mt-1 bg-white border border-brand-gold/20 shadow-xl max-h-48 overflow-y-auto">
+                              {dbProfiles.filter(p => p.name?.toLowerCase().includes(posCustomerSearch.toLowerCase()) || p.phone?.includes(posCustomerSearch) || p.email?.toLowerCase().includes(posCustomerSearch.toLowerCase())).length > 0 ? (
+                                dbProfiles.filter(p => p.name?.toLowerCase().includes(posCustomerSearch.toLowerCase()) || p.phone?.includes(posCustomerSearch) || p.email?.toLowerCase().includes(posCustomerSearch.toLowerCase())).map(p => (
+                                  <button key={p.id} onClick={() => { setSelectedProfileId(p.id); setIsCustomerDropdownOpen(false); setPosCustomerSearch(""); }}
+                                    className="w-full text-left px-3 py-2 text-xs hover:bg-brand-sand/30 border-b border-brand-gold/5 transition flex flex-col">
+                                    <span className="font-bold text-brand-maroon">{p.name}</span>
+                                    <span className="text-[10px] text-brand-warm-gray font-mono">{p.phone ? `${p.phone}` : ""} {p.email ? `• ${p.email}` : ""}</span>
+                                  </button>
+                                ))
+                              ) : (
+                                <div className="p-3 text-center text-xs text-brand-warm-gray italic">No matching customers</div>
+                              )}
+                            </div>
+                          )}
                         </div>
-                      ) : null;
-                    })()}
+                      )}
+                    </div>
                   </div>
 
                   {/* Step 2: Products */}
