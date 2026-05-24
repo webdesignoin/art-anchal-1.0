@@ -16,6 +16,8 @@ interface LoginRegisterViewProps {
   setUserSession: (session: { id?: string; name: string; email: string; is_admin?: boolean; phone?: string } | null) => void;
   userSession: { id?: string; name: string; email: string; is_admin?: boolean; phone?: string } | null;
   setAppLoading?: (loading: boolean) => void;
+  postLoginRedirect?: ViewState | null;
+  setPostLoginRedirect?: (v: ViewState | null) => void;
 }
 
 export default function LoginRegisterView({
@@ -23,6 +25,8 @@ export default function LoginRegisterView({
   setUserSession,
   userSession,
   setAppLoading,
+  postLoginRedirect,
+  setPostLoginRedirect,
 }: LoginRegisterViewProps) {
   const [isLogin, setIsLogin] = useState(true);
   const [inp, setInp] = useState({ name: "", email: "", password: "" });
@@ -30,13 +34,16 @@ export default function LoginRegisterView({
   // Redirect logic upon successful login
   useEffect(() => {
     if (userSession) {
-      if (userSession.is_admin) {
+      if (postLoginRedirect) {
+        setView(postLoginRedirect);
+        if (setPostLoginRedirect) setPostLoginRedirect(null);
+      } else if (userSession.is_admin) {
         setView("admin-console");
       } else {
         setView("home");
       }
     }
-  }, [userSession, setView]);
+  }, [userSession, setView, postLoginRedirect, setPostLoginRedirect]);
 
   // Phone Auth States
   const [authMethod, setAuthMethod] = useState<"email" | "phone">("email");

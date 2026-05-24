@@ -14,6 +14,9 @@ interface CartDrawerProps {
   removeFromCart: (sareeId: string) => void;
   clearCart: () => void;
   setView: (view: ViewState) => void;
+  userSession?: { id?: string } | null;
+  setPostLoginRedirect?: (v: ViewState | null) => void;
+  triggerToast?: (title: string, msg: string, t?: any) => void;
 }
 
 export default function CartDrawer({
@@ -24,6 +27,9 @@ export default function CartDrawer({
   removeFromCart,
   clearCart,
   setView,
+  userSession,
+  setPostLoginRedirect,
+  triggerToast,
 }: CartDrawerProps) {
   if (!isOpen) return null;
 
@@ -31,7 +37,13 @@ export default function CartDrawer({
 
   const handleCheckoutClick = () => {
     onClose();
-    setView("checkout");
+    if (!userSession) {
+      if (triggerToast) triggerToast("Login Required", "Please sign in or create an account to proceed to checkout.");
+      if (setPostLoginRedirect) setPostLoginRedirect("checkout");
+      setView("login-register");
+    } else {
+      setView("checkout");
+    }
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 

@@ -99,7 +99,16 @@ export default function CheckoutView({ cart, clearCart, setView, userSession }: 
       try {
         const res = await fetch(`https://api.zippopotam.us/IN/${value}`);
         if (!res.ok) throw new Error("Invalid PIN");
-        const data = await res.json();
+        
+        const text = await res.text();
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch (e) {
+          console.warn("Zippopotam returned invalid JSON", text);
+          return;
+        }
+
         if (data && data.places && data.places.length > 0) {
           const place = data.places[0];
           setForm((prev) => ({
@@ -189,7 +198,13 @@ export default function CheckoutView({ cart, clearCart, setView, userSession }: 
         throw new Error('Failed to create Razorpay order');
       }
 
-      const order = await response.json();
+      const text = await response.text();
+      let order;
+      try {
+        order = JSON.parse(text);
+      } catch (e) {
+        throw new Error(`API returned invalid JSON: '${text}'`);
+      }
 
       // 2. Pre-create order in Supabase as 'pending'
       const orderId = generateUUID();

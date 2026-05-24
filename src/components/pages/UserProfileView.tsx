@@ -172,7 +172,14 @@ export default function UserProfileView({
       try {
         const res = await fetch(`https://api.zippopotam.us/IN/${val}`);
         if (!res.ok) throw new Error("Invalid PIN");
-        const data = await res.json();
+        const text = await res.text();
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch (e) {
+          console.warn("Zippopotam returned invalid JSON", text);
+          return;
+        }
         if (data && data.places && data.places.length > 0) {
           const place = data.places[0];
           setNewAddress(prev => ({

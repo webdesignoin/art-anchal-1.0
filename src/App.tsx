@@ -39,10 +39,10 @@ export default function App() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
 
-  // Cart & Wishlist persistence states
   const [cart, setCart] = useState<CartItem[]>([]);
   const [wishlist, setWishlist] = useState<Saree[]>([]);
   const [userSession, setUserSession] = useState<{ id?: string; name: string; email: string; is_admin?: boolean; phone?: string } | null>(null);
+  const [postLoginRedirect, setPostLoginRedirect] = useState<ViewState | null>(null);
   
   // Global Data State
   const [sarees, setSarees] = useState<Saree[]>(SAREES);
@@ -559,6 +559,8 @@ export default function App() {
             setUserSession={setUserSession}
             userSession={userSession}
             setAppLoading={setAppLoading}
+            postLoginRedirect={postLoginRedirect}
+            setPostLoginRedirect={setPostLoginRedirect}
           />
         )}
 
@@ -602,6 +604,9 @@ export default function App() {
         removeFromCart={removeFromCart}
         clearCart={clearCart}
         setView={setView}
+        userSession={userSession}
+        setPostLoginRedirect={setPostLoginRedirect}
+        triggerToast={triggerToast}
       />
 
       {/* 5. Overlay Quick View Modal */}
