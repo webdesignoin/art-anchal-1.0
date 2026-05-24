@@ -206,7 +206,18 @@ export default function CheckoutView({ cart, clearCart, setView, userSession }: 
         throw new Error(`API returned invalid JSON: '${text}' | Status: ${response.status} | URL: ${response.url} | Headers: ${JSON.stringify([...response.headers])}`);
       }
 
-      // 2. Pre-create order in Supabase as 'pending'
+      // 2. Resolve true Profile ID (since userSession.id might be the auth.users ID)
+      let profileId = null;
+      if (userSession?.id) {
+        const { data: prof } = await supabase
+          .from("profiles")
+          .select("id")
+          .or(`id.eq.${userSession.id},auth_user_id.eq.${userSession.id}`)
+          .single();
+        if (prof) profileId = prof.id;
+      }
+
+      // 3. Pre-create order in Supabase as 'pending'
       const orderId = generateUUID();
       const addressJson = {
         address: form.address,
@@ -221,7 +232,7 @@ export default function CheckoutView({ cart, clearCart, setView, userSession }: 
         .from("orders")
         .insert({
           id: orderId,
-          profile_id: userSession?.id || null,
+          profile_id: profileId,
           customer_name: form.name,
           customer_email: form.email,
           customer_phone: form.phone || null,
