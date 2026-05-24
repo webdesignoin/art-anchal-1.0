@@ -10,7 +10,11 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({
+  verify: (req, res, buf) => {
+    req.rawBody = buf;
+  }
+}));
 
 // Import Vercel handlers dynamically
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -23,6 +27,11 @@ app.post('/api/init-rzp', async (req, res) => {
 
 app.post('/api/verify-payment', async (req, res) => {
   const handler = await import('./api/verify-payment.js');
+  return handler.default(req, res);
+});
+
+app.post('/api/webhook-rzp', async (req, res) => {
+  const handler = await import('./api/webhook-rzp.js');
   return handler.default(req, res);
 });
 
