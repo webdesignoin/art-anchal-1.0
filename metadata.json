@@ -1,0 +1,6 @@
+{
+  "name": "Art&Anchal",
+  "description": "Premium luxury Banarasi saree e-commerce fashion brand from Varanasi",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

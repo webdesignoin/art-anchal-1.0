@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+
+# Disallow admin and private routes
+Disallow: /admin
+Disallow: /api/
+
+# Sitemap location
+Sitemap: https://artandanchal.com/sitemap.xml

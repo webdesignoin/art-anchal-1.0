@@ -1,0 +1,21 @@
+{
+  "name": "Art & Anchal",
+  "short_name": "Art&Anchal",
+  "description": "Authentic Banarasi Handloom Sarees from Varanasi",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FDFBF7",
+  "theme_color": "#5B0E2D",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
