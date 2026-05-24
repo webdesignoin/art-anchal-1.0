@@ -16,7 +16,7 @@ app.use(express.json());
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Mock Vercel environment locally
-app.post('/api/create-order', async (req, res) => {
+app.post('/api/init-rzp', async (req, res) => {
   const handler = await import('./api/create-order.js');
   return handler.default(req, res);
 });

@@ -186,7 +186,7 @@ export default function CheckoutView({ cart, clearCart, setView, userSession }: 
 
     try {
       // 1. Create order on the backend
-      const response = await fetch('/api/create-order', {
+      const response = await fetch('/api/init-rzp', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -203,7 +203,7 @@ export default function CheckoutView({ cart, clearCart, setView, userSession }: 
       try {
         order = JSON.parse(text);
       } catch (e) {
-        throw new Error(`API returned invalid JSON: '${text}'`);
+        throw new Error(`API returned invalid JSON: '${text}' | Status: ${response.status} | URL: ${response.url} | Headers: ${JSON.stringify([...response.headers])}`);
       }
 
       // 2. Pre-create order in Supabase as 'pending'
