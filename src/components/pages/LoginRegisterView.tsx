@@ -45,6 +45,7 @@ export default function LoginRegisterView({
   const [otpToken, setOtpToken] = useState("");
   const [otpValue, setOtpValue] = useState("");
 
+  // Auth States
   const [submitFeedback, setSubmitFeedback] = useState("");
   const [showPass, setShowPass] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -215,110 +216,16 @@ export default function LoginRegisterView({
           <div className="bg-[#FAF7F2] border border-brand-gold/25 p-8 sm:p-10 space-y-6">
             <div className="text-center space-y-1.5">
               <h2 className="serif-heading text-2xl text-brand-maroon font-serif font-light leading-tight">
-                {authMethod === "phone"
-                  ? "Boutique SMS Sign In"
-                  : isLogin
-                    ? "Join The Guild"
-                    : "Registry Credentials"}
+                {isLogin ? "Join The Guild" : "Registry Credentials"}
               </h2>
               <p className="text-xs text-brand-warm-gray font-light">
-                {authMethod === "phone"
-                  ? "Enter your mobile number to verify via secure OTP code."
-                  : isLogin
-                    ? "Welcome back. Log in to preview dispatches."
-                    : "Create a secure account to track loom milestones."}
+                {isLogin
+                  ? "Welcome back. Log in to preview dispatches."
+                  : "Create a secure account to track loom milestones."}
               </p>
             </div>
 
-            {/* Auth Method Toggle */}
-            <div className="flex border border-brand-gold/20 overflow-hidden">
-              <button
-                type="button"
-                onClick={() => { setAuthMethod("email"); setOtpSent(false); }}
-                className={`flex-1 py-2 text-[10px] font-bold uppercase tracking-widest transition flex items-center justify-center gap-1.5 ${
-                  authMethod === "email"
-                    ? "bg-brand-maroon text-brand-ivory"
-                    : "text-brand-warm-gray hover:text-brand-maroon"
-                }`}
-                id="auth-email-toggle"
-              >
-                <Mail className="w-3 h-3" /> Email
-              </button>
-              <button
-                type="button"
-                onClick={() => setAuthMethod("phone")}
-                className={`flex-1 py-2 text-[10px] font-bold uppercase tracking-widest transition flex items-center justify-center gap-1.5 ${
-                  authMethod === "phone"
-                    ? "bg-brand-maroon text-brand-ivory"
-                    : "text-brand-warm-gray hover:text-brand-maroon"
-                }`}
-                id="auth-phone-toggle"
-              >
-                <PhoneCall className="w-3 h-3" /> Phone OTP
-              </button>
-            </div>
-
-            {/* ── Phone OTP flow ── */}
-            {authMethod === "phone" ? (
-              <div className="space-y-4">
-                {!otpSent ? (
-                  <form onSubmit={handleSendOtp} className="space-y-4">
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] uppercase tracking-widest font-bold text-brand-maroon block">Mobile Number</label>
-                      <input
-                        type="tel"
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        placeholder="+91 9876543210"
-                        required
-                        className="w-full bg-white border border-brand-gold/25 px-4 py-3 text-xs text-brand-maroon placeholder-brand-warm-gray/50 focus:outline-none focus:border-brand-maroon"
-                        id="phone-input"
-                      />
-                    </div>
-                    <button
-                      type="submit"
-                      disabled={isLoading}
-                      className="w-full flex items-center justify-center gap-2 bg-brand-maroon text-brand-ivory text-xs uppercase tracking-widest font-bold py-3.5 disabled:opacity-60 transition shadow-md"
-                      id="send-otp-btn"
-                    >
-                      {isLoading && <RefreshCw className="w-4 h-4 animate-spin text-brand-gold" />}
-                      {isLoading ? "Sending..." : "Send OTP"}
-                    </button>
-                  </form>
-                ) : (
-                  <form onSubmit={handleVerifyOtp} className="space-y-4">
-                    <p className="text-xs text-brand-warm-gray text-center">OTP sent to <span className="font-mono font-bold text-brand-maroon">{phone}</span></p>
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] uppercase tracking-widest font-bold text-brand-maroon block">Enter OTP</label>
-                      <input
-                        type="text"
-                        value={otpValue}
-                        onChange={(e) => setOtpValue(e.target.value)}
-                        placeholder="6-digit code"
-                        maxLength={6}
-                        required
-                        autoFocus
-                        className="w-full bg-white border border-brand-gold/25 px-4 py-3 text-xs text-brand-maroon placeholder-brand-warm-gray/50 focus:outline-none focus:border-brand-maroon text-center font-mono tracking-widest"
-                        id="otp-input"
-                      />
-                    </div>
-                    <button
-                      type="submit"
-                      disabled={isLoading}
-                      className="w-full flex items-center justify-center gap-2 bg-brand-maroon text-brand-ivory text-xs uppercase tracking-widest font-bold py-3.5 disabled:opacity-60 transition shadow-md"
-                      id="verify-otp-btn"
-                    >
-                      {isLoading && <RefreshCw className="w-4 h-4 animate-spin text-brand-gold" />}
-                      {isLoading ? "Verifying..." : "Verify & Sign In"}
-                    </button>
-                    <button type="button" onClick={() => { setOtpSent(false); setOtpValue(""); }} className="w-full text-[10px] text-brand-warm-gray underline">
-                      Change number
-                    </button>
-                  </form>
-                )}
-              </div>
-            ) : (
-              /* ── Email / Password flow ── */
+            {/* ── Email / Password flow ── */}
               <form onSubmit={handleEmailSubmit} className="space-y-4">
                 {!isLogin && (
                   <div className="space-y-1.5">
@@ -410,7 +317,6 @@ export default function LoginRegisterView({
                   </button>
                 </div>
               </form>
-            )}
 
             <div className="relative flex items-center py-2">
               <div className="flex-grow border-t border-brand-gold/20"></div>

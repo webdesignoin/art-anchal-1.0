@@ -178,3 +178,65 @@ export interface FilterState {
   searchQuery: string;
   sortBy: "featured" | "price-asc" | "price-desc" | "rating";
 }
+
+export interface DbEmployee {
+  id: string;
+  name: string;
+  role: string;
+  base_salary: number;
+  phone?: string | null;
+  created_at: string;
+}
+
+export interface DbAttendance {
+  id: string;
+  employee_id: string;
+  date: string;
+  status: 'present' | 'absent' | 'half-day' | 'leave';
+  notes?: string | null;
+  created_at: string;
+  employee?: DbEmployee;
+}
+
+export interface DbExpense {
+  id: string;
+  category: string;
+  amount: number;
+  description: string;
+  date: string;
+  created_at: string;
+}
+
+export interface DbPurchase {
+  id: string;
+  vendor_name: string;
+  items_description: string;
+  total_amount: number;
+  amount_paid: number;
+  balance_due: number;
+  status: 'paid' | 'partially_paid' | 'unpaid';
+  date: string;
+  created_at: string;
+}
+
+export interface DbDue {
+  id: string;
+  entity_name: string;
+  due_type: 'payable' | 'receivable';
+  total_amount: number;
+  amount_paid: number;
+  balance_due: number;
+  status: 'pending' | 'cleared';
+  due_date?: string | null;
+  linked_purchase_id?: string | null;
+  created_at: string;
+}
+
+export interface DbDuePayment {
+  id: string;
+  due_id: string;
+  amount_paid: number;
+  payment_date: string;
+  notes?: string | null;
+  created_at: string;
+}

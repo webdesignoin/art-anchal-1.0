@@ -92,7 +92,7 @@ export default function ContactView({ userSession }: ContactViewProps) {
                 <MapPin className="w-5 h-5 text-brand-gold flex-shrink-0 mt-1" />
                 <div className="space-y-1 text-xs">
                   <strong className="block text-brand-maroon uppercase tracking-wide">The Varanasi Showrooms</strong>
-                  <span className="text-brand-warm-gray block">Legacy Handloom Guild block, near Sarai Mohana coordinates, Varanasi, UP, 221001</span>
+                  <span className="text-brand-warm-gray block">Vishwanath Gali, Kotwalipura, Lahori Tola, Varanasi, Uttar Pradesh 221001</span>
                 </div>
               </div>
 
@@ -100,7 +100,7 @@ export default function ContactView({ userSession }: ContactViewProps) {
                 <Phone className="w-5 h-5 text-brand-gold flex-shrink-0 mt-1" />
                 <div className="space-y-1 text-xs">
                   <strong className="block text-brand-maroon uppercase tracking-wide">Direct Boutique Line</strong>
-                  <span className="text-brand-warm-gray block font-mono underline">+91 9450 112 345 (Direct & WhatsApp inquiries)</span>
+                  <span className="text-brand-warm-gray block font-mono underline">+91 75250 51124 (Direct & WhatsApp inquiries)</span>
                 </div>
               </div>
 

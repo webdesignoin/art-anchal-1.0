@@ -58,7 +58,7 @@ export default function ArtisanStoriesView({
           </div>
 
           {/* Master Artisans List */}
-          <div className="space-y-24 pt-8">
+          <div className="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-1 lg:gap-0 lg:space-y-24 pt-8">
             {artisans.map((artisan, index) => {
               const isLatest = index === 0;
               const featuredSaree = artisan.featuredSareeId
@@ -68,47 +68,53 @@ export default function ArtisanStoriesView({
               return (
                 <div
                   key={artisan.id}
-                  className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start border-b border-brand-gold/15 pb-16 last:border-0"
+                  className="flex flex-col lg:grid lg:grid-cols-12 gap-4 lg:gap-12 items-start lg:border-b border-brand-gold/15 lg:pb-16 pb-4 last:border-0"
                 >
                   {/* Left col: Image avatar with specialty badge */}
-                  <div className="lg:col-span-4 space-y-4">
+                  <div className="w-full lg:col-span-4 space-y-2 lg:space-y-4">
                     <div className="relative aspect-square border border-brand-gold/20 overflow-hidden bg-brand-sand">
                       <ResponsiveImage
                         src={artisan.imageUrl}
                         alt={artisan.name}
-                        className="w-full h-full object-cover grayscale hover:grayscale-0 transition duration-500"
+                        className="w-full h-full object-cover grayscale lg:hover:grayscale-0 transition duration-500"
                       />
                       {isLatest && (
-                        <span className="absolute top-3 left-3 bg-[#5B0E2D] text-brand-ivory text-[8px] font-bold uppercase tracking-wider px-2 py-0.5">
-                          Guild Spotlight
+                        <span className="absolute top-2 left-2 lg:top-3 lg:left-3 bg-[#5B0E2D] text-brand-ivory text-[8px] font-bold uppercase tracking-wider px-2 py-0.5 shadow-md">
+                          Spotlight
                         </span>
                       )}
                     </div>
 
-                    <div className="p-4 bg-brand-sand/30 border border-brand-gold/15 rounded-none text-center">
+                    <div className="hidden lg:block p-4 bg-brand-sand/30 border border-brand-gold/15 rounded-none text-center">
                       <h4 className="text-[10px] text-brand-gold-dark font-sans tracking-wider uppercase font-bold mb-1">Weaving Specialty</h4>
                       <p className="text-xs text-brand-maroon font-serif font-bold italic">{artisan.specialty}</p>
                     </div>
                   </div>
 
                   {/* Right col: Name, biography quote and showcase items */}
-                  <div className="lg:col-span-8 space-y-6 text-brand-maroon">
+                  <div className="w-full lg:col-span-8 space-y-2 lg:space-y-6 text-brand-maroon flex-1 flex flex-col justify-between">
                     <div className="space-y-1">
-                      <h3 className="serif-heading text-2xl sm:text-3xl font-serif text-brand-maroon">{artisan.name}</h3>
-                      <p className="text-xs text-brand-gold-dark uppercase tracking-widest font-sans font-semibold">
+                      <h3 className="serif-heading text-lg sm:text-xl lg:text-3xl font-serif text-brand-maroon leading-tight">{artisan.name}</h3>
+                      <p className="hidden lg:block text-xs text-brand-gold-dark uppercase tracking-widest font-sans font-semibold">
                         Age: {artisan.age} • Village: {artisan.village} • {artisan.experienceYears} Years Loom Training
+                      </p>
+                      <p className="lg:hidden text-[9px] text-brand-warm-gray uppercase tracking-wider font-sans font-semibold truncate">
+                        {artisan.village}
+                      </p>
+                      <p className="lg:hidden text-[10px] text-brand-maroon font-serif italic line-clamp-2 mt-1">
+                        {artisan.specialty}
                       </p>
                     </div>
 
-                    <div className="border-l-2 border-brand-gold pl-4 py-1 italic font-serif text-sm sm:text-base text-brand-gold-dark">
+                    <div className="hidden lg:block border-l-2 border-brand-gold pl-4 py-1 italic font-serif text-sm sm:text-base text-brand-gold-dark">
                       &ldquo;{artisan.quote}&rdquo;
                     </div>
 
-                    <p className="text-xs text-[#7E726B] leading-relaxed text-justify font-sans">
+                    <p className="hidden lg:block text-xs text-[#7E726B] leading-relaxed text-justify font-sans">
                       {artisan.story}
                     </p>
 
-                    <div className="pt-4 border-t border-brand-gold/10 grid grid-cols-1 sm:grid-cols-2 gap-6 items-center">
+                    <div className="hidden lg:grid pt-4 border-t border-brand-gold/10 grid-cols-1 sm:grid-cols-2 gap-6 items-center">
                       {featuredSaree ? (
                         <div className="bg-brand-sand/10 border border-brand-gold/15 p-4 flex gap-3 items-center">
                           <div className="w-14 h-18 bg-brand-sand flex-shrink-0 overflow-hidden">
@@ -148,11 +154,22 @@ export default function ArtisanStoriesView({
                       <button
                         onClick={() => handleExploreArtisanWork(undefined, featuredSaree?.category)}
                         className="border border-brand-gold hover:border-brand-maroon text-brand-maroon hover:bg-brand-sand text-xs tracking-widest uppercase font-semibold py-3.5 px-6 transition duration-300 font-sans text-center cursor-pointer"
-                        id={`explore-coop-btn-${artisan.id}`}
+                        id={`explore-coop-btn-desk-${artisan.id}`}
                       >
                         Browse Loom Master Catalogue
                       </button>
                     </div>
+
+                    <div className="mt-auto lg:hidden pt-2">
+                       <button
+                          onClick={() => handleExploreArtisanWork(undefined, featuredSaree?.category)}
+                          className="w-full border border-brand-gold/50 text-brand-maroon bg-brand-gold/10 text-[9px] tracking-widest uppercase font-bold py-2 px-2 text-center cursor-pointer"
+                          id={`explore-coop-btn-mob-${artisan.id}`}
+                        >
+                          View Work
+                        </button>
+                    </div>
+
                   </div>
                 </div>
               );

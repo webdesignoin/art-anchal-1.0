@@ -17,6 +17,10 @@ import {
   ShieldCheck, Tag, Upload, Edit2, Archive, Phone, Download, UserPlus, Image as ImageIcon, CreditCard, HelpCircle, LogOut
 } from "lucide-react";
 
+import AdminHRTab from "./AdminHRTab";
+import AdminFinanceTab from "./AdminFinanceTab";
+import AdminVendorsTab from "./AdminVendorsTab";
+
 interface AdminConsoleViewProps {
   userSession: { id?: string; name: string; email: string; is_admin?: boolean } | null;
   setUserSession: (session: any) => void;
@@ -24,7 +28,7 @@ interface AdminConsoleViewProps {
   refreshCatalog: () => Promise<void>;
 }
 
-type TabType = "overview" | "catalog" | "crm" | "pos" | "orders";
+type TabType = "overview" | "catalog" | "crm" | "pos" | "orders" | "hr" | "finance" | "vendors";
 
 const TAX_RATE = 0.05; // 5% GST for handloom sarees (CGST 2.5% + SGST 2.5%)
 
@@ -55,6 +59,13 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
   const [dbLeads, setDbLeads] = useState<any[]>([]);
   const [dbOrders, setDbOrders] = useState<any[]>([]);
   const [dbProfiles, setDbProfiles] = useState<any[]>([]);
+
+  // ERP States
+  const [dbEmployees, setDbEmployees] = useState<any[]>([]);
+  const [dbAttendance, setDbAttendance] = useState<any[]>([]);
+  const [dbExpenses, setDbExpenses] = useState<any[]>([]);
+  const [dbPurchases, setDbPurchases] = useState<any[]>([]);
+  const [dbDues, setDbDues] = useState<any[]>([]);
 
   // CMS states
   const [editingSaree, setEditingSaree] = useState<any | null>(null);
@@ -117,6 +128,23 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
       if (ld.data) setDbLeads(ld.data);
       if (ord.data) setDbOrders(ord.data);
       if (prof.data) setDbProfiles(prof.data);
+
+      try {
+        const [emp, att, exp, pur, due] = await Promise.all([
+          supabase.from("employees").select("*").order("name"),
+          supabase.from("attendance").select("*, employee:employees(name)").order("date", { ascending: false }),
+          supabase.from("expenses").select("*").order("date", { ascending: false }),
+          supabase.from("purchases").select("*").order("date", { ascending: false }),
+          supabase.from("dues").select("*").order("due_date", { ascending: false }),
+        ]);
+        if (emp.data) setDbEmployees(emp.data);
+        if (att.data) setDbAttendance(att.data);
+        if (exp.data) setDbExpenses(exp.data);
+        if (pur.data) setDbPurchases(pur.data);
+        if (due.data) setDbDues(due.data);
+      } catch (erpErr) {
+        console.warn("ERP tables might not exist yet", erpErr);
+      }
     } catch (err) {
       console.error("Admin fetch error:", err);
     } finally {
@@ -177,6 +205,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
   };
 
   const handleUpdateLeadStatus = async (leadId: string, status: string) => {
+    if (status === 'lost' && !confirm("Are you sure you want to mark this lead as Lost?")) return;
     await supabase.from("leads").update({ status }).eq("id", leadId);
     fetchAllData();
     if (selectedLead?.id === leadId) setSelectedLead((p: any) => ({ ...p, status }));
@@ -570,6 +599,9 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
     { id: "crm", label: "CRM Leads", icon: Users, badge: dbLeads.filter(l => l.status === "new").length || undefined },
     { id: "pos", label: "Generate Bill", icon: IndianRupee },
     { id: "orders", label: "Order History", icon: FileText },
+    { id: "hr", label: "HR & Staffing", icon: UserPlus },
+    { id: "finance", label: "Finance & Ledger", icon: TrendingUp },
+    { id: "vendors", label: "Vendors & Suppliers", icon: Package },
   ];
 
   const filteredSarees = dbSarees.filter(s =>
@@ -584,22 +616,22 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
     <div className="min-h-screen flex flex-col md:flex-row bg-[#FDFBF7] font-sans text-brand-maroon" id="admin-console-view">
 
       {/* ── MOBILE TOP NAV BAR (visible on small screens only) ────────────── */}
-      <div className="md:hidden bg-[#1C050E] text-[#F9F5F0] flex flex-col print:hidden">
+      <div className="md:hidden bg-[#1C050E] text-[#F9F5F0] flex flex-col sticky top-0 z-[60] shadow-xl print:hidden">
         {/* Brand strip */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
           <div>
             <span className="text-[8px] tracking-[0.25em] uppercase text-brand-gold font-bold">Art & Anchal</span>
-            <p className="font-serif text-sm font-light text-white">Admin Console</p>
+            <p className="font-serif text-base font-light text-white">Admin Console</p>
           </div>
-          <div className="flex items-center gap-2">
-            <button onClick={fetchAllData} disabled={loading} className="p-1.5 border border-white/15 rounded text-white/60 hover:text-white">
-              <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
+          <div className="flex items-center gap-3">
+            <button onClick={fetchAllData} disabled={loading} className="text-white/60 hover:text-white">
+              <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
             </button>
-            <button onClick={() => setView("home")} className="p-1.5 text-white/60 hover:text-white" title="Back to Store">
-              <ArrowLeft className="w-3.5 h-3.5" />
+            <button onClick={() => setView("home")} className="text-white/60 hover:text-white" title="Back to Store">
+              <ArrowLeft className="w-4 h-4" />
             </button>
-            <button onClick={handleLogout} className="p-1.5 text-white/60 hover:text-white" title="Log Out">
-              <LogOut className="w-3.5 h-3.5" />
+            <button onClick={handleLogout} className="text-white/60 hover:text-white" title="Log Out">
+              <LogOut className="w-4 h-4" />
             </button>
           </div>
         </div>
@@ -1278,8 +1310,8 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                     <h1 className="font-serif text-3.5xl text-brand-maroon tracking-wider font-light">Art&Anchal</h1>
                     <p className="text-[10.5px] text-brand-warm-gray leading-relaxed font-sans">
                       Varanasi Handloom Boutique & Weaving Cooperative<br />
-                      Ghats of Ganges, Sarai Mohana, Varanasi, UP — 221001<br />
-                      <span className="font-semibold text-brand-maroon">GSTIN: 09AAHCA9923P1ZH</span> &nbsp;|&nbsp; +91 94501 12345
+                      Vishwanath Gali, Kotwalipura, Lahori Tola, Varanasi, UP 221001<br />
+                      <span className="font-semibold text-brand-maroon">GSTIN: 09AAHCA9923P1ZH</span> &nbsp;|&nbsp; +91 75250 51124
                     </p>
                   </div>
                   <div className="text-right space-y-1.5 flex-shrink-0 ml-4">
@@ -1396,7 +1428,9 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
               </div>
 
               <div className="bg-[#FAF7F2] border border-brand-gold/15 rounded-lg overflow-hidden">
-                <div className="overflow-x-auto">
+                
+                {/* ── DESKTOP TABLE ── */}
+                <div className="hidden md:block overflow-x-auto">
                   <table className="w-full text-left text-xs">
                     <thead>
                       <tr className="bg-[#1C050E] text-[#F9F5F0] text-[10px] uppercase tracking-wider">
@@ -1444,12 +1478,76 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                         ))}
                     </tbody>
                   </table>
-                  {dbOrders.length === 0 && (
-                    <div className="py-16 text-center text-xs text-brand-warm-gray italic">No orders yet.</div>
-                  )}
                 </div>
+
+                {/* ── MOBILE STACKED CARDS ── */}
+                <div className="md:hidden divide-y divide-brand-gold/10">
+                  {dbOrders
+                    .filter(o =>
+                      o.customer_name?.toLowerCase().includes(orderSearch.toLowerCase()) ||
+                      o.invoice_number?.toLowerCase().includes(orderSearch.toLowerCase())
+                    )
+                    .map(o => (
+                      <div key={o.id} className="p-4 bg-white hover:bg-brand-sand/10 transition">
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <span className="font-mono text-[10px] text-brand-gold font-bold bg-[#1C050E] px-1.5 py-0.5 rounded">{o.invoice_number || o.id?.slice(0, 8)}</span>
+                            <p className="font-serif font-bold text-base mt-1">{o.customer_name}</p>
+                          </div>
+                          <span className="font-mono font-bold text-sm text-brand-maroon">₹{Number(o.total || 0).toLocaleString("en-IN")}</span>
+                        </div>
+                        <div className="flex flex-wrap gap-2 text-[10px] uppercase font-bold tracking-wider mb-2">
+                          <span className={`px-2 py-0.5 rounded-full ${
+                            o.status === "delivered" ? "bg-emerald-100 text-emerald-700" :
+                            o.status === "pending" ? "bg-amber-100 text-amber-700" :
+                            o.status === "cancelled" ? "bg-red-100 text-red-700" :
+                            "bg-blue-100 text-blue-700"
+                          }`}>{o.status}</span>
+                          <span className={`px-2 py-0.5 rounded-full ${
+                            o.is_offline ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-blue-700"
+                          }`}>{o.is_offline ? "Showroom" : "Online"}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-[10px] text-brand-warm-gray pt-2 border-t border-brand-gold/5">
+                          <span>{new Date(o.created_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</span>
+                          <span className="font-mono uppercase">{o.payment_mode || "—"}</span>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+
+                {dbOrders.length === 0 && (
+                  <div className="py-16 text-center text-xs text-brand-warm-gray italic">No orders yet.</div>
+                )}
               </div>
             </div>
+          )}
+
+          {/* ══ HR TAB ════════════════════════════════════════════════ */}
+          {activeTab === "hr" && (
+            <AdminHRTab 
+              dbEmployees={dbEmployees} 
+              dbAttendance={dbAttendance} 
+              fetchAllData={fetchAllData} 
+            />
+          )}
+
+          {/* ══ FINANCE TAB ════════════════════════════════════════════════ */}
+          {activeTab === "finance" && (
+            <AdminFinanceTab 
+              dbExpenses={dbExpenses} 
+              dbPurchases={dbPurchases} 
+              dbDues={dbDues} 
+              dbOrders={dbOrders} 
+              fetchAllData={fetchAllData} 
+            />
+          )}
+
+          {/* ══ VENDORS TAB ════════════════════════════════════════════════ */}
+          {activeTab === "vendors" && (
+            <AdminVendorsTab 
+              dbPurchases={dbPurchases} 
+              dbDues={dbDues} 
+            />
           )}
 
         </div>
@@ -1477,8 +1575,11 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                 <div className="space-y-1">
                   <label className="text-[10px] uppercase font-bold block">Material *</label>
                   <input type="text" required value={sareeForm.material} onChange={e => setSareeForm({ ...sareeForm, material: e.target.value })}
-                    placeholder="e.g. 100% Pure Katan Silk"
+                    placeholder="e.g. 100% Pure Katan Silk" list="material-list"
                     className="w-full bg-white border border-brand-gold/20 p-2.5 focus:outline-none focus:border-brand-maroon" />
+                  <datalist id="material-list">
+                    {Array.from(new Set(dbSarees.map(s => s.material).filter(Boolean))).map((m: any) => <option key={m} value={m} />)}
+                  </datalist>
                 </div>
               </div>
 
@@ -1486,12 +1587,12 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-1">
                   <label className="text-[10px] uppercase font-bold block">Price (₹) *</label>
-                  <input type="number" required value={sareeForm.price} onChange={e => setSareeForm({ ...sareeForm, price: Number(e.target.value) })}
+                  <input type="number" min="0" required value={sareeForm.price} onChange={e => setSareeForm({ ...sareeForm, price: Number(e.target.value) })}
                     className="w-full bg-white border border-brand-gold/20 p-2.5 focus:outline-none" />
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] uppercase font-bold block">Original Price (₹)</label>
-                  <input type="number" value={sareeForm.original_price} onChange={e => setSareeForm({ ...sareeForm, original_price: e.target.value })}
+                  <input type="number" min="0" value={sareeForm.original_price} onChange={e => setSareeForm({ ...sareeForm, original_price: e.target.value })}
                     placeholder="Optional" className="w-full bg-white border border-brand-gold/20 p-2.5 focus:outline-none" />
                 </div>
                 <div className="space-y-1">
@@ -1507,23 +1608,21 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-1">
                   <label className="text-[10px] uppercase font-bold block">Zari Type</label>
-                  <select value={sareeForm.zari_type} onChange={e => setSareeForm({ ...sareeForm, zari_type: e.target.value })}
-                    className="w-full bg-white border border-brand-gold/20 p-2.5 focus:outline-none">
-                    <option>Pure Gold Zari</option>
-                    <option>Tested Zari</option>
-                    <option>Silver Zari</option>
-                    <option>Water Gold Zari</option>
-                  </select>
+                  <input type="text" value={sareeForm.zari_type} onChange={e => setSareeForm({ ...sareeForm, zari_type: e.target.value })}
+                    placeholder="e.g. Pure Gold Zari" list="zari-list"
+                    className="w-full bg-white border border-brand-gold/20 p-2.5 focus:outline-none focus:border-brand-maroon" />
+                  <datalist id="zari-list">
+                    {Array.from(new Set(dbSarees.map(s => s.zari_type).filter(Boolean))).map((z: any) => <option key={z} value={z} />)}
+                  </datalist>
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] uppercase font-bold block">Technique</label>
-                  <select value={sareeForm.weaving_technique} onChange={e => setSareeForm({ ...sareeForm, weaving_technique: e.target.value })}
-                    className="w-full bg-white border border-brand-gold/20 p-2.5 focus:outline-none">
-                    <option>Kadwa Handloom</option>
-                    <option>Fekua Handloom</option>
-                    <option>Tanchoi Weave</option>
-                    <option>Jamdani Handloom</option>
-                  </select>
+                  <input type="text" value={sareeForm.weaving_technique} onChange={e => setSareeForm({ ...sareeForm, weaving_technique: e.target.value })}
+                    placeholder="e.g. Kadwa Handloom" list="technique-list"
+                    className="w-full bg-white border border-brand-gold/20 p-2.5 focus:outline-none focus:border-brand-maroon" />
+                  <datalist id="technique-list">
+                    {Array.from(new Set(dbSarees.map(s => s.weaving_technique).filter(Boolean))).map((t: any) => <option key={t} value={t} />)}
+                  </datalist>
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] uppercase font-bold block">Collection</label>
@@ -1548,7 +1647,11 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                 <div className="space-y-1">
                   <label className="text-[10px] uppercase font-bold block">Color</label>
                   <input type="text" value={sareeForm.colors} onChange={e => setSareeForm({ ...sareeForm, colors: e.target.value })}
-                    placeholder="e.g. Ivory Gold" className="w-full bg-white border border-brand-gold/20 p-2.5 focus:outline-none" />
+                    placeholder="e.g. Ivory Gold" list="color-list"
+                    className="w-full bg-white border border-brand-gold/20 p-2.5 focus:outline-none focus:border-brand-maroon" />
+                  <datalist id="color-list">
+                    {Array.from(new Set(dbSarees.flatMap(s => s.colors || []).filter(Boolean))).map((c: any) => <option key={c} value={c} />)}
+                  </datalist>
                 </div>
                 <div className="space-y-2 col-span-3">
                   <div className="flex items-center justify-between">

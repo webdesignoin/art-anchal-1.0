@@ -166,11 +166,12 @@ export default function Footer({ setView }: FooterProps) {
           </div>
           <address className="not-italic space-y-2">
             <span className="block text-xs text-[#C7B7AE] font-mono leading-relaxed">
-              Varanasi Handloom Guild<br />
-              Uttar Pradesh, 221001
+              Vishwanath Gali, Kotwalipura,<br />
+              Lahori Tola, Varanasi,<br />
+              Uttar Pradesh 221001
             </span>
             <span className="block text-xs text-brand-gold font-mono tracking-tight">
-              +91 9450 112 345
+              +91 75250 51124
             </span>
           </address>
         </div>
