@@ -85,7 +85,7 @@ export default function CheckoutView({ cart, clearCart, setView, userSession }: 
     maximumFractionDigits: 0,
   }).format(total);
 
-  const handleInputChange = (field: string, value: string) => {
+  const handleInputChange = async (field: string, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
     if (validationErrors[field]) {
       setValidationErrors((prev) => {
@@ -93,6 +93,28 @@ export default function CheckoutView({ cart, clearCart, setView, userSession }: 
         delete next[field];
         return next;
       });
+    }
+
+    if (field === "zip" && value.length === 6 && /^\d+$/.test(value)) {
+      try {
+        const res = await fetch(`https://api.zippopotam.us/IN/${value}`);
+        if (!res.ok) throw new Error("Invalid PIN");
+        const data = await res.json();
+        if (data && data.places && data.places.length > 0) {
+          const place = data.places[0];
+          setForm((prev) => ({
+            ...prev,
+            city: `${place["place name"]}, ${place.state}`
+          }));
+          setValidationErrors((prev) => {
+            const next = { ...prev };
+            delete next.city;
+            return next;
+          });
+        }
+      } catch (err) {
+        console.warn("Failed to fetch pincode details", err);
+      }
     }
   };
 
@@ -169,7 +191,55 @@ export default function CheckoutView({ cart, clearCart, setView, userSession }: 
 
       const order = await response.json();
 
-      // 2. Open Razorpay checkout modal
+      // 2. Pre-create order in Supabase as 'pending'
+      const orderId = generateUUID();
+      const addressJson = {
+        address: form.address,
+        city: form.city,
+        zip: form.zip,
+        bust_size: form.bustSize || null,
+        waist_size: form.waistSize || null,
+        shoulder_width: form.shoulder || null,
+      };
+
+      const { error: orderError } = await supabase
+        .from("orders")
+        .insert({
+          id: orderId,
+          profile_id: userSession?.id || null,
+          customer_name: form.name,
+          customer_email: form.email,
+          customer_phone: form.phone || null,
+          shipping_address: addressJson,
+          subtotal: total,
+          discount: 0,
+          tax: 0,
+          total: total,
+          status: "pending",
+          payment_mode: form.paymentMethod as any,
+          is_paid: false,
+          is_offline: false,
+          transaction_id: order.id, // storing RZP order ID temporarily
+          notes: "Waiting for payment completion",
+        });
+
+      if (orderError) throw new Error(`Failed to initialize order: ${orderError.message}`);
+
+      const itemsToInsert = cart.map((item) => ({
+        order_id: orderId,
+        saree_id: item.saree.id,
+        product_name: item.saree.name,
+        unit_price: item.saree.price,
+        quantity: item.quantity,
+      }));
+
+      const { error: itemsError } = await supabase
+        .from("order_items")
+        .insert(itemsToInsert);
+
+      if (itemsError) throw new Error(`Failed to save items in database ledger: ${itemsError.message}`);
+
+      // 3. Open Razorpay checkout modal
       const options = {
         key: import.meta.env.VITE_RAZORPAY_KEY_ID,
         amount: order.amount,
@@ -179,7 +249,7 @@ export default function CheckoutView({ cart, clearCart, setView, userSession }: 
         order_id: order.id,
         handler: async function (response: any) {
           try {
-            // 3. Verify payment signature on the backend
+            // 4. Verify payment signature on the backend
             const verifyRes = await fetch('/api/verify-payment', {
               method: 'POST',
               headers: {
@@ -196,60 +266,37 @@ export default function CheckoutView({ cart, clearCart, setView, userSession }: 
               throw new Error('Payment verification failed');
             }
 
-            // 4. Save order to Supabase
-            const orderId = generateUUID();
-            const addressJson = {
-              address: form.address,
-              city: form.city,
-              zip: form.zip,
-              bust_size: form.bustSize || null,
-              waist_size: form.waistSize || null,
-              shoulder_width: form.shoulder || null,
-            };
-
-            const { error: orderError } = await supabase
+            // Update order to paid
+            await supabase
               .from("orders")
-              .insert({
-                id: orderId,
-                profile_id: userSession?.id || null,
-                customer_name: form.name,
-                customer_email: form.email,
-                customer_phone: form.phone || null,
-                shipping_address: addressJson,
-                subtotal: total,
-                discount: 0,
-                tax: 0,
-                total: total,
+              .update({
                 status: "paid",
-                payment_mode: form.paymentMethod as any,
                 is_paid: true,
-                is_offline: false,
                 transaction_id: response.razorpay_payment_id,
                 notes: null,
-              });
-
-            if (orderError) throw new Error(`Failed to record order: ${orderError.message}`);
-
-            const itemsToInsert = cart.map((item) => ({
-              order_id: orderId,
-              saree_id: item.saree.id,
-              product_name: item.saree.name,
-              unit_price: item.saree.price,
-              quantity: item.quantity,
-            }));
-
-            const { error: itemsError } = await supabase
-              .from("order_items")
-              .insert(itemsToInsert);
-
-            if (itemsError) throw new Error(`Failed to save items in database ledger: ${itemsError.message}`);
+              })
+              .eq("id", orderId);
 
             setGeneratedOrderId(orderId.slice(0, 8).toUpperCase());
             setProcessing(false);
             setOrderSuccess(true);
             clearCart();
           } catch (err: any) {
-            setErrorMsg(err.message || "An unexpected error occurred finalizing your order.");
+            setErrorMsg(err.message || "Payment completed but verification failed.");
+            setProcessing(false);
+          }
+        },
+        modal: {
+          ondismiss: async function() {
+            // Update order to cancelled if user closes the modal
+            await supabase
+              .from("orders")
+              .update({
+                status: "cancelled",
+                notes: "User abandoned the payment modal."
+              })
+              .eq("id", orderId);
+            setErrorMsg("Payment was cancelled. Your cart is preserved.");
             setProcessing(false);
           }
         },
@@ -265,8 +312,17 @@ export default function CheckoutView({ cart, clearCart, setView, userSession }: 
 
       const rzp = new (window as any).Razorpay(options);
       
-      rzp.on('payment.failed', function (response: any) {
-        setErrorMsg(`Payment failed: ${response.error.description}`);
+      rzp.on('payment.failed', async function (response: any) {
+        const failureReason = response.error.description || "Bank rejected payment";
+        // Update order to cancelled on failure
+        await supabase
+          .from("orders")
+          .update({
+            status: "cancelled",
+            notes: `Payment failed: ${failureReason}`
+          })
+          .eq("id", orderId);
+        setErrorMsg(`Payment failed: ${failureReason}. Please try again.`);
         setProcessing(false);
       });
 

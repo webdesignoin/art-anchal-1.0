@@ -4,19 +4,31 @@
  */
 
 import React, { useState, useEffect } from "react";
-import { ViewState, DbOrder, DbProfile } from "../../types";
+import { ViewState, DbOrder, DbProfile, Saree } from "../../types";
 import { supabase, isMock } from "../../lib/supabase";
-import { User, Package, Bell, MapPin, Instagram, Phone, LogOut, ArrowRight, Settings } from "lucide-react";
+import { Heart, CreditCard, User, Package, Bell, MapPin, Instagram, Phone, LogOut, ArrowRight, Settings, CheckCircle, Truck } from "lucide-react";
 
 interface UserProfileViewProps {
   userSession: { id?: string; name: string; email: string; is_admin?: boolean; phone?: string } | null;
   setView: (view: ViewState) => void;
   setUserSession: (session: any) => void;
+  wishlist?: Saree[];
+  toggleFavorite?: (saree: Saree) => void;
+  setQuickViewSaree?: (saree: Saree) => void;
+  setSelectedSareeId?: (id: string | null) => void;
 }
 
-type TabType = "profile" | "orders" | "updates";
+type TabType = "profile" | "orders" | "updates" | "wishlist" | "payment";
 
-export default function UserProfileView({ userSession, setView, setUserSession }: UserProfileViewProps) {
+export default function UserProfileView({ 
+  userSession, 
+  setView, 
+  setUserSession,
+  wishlist = [],
+  toggleFavorite,
+  setQuickViewSaree,
+  setSelectedSareeId 
+}: UserProfileViewProps) {
   const [activeTab, setActiveTab] = useState<TabType>("profile");
   const [loading, setLoading] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -154,6 +166,26 @@ export default function UserProfileView({ userSession, setView, setUserSession }
     }
   };
 
+  const handleZipChange = async (val: string) => {
+    setNewAddress({...newAddress, zip: val});
+    if (val.length === 6 && /^\d+$/.test(val)) {
+      try {
+        const res = await fetch(`https://api.zippopotam.us/IN/${val}`);
+        if (!res.ok) throw new Error("Invalid PIN");
+        const data = await res.json();
+        if (data && data.places && data.places.length > 0) {
+          const place = data.places[0];
+          setNewAddress(prev => ({
+            ...prev,
+            city: `${place["place name"]}, ${place.state}`
+          }));
+        }
+      } catch (err) {
+        console.warn("Failed to fetch pincode details", err);
+      }
+    }
+  };
+
   const handleRemoveAddress = async (addressId: string) => {
     const updatedAddresses = (profile.saved_addresses || []).filter(a => a.id !== addressId);
     setProfile({ ...profile, saved_addresses: updatedAddresses });
@@ -228,6 +260,26 @@ export default function UserProfileView({ userSession, setView, setUserSession }
                 }`}
               >
                 <Package className={`w-5 h-5 ${activeTab === "orders" ? "text-brand-gold" : ""}`} /> Order History
+              </button>
+              <button
+                onClick={() => setActiveTab("wishlist")}
+                className={`w-full flex items-center gap-4 px-6 py-4 text-left text-xs uppercase tracking-widest font-bold transition-all ${
+                  activeTab === "wishlist" 
+                    ? "bg-brand-maroon text-white shadow-lg" 
+                    : "text-brand-warm-gray hover:bg-brand-sand hover:text-brand-maroon"
+                }`}
+              >
+                <Heart className={`w-5 h-5 ${activeTab === "wishlist" ? "text-brand-gold" : ""}`} /> Wishlist
+              </button>
+              <button
+                onClick={() => setActiveTab("payment")}
+                className={`w-full flex items-center gap-4 px-6 py-4 text-left text-xs uppercase tracking-widest font-bold transition-all ${
+                  activeTab === "payment" 
+                    ? "bg-brand-maroon text-white shadow-lg" 
+                    : "text-brand-warm-gray hover:bg-brand-sand hover:text-brand-maroon"
+                }`}
+              >
+                <CreditCard className={`w-5 h-5 ${activeTab === "payment" ? "text-brand-gold" : ""}`} /> Payment Methods
               </button>
               <button
                 onClick={() => setActiveTab("updates")}
@@ -402,7 +454,7 @@ export default function UserProfileView({ userSession, setView, setUserSession }
                             type="text" 
                             required
                             value={newAddress.zip}
-                            onChange={(e) => setNewAddress({...newAddress, zip: e.target.value})}
+                            onChange={(e) => handleZipChange(e.target.value)}
                             className="w-full bg-brand-ivory border border-brand-gold/30 px-3 py-2 text-xs text-brand-maroon" 
                             placeholder="221001"
                           />
@@ -445,7 +497,7 @@ export default function UserProfileView({ userSession, setView, setUserSession }
                            <span className="font-serif text-4xl text-brand-gold/30">A&A</span>
                         </div>
                         <div className="p-6 sm:p-8 flex-1 flex flex-col justify-center">
-                          <div className="flex flex-wrap justify-between items-start gap-4 mb-4">
+                          <div className="flex flex-wrap justify-between items-start gap-4 mb-6">
                             <div>
                               <p className="text-[10px] uppercase font-bold tracking-widest text-brand-warm-gray mb-1">
                                 Order #{order.id.split("-")[0]}
@@ -455,14 +507,78 @@ export default function UserProfileView({ userSession, setView, setUserSession }
                               </h3>
                             </div>
                             <span className={`text-[10px] uppercase font-bold tracking-widest px-3 py-1.5 border ${
-                              order.order_status === "completed" || order.order_status === "shipped" 
+                              order.status === "completed" || order.status === "shipped" || order.status === "delivered" 
                                 ? "bg-emerald-50 text-emerald-700 border-emerald-200" 
                                 : "bg-brand-gold/10 text-brand-maroon border-brand-gold/30"
                             }`}>
-                              {order.order_status.replace(/_/g, " ")}
+                              {order.status.replace(/_/g, " ")}
                             </span>
                           </div>
+
+                          {/* Order Tracking Visual Timeline */}
+                          <div className="relative mb-8 pb-4">
+                            <div className="absolute top-4 left-4 right-4 h-0.5 bg-brand-sand"></div>
+                            
+                            {/* Dynamically calculate progress bar based on status */}
+                            <div 
+                              className="absolute top-4 left-4 h-0.5 bg-emerald-600 transition-all duration-1000 ease-in-out" 
+                              style={{ 
+                                width: ['completed', 'delivered'].includes(order.status) ? '100%' 
+                                  : order.status === 'shipped' ? '66%' 
+                                  : order.status === 'processing' ? '33%' 
+                                  : '0%' 
+                              }}
+                            ></div>
+
+                            <div className="relative flex justify-between">
+                              <div className="flex flex-col items-center gap-2">
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center relative z-10 ${
+                                  true ? 'bg-emerald-600 text-white' : 'bg-brand-sand text-brand-warm-gray'
+                                }`}>
+                                  <CheckCircle className="w-4 h-4" />
+                                </div>
+                                <span className="text-[9px] uppercase tracking-widest font-bold text-brand-maroon">Placed</span>
+                              </div>
+                              <div className="flex flex-col items-center gap-2">
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center relative z-10 ${
+                                  ['processing', 'shipped', 'delivered', 'completed'].includes(order.status) ? 'bg-emerald-600 text-white' : 'bg-brand-ivory border border-brand-gold/30 text-brand-warm-gray'
+                                }`}>
+                                  <Package className="w-4 h-4" />
+                                </div>
+                                <span className="text-[9px] uppercase tracking-widest font-bold text-brand-maroon">Processing</span>
+                              </div>
+                              <div className="flex flex-col items-center gap-2">
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center relative z-10 ${
+                                  ['shipped', 'delivered', 'completed'].includes(order.status) ? 'bg-emerald-600 text-white' : 'bg-brand-ivory border border-brand-gold/30 text-brand-warm-gray'
+                                }`}>
+                                  <Truck className="w-4 h-4" />
+                                </div>
+                                <span className="text-[9px] uppercase tracking-widest font-bold text-brand-maroon">Shipped</span>
+                              </div>
+                              <div className="flex flex-col items-center gap-2">
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center relative z-10 ${
+                                  ['delivered', 'completed'].includes(order.status) ? 'bg-emerald-600 text-white' : 'bg-brand-ivory border border-brand-gold/30 text-brand-warm-gray'
+                                }`}>
+                                  <MapPin className="w-4 h-4" />
+                                </div>
+                                <span className="text-[9px] uppercase tracking-widest font-bold text-brand-maroon">Delivered</span>
+                              </div>
+                            </div>
+                          </div>
                           
+                          {/* Display tracking info if available */}
+                          {order.tracking_number && (
+                            <div className="bg-brand-sand/30 border border-brand-gold/20 p-4 mb-4 flex justify-between items-center rounded-sm">
+                              <div>
+                                <p className="text-[9px] uppercase tracking-widest font-bold text-brand-warm-gray mb-1">Tracking Information</p>
+                                <p className="text-xs text-brand-maroon font-bold">{order.shipping_carrier || "Carrier"}: <span className="font-mono text-brand-gold">{order.tracking_number}</span></p>
+                              </div>
+                              <button className="text-[10px] uppercase font-bold tracking-widest text-brand-maroon border border-brand-maroon px-4 py-2 hover:bg-brand-maroon hover:text-white transition-colors">
+                                Track Package
+                              </button>
+                            </div>
+                          )}
+
                           <div className="flex justify-between items-end border-t border-brand-gold/10 pt-4 mt-2">
                             <div>
                               <p className="text-xs text-brand-warm-gray">Total Amount</p>
@@ -508,6 +624,97 @@ export default function UserProfileView({ userSession, setView, setUserSession }
                     <p className="text-xs text-brand-warm-gray mt-2 leading-relaxed">Welcome to the Art&Anchal Heritage Guild. You now have priority access to reserve pieces from upcoming seasonal collections.</p>
                   </div>
 
+                </div>
+              </div>
+            )}
+
+            {/* ── WISHLIST TAB ───────────────────────────────────────── */}
+            {activeTab === "wishlist" && (
+              <div className="animate-fade-in space-y-6">
+                <h2 className="font-serif text-3xl text-brand-maroon mb-2">My Guild Wishlist</h2>
+                <p className="text-xs text-brand-warm-gray mb-8">Your curated selections of timeless heirlooms.</p>
+
+                {wishlist.length === 0 ? (
+                  <div className="bg-brand-sand/30 border border-brand-gold/20 p-12 text-center">
+                    <Heart className="w-12 h-12 text-brand-gold/50 mx-auto mb-4" />
+                    <h3 className="font-serif text-xl text-brand-maroon mb-2">Your wishlist is empty</h3>
+                    <p className="text-sm text-brand-warm-gray mb-6">Browse the catalog to find your perfect masterweave.</p>
+                    <button
+                      onClick={() => { setView("shop"); window.scrollTo(0,0); }}
+                      className="bg-brand-maroon text-brand-ivory text-xs uppercase tracking-widest font-bold px-8 py-3 hover:bg-brand-gold transition-colors"
+                    >
+                      Explore Showroom
+                    </button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {wishlist.map((saree) => (
+                      <div key={saree.id} className="group relative bg-[#FDFBF7] border border-brand-gold/15 flex flex-col justify-between">
+                        <div className="relative aspect-3/4 overflow-hidden bg-brand-sand">
+                          <img
+                            src={saree.images[0]}
+                            alt={saree.name}
+                            onClick={() => {
+                              if (setSelectedSareeId) setSelectedSareeId(saree.id);
+                              setView("product-detail");
+                              window.scrollTo({ top: 0, behavior: "smooth" });
+                            }}
+                            className="w-full h-full object-cover group-hover:scale-103 transition duration-500 cursor-pointer"
+                            referrerPolicy="no-referrer"
+                          />
+                          <button
+                            onClick={() => toggleFavorite && toggleFavorite(saree)}
+                            className="absolute top-2.5 right-2.5 p-2 bg-brand-ivory hover:bg-brand-sand border border-brand-gold/20 text-[#B64545] rounded-full transition cursor-pointer shadow-sm"
+                            title="Remove from wishlist"
+                          >
+                            <Heart className="w-3.5 h-3.5 fill-[#B64545] stroke-[#B64545]" />
+                          </button>
+                        </div>
+                        <div className="p-4 bg-[#FDFBF7]">
+                          <span className="text-[9px] text-brand-gold tracking-wider uppercase block font-sans mb-1">{saree.category}</span>
+                          <h3
+                            onClick={() => {
+                              if (setSelectedSareeId) setSelectedSareeId(saree.id);
+                              setView("product-detail");
+                              window.scrollTo({ top: 0, behavior: "smooth" });
+                            }}
+                            className="font-serif text-sm font-semibold text-brand-maroon hover:text-brand-gold cursor-pointer line-clamp-1 transition duration-200"
+                          >
+                            {saree.name}
+                          </h3>
+                          <p className="text-xs font-mono font-bold text-brand-maroon pt-2">
+                            {new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(saree.price)}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ── PAYMENT METHODS TAB ────────────────────────────────── */}
+            {activeTab === "payment" && (
+              <div className="animate-fade-in space-y-6">
+                <h2 className="font-serif text-3xl text-brand-maroon mb-2">Payment Methods</h2>
+                <p className="text-xs text-brand-warm-gray mb-8">Manage your saved cards for secure, one-click checkout.</p>
+                
+                <div className="bg-white border border-brand-gold/20 p-8 sm:p-12 shadow-sm">
+                  <div className="text-center space-y-6 max-w-sm mx-auto">
+                    <div className="w-16 h-16 rounded-full bg-emerald-50 mx-auto flex items-center justify-center text-emerald-600 border border-emerald-100">
+                      <CreditCard className="w-8 h-8 stroke-[1.2]" />
+                    </div>
+                    <div>
+                      <h3 className="font-serif text-xl text-brand-maroon mb-2">Secured by Razorpay</h3>
+                      <p className="text-xs text-brand-warm-gray leading-relaxed">
+                        To ensure maximum security and PCI compliance, your cards are securely saved directly within the Razorpay Vault when you checkout.
+                      </p>
+                    </div>
+                    <div className="bg-[#FAF7F2] p-4 border border-brand-gold/20 text-left space-y-2">
+                      <p className="text-[10px] uppercase font-bold tracking-widest text-brand-maroon">How it works</p>
+                      <p className="text-xs text-brand-warm-gray">When you make a purchase, simply check the "Save this card" box inside the Razorpay payment window. Your cards will automatically appear on your next visit.</p>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}

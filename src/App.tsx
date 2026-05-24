@@ -577,10 +577,14 @@ export default function App() {
         )}
 
         {currentView === "user-profile" && (
-          <UserProfileView
+          <UserProfileView 
             userSession={userSession}
             setView={setView}
             setUserSession={setUserSession}
+            wishlist={wishlist}
+            toggleFavorite={toggleFavorite}
+            setQuickViewSaree={setQuickViewSaree}
+            setSelectedSareeId={setSelectedSareeId}
           />
         )}
       </main>

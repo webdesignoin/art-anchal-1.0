@@ -136,7 +136,9 @@ export interface DbOrder {
   id: string;
   profile_id?: string | null;
   source: 'online' | 'offline';
-  order_status: 'pending' | 'processing_on_loom' | 'inspected' | 'shipped' | 'completed' | 'canceled';
+  status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'completed' | 'canceled';
+  tracking_number?: string | null;
+  shipping_carrier?: string | null;
   payment_status: 'unpaid' | 'partially_paid' | 'paid' | 'refunded';
   payment_method?: 'card' | 'upi' | 'bank_transfer' | 'cash' | null;
   shipping_name: string;

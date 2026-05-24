@@ -104,6 +104,9 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
 
   // Orders
   const [orderSearch, setOrderSearch] = useState("");
+  const [statusModalOrder, setStatusModalOrder] = useState<any | null>(null);
+  const [statusForm, setStatusForm] = useState({ status: "", tracking_number: "", shipping_carrier: "" });
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
   const showFeedback = (msg: string) => {
     setFeedback(msg);
@@ -467,6 +470,34 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
       if (newProfile) setSelectedProfileId(newProfile.id);
     }
     showFeedback("Customer profile registered.");
+  };
+
+  const handleUpdateOrderStatus = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!statusModalOrder) return;
+    setIsUpdatingStatus(true);
+    
+    try {
+      const isShippedOrDelivered = statusForm.status === 'shipped' || statusForm.status === 'delivered';
+      const { error } = await supabase
+        .from("orders")
+        .update({
+          status: statusForm.status,
+          tracking_number: isShippedOrDelivered ? statusForm.tracking_number : null,
+          shipping_carrier: isShippedOrDelivered ? statusForm.shipping_carrier : null
+        })
+        .eq("id", statusModalOrder.id);
+        
+      if (error) throw error;
+      
+      showFeedback("Order status updated successfully!");
+      setStatusModalOrder(null);
+      fetchAllData();
+    } catch (err: any) {
+      showFeedback(`Error updating order: ${err.message}`);
+    } finally {
+      setIsUpdatingStatus(false);
+    }
   };
 
   const handlePOSCheckout = async () => {
@@ -1441,6 +1472,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                         <th className="px-4 py-3.5">Payment</th>
                         <th className="px-4 py-3.5 text-right">Total</th>
                         <th className="px-4 py-3.5 text-center">Status</th>
+                        <th className="px-4 py-3.5 text-center">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-brand-gold/10">
@@ -1473,6 +1505,21 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                                 o.status === "cancelled" ? "bg-red-100 text-red-700" :
                                 "bg-blue-100 text-blue-700"
                               }`}>{o.status}</span>
+                            </td>
+                            <td className="px-4 py-3.5 text-center">
+                              <button 
+                                onClick={() => {
+                                  setStatusModalOrder(o);
+                                  setStatusForm({ 
+                                    status: o.status || "", 
+                                    tracking_number: o.tracking_number || "", 
+                                    shipping_carrier: o.shipping_carrier || "" 
+                                  });
+                                }}
+                                className="text-[10px] uppercase font-bold tracking-widest text-brand-maroon hover:text-brand-gold transition"
+                              >
+                                Update
+                              </button>
                             </td>
                           </tr>
                         ))}
@@ -1509,7 +1556,22 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                         </div>
                         <div className="flex justify-between items-center text-[10px] text-brand-warm-gray pt-2 border-t border-brand-gold/5">
                           <span>{new Date(o.created_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</span>
-                          <span className="font-mono uppercase">{o.payment_mode || "—"}</span>
+                          <div className="flex items-center gap-4">
+                            <span className="font-mono uppercase">{o.payment_mode || "—"}</span>
+                            <button 
+                              onClick={() => {
+                                setStatusModalOrder(o);
+                                setStatusForm({ 
+                                  status: o.status || "", 
+                                  tracking_number: o.tracking_number || "", 
+                                  shipping_carrier: o.shipping_carrier || "" 
+                                });
+                              }}
+                              className="text-brand-maroon font-bold uppercase hover:text-brand-gold transition"
+                            >
+                              Update
+                            </button>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -1928,6 +1990,79 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                 <button type="submit"
                   className="bg-brand-maroon text-brand-ivory uppercase tracking-widest text-[10px] font-bold px-5 py-3 hover:bg-brand-maroon/90 transition shadow">
                   Register Customer
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── UPDATE ORDER STATUS MODAL ── */}
+      {statusModalOrder && (
+        <div className="fixed inset-0 bg-brand-maroon/20 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-[#FAF7F2] w-full max-w-md p-6 sm:p-8 shadow-2xl relative border border-brand-gold/20">
+            <div className="flex justify-between items-center mb-6 border-b border-brand-gold/15 pb-4">
+              <div>
+                <h3 className="font-serif text-xl text-brand-maroon">Update Order</h3>
+                <p className="text-[10px] text-brand-warm-gray font-mono font-bold uppercase tracking-widest mt-1">Invoice: {statusModalOrder.invoice_number || statusModalOrder.id?.slice(0,8)}</p>
+              </div>
+              <button onClick={() => setStatusModalOrder(null)} className="text-brand-warm-gray hover:text-brand-maroon">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdateOrderStatus} className="space-y-4 text-xs text-brand-maroon">
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase font-bold block tracking-widest">Order Status *</label>
+                <select 
+                  required
+                  value={statusForm.status} 
+                  onChange={e => setStatusForm({ ...statusForm, status: e.target.value })}
+                  className="w-full bg-white border border-brand-gold/20 p-2.5 focus:outline-none focus:border-brand-maroon appearance-none"
+                >
+                  <option value="pending">Pending</option>
+                  <option value="paid">Paid (Unfulfilled)</option>
+                  <option value="processing">Processing</option>
+                  <option value="shipped">Shipped</option>
+                  <option value="delivered">Delivered</option>
+                  <option value="completed">Completed</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
+              </div>
+
+              {(statusForm.status === 'shipped' || statusForm.status === 'delivered') && (
+                <div className="space-y-4 pt-2 border-t border-brand-gold/10 mt-2">
+                  <div className="space-y-1">
+                    <label className="text-[10px] uppercase font-bold block tracking-widest">Shipping Carrier</label>
+                    <input 
+                      type="text" 
+                      placeholder="e.g. BlueDart, FedEx"
+                      value={statusForm.shipping_carrier} 
+                      onChange={e => setStatusForm({ ...statusForm, shipping_carrier: e.target.value })}
+                      className="w-full bg-white border border-brand-gold/20 p-2.5 focus:outline-none focus:border-brand-maroon" 
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] uppercase font-bold block tracking-widest">Tracking Number</label>
+                    <input 
+                      type="text" 
+                      placeholder="AWB / Tracking Number"
+                      value={statusForm.tracking_number} 
+                      onChange={e => setStatusForm({ ...statusForm, tracking_number: e.target.value })}
+                      className="w-full bg-white border border-brand-gold/20 p-2.5 focus:outline-none font-mono" 
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-end gap-3 pt-6">
+                <button type="button" onClick={() => setStatusModalOrder(null)}
+                  className="text-brand-warm-gray uppercase text-[10px] font-bold px-4 py-2 hover:text-brand-maroon transition tracking-widest">
+                  Cancel
+                </button>
+                <button type="submit" disabled={isUpdatingStatus}
+                  className="bg-brand-maroon text-brand-ivory uppercase tracking-widest text-[10px] font-bold px-5 py-3 hover:bg-brand-maroon/90 transition shadow disabled:opacity-50">
+                  {isUpdatingStatus ? "Updating..." : "Save Status"}
                 </button>
               </div>
             </form>
