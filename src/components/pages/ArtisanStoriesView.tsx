@@ -68,7 +68,7 @@ export default function ArtisanStoriesView({
               return (
                 <div
                   key={artisan.id}
-                  className="flex flex-col lg:grid lg:grid-cols-12 gap-4 lg:gap-12 items-start lg:border-b border-brand-gold/15 lg:pb-16 pb-4 last:border-0"
+                  className={`flex flex-col lg:grid lg:grid-cols-12 gap-4 lg:gap-12 items-start lg:border-b border-brand-gold/15 lg:pb-16 pb-4 last:border-0 ${index > 1 ? 'heavy-section-deferred' : ''}`}
                 >
                   {/* Left col: Image avatar with specialty badge */}
                   <div className="w-full lg:col-span-4 space-y-2 lg:space-y-4">

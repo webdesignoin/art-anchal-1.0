@@ -60,7 +60,7 @@ export default function CollectionsView({ setView, setSelectedCategory, collecti
             return (
               <div
                 key={col.id}
-                className={`group relative flex flex-col lg:grid lg:grid-cols-12 gap-4 lg:gap-16 items-center animate-on-scroll opacity-0 translate-y-24 transition-all duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)] ${isEven ? "" : "lg:flex-row-reverse"}`}
+                className={`group relative flex flex-col lg:grid lg:grid-cols-12 gap-4 lg:gap-16 items-center animate-on-scroll opacity-0 translate-y-24 transition-all duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)] ${isEven ? "" : "lg:flex-row-reverse"} ${index > 0 ? "heavy-section-deferred" : ""}`}
               >
                 {/* Visual Image */}
                 <div className={`w-full lg:col-span-5 relative z-10 ${isEven ? "lg:col-start-2" : "lg:col-start-7 lg:order-last"}`}>

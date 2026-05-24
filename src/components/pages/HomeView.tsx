@@ -211,7 +211,7 @@ export default function HomeView({
           {bestsellers.map((saree) => {
             const displayImg = saree.images && saree.images.length > 0 ? saree.images[0] : (saree as any).image_url;
             return (
-              <div key={saree.id} className="group cursor-pointer flex flex-col" onClick={() => handleSareeClick(saree.id)}>
+              <div key={saree.id} className="group cursor-pointer flex flex-col heavy-section-deferred" onClick={() => handleSareeClick(saree.id)}>
                 <div className="relative aspect-[3/4] overflow-hidden bg-brand-sand mb-5">
                   <img
                     src={displayImg}

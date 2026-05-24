@@ -66,6 +66,12 @@
   border: 1px solid rgba(197, 168, 128, 0.25);
 }
 
+/* Modern Web Guidance: Defer rendering for heavy off-screen sections */
+.heavy-section-deferred {
+  content-visibility: auto;
+  contain-intrinsic-size: auto none auto 500px;
+}
+
 /* Custom Animations & Transitions */
 @keyframes pop-in {
   0% {
