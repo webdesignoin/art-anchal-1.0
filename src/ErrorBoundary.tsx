@@ -78,9 +78,9 @@ class ErrorBoundaryInner extends React.Component<any, any> {
 
             {/* Message */}
             <div>
-              <h2 style={{ fontFamily: "serif", fontWeight: 300, color: "#F9F5F0", marginBottom: "0.5rem" }}>Something went wrong</h2>
+              <h2 style={{ fontFamily: "serif", fontWeight: 300, color: "#F9F5F0", marginBottom: "0.5rem" }}>We will be back soon</h2>
               <p style={{ fontSize: "0.875rem", color: "rgba(249,245,240,0.6)", lineHeight: 1.6, margin: 0 }}>
-                An unexpected error occurred. Please refresh to continue exploring our collections.
+                Our systems are currently experiencing a brief hiccup. Please try refreshing the page, or check back in a few minutes.
               </p>
             </div>
 
