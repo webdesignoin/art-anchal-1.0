@@ -7,7 +7,7 @@ import React, { useState, useEffect, FormEvent } from "react";
 import { ViewState } from "../../types";
 import {
   User, ShieldCheck, Mail, Lock, Unlock, EyeOff, ClipboardList,
-  HelpCircle, PhoneCall, LayoutDashboard, Users, ShoppingBag, IndianRupee,
+  HelpCircle, PhoneCall, LayoutDashboard, Users, ShoppingBag, IndianRupee, RefreshCw
 } from "lucide-react";
 import { supabase, isMock } from "../../lib/supabase";
 
@@ -59,7 +59,6 @@ export default function LoginRegisterView({
     e.preventDefault();
     if (!inp.email || !inp.password) return;
     setIsLoading(true);
-    if (setAppLoading) setAppLoading(true);
     try {
       if (isMock) {
         const mockSession = { id: "mock-id", name: inp.name || "Mock User", email: inp.email, is_admin: false };
@@ -111,7 +110,6 @@ export default function LoginRegisterView({
       showMsg(err.message || "An error occurred.");
     } finally {
       setIsLoading(false);
-      if (setAppLoading) setAppLoading(false);
     }
   };
 
@@ -120,7 +118,6 @@ export default function LoginRegisterView({
     e.preventDefault();
     if (!phone) return;
     setIsLoading(true);
-    if (setAppLoading) setAppLoading(true);
     try {
       const { error } = await supabase.auth.signInWithOtp({ phone });
       if (error) { showMsg(error.message); return; }
@@ -130,7 +127,6 @@ export default function LoginRegisterView({
       showMsg(err.message);
     } finally {
       setIsLoading(false);
-      if (setAppLoading) setAppLoading(false);
     }
   };
 
@@ -138,7 +134,6 @@ export default function LoginRegisterView({
     e.preventDefault();
     if (!otpValue) return;
     setIsLoading(true);
-    if (setAppLoading) setAppLoading(true);
     try {
       const { data, error } = await supabase.auth.verifyOtp({ phone, token: otpValue, type: "sms" });
       if (error) { showMsg(error.message); return; }
@@ -158,7 +153,6 @@ export default function LoginRegisterView({
       showMsg(err.message);
     } finally {
       setIsLoading(false);
-      if (setAppLoading) setAppLoading(false);
     }
   };
 
@@ -284,9 +278,10 @@ export default function LoginRegisterView({
                     <button
                       type="submit"
                       disabled={isLoading}
-                      className="w-full bg-brand-maroon text-brand-ivory text-xs uppercase tracking-widest font-bold py-3.5 disabled:opacity-60"
+                      className="w-full flex items-center justify-center gap-2 bg-brand-maroon text-brand-ivory text-xs uppercase tracking-widest font-bold py-3.5 disabled:opacity-60 transition shadow-md"
                       id="send-otp-btn"
                     >
+                      {isLoading && <RefreshCw className="w-4 h-4 animate-spin text-brand-gold" />}
                       {isLoading ? "Sending..." : "Send OTP"}
                     </button>
                   </form>
@@ -302,6 +297,7 @@ export default function LoginRegisterView({
                         placeholder="6-digit code"
                         maxLength={6}
                         required
+                        autoFocus
                         className="w-full bg-white border border-brand-gold/25 px-4 py-3 text-xs text-brand-maroon placeholder-brand-warm-gray/50 focus:outline-none focus:border-brand-maroon text-center font-mono tracking-widest"
                         id="otp-input"
                       />
@@ -309,9 +305,10 @@ export default function LoginRegisterView({
                     <button
                       type="submit"
                       disabled={isLoading}
-                      className="w-full bg-brand-maroon text-brand-ivory text-xs uppercase tracking-widest font-bold py-3.5 disabled:opacity-60"
+                      className="w-full flex items-center justify-center gap-2 bg-brand-maroon text-brand-ivory text-xs uppercase tracking-widest font-bold py-3.5 disabled:opacity-60 transition shadow-md"
                       id="verify-otp-btn"
                     >
+                      {isLoading && <RefreshCw className="w-4 h-4 animate-spin text-brand-gold" />}
                       {isLoading ? "Verifying..." : "Verify & Sign In"}
                     </button>
                     <button type="button" onClick={() => { setOtpSent(false); setOtpValue(""); }} className="w-full text-[10px] text-brand-warm-gray underline">
@@ -378,18 +375,21 @@ export default function LoginRegisterView({
 
 
                 {submitFeedback && (
-                  <p className="text-[11px] text-center font-sans text-brand-maroon bg-brand-gold/10 border border-brand-gold/20 py-2 px-3">
-                    {submitFeedback}
-                  </p>
+                  <div className="animate-fade-in">
+                    <p className="text-[11px] text-center font-sans text-brand-maroon bg-brand-gold/10 border border-brand-gold/20 py-2 px-3">
+                      {submitFeedback}
+                    </p>
+                  </div>
                 )}
 
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full bg-brand-maroon hover:bg-brand-maroon/90 text-brand-ivory text-xs uppercase tracking-widest font-bold py-3.5 disabled:opacity-60 transition shadow-md"
+                  className="w-full flex items-center justify-center gap-2 bg-brand-maroon hover:bg-brand-maroon/90 text-brand-ivory text-xs uppercase tracking-widest font-bold py-3.5 disabled:opacity-60 transition shadow-md"
                   id="auth-submit-btn"
                 >
-                  {isLoading ? "Please wait..." : isLogin ? "Sign In" : "Create Account"}
+                  {isLoading && <RefreshCw className="w-4 h-4 animate-spin text-brand-gold" />}
+                  {isLoading ? "Authenticating..." : isLogin ? "Sign In" : "Create Account"}
                 </button>
 
                 {!isLogin && (
@@ -425,7 +425,6 @@ export default function LoginRegisterView({
                   return;
                 }
                 setIsLoading(true);
-                if (setAppLoading) setAppLoading(true);
                 localStorage.removeItem("art_anchal_user");
                 try {
                   const { error } = await supabase.auth.signInWithOAuth({
@@ -438,7 +437,6 @@ export default function LoginRegisterView({
                 } catch (err: any) {
                   setSubmitFeedback(`Google Sign-In failed: ${err.message}`);
                   setIsLoading(false);
-                  if (setAppLoading) setAppLoading(false);
                 }
               }}
               className="w-full flex items-center justify-center gap-3 bg-white border border-brand-gold/30 hover:bg-brand-sand text-brand-maroon text-[11px] font-sans font-medium py-3 transition shadow-sm"

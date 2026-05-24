@@ -375,10 +375,13 @@ GRANT SELECT ON public.artisans    TO anon, authenticated;
 GRANT SELECT ON public.collections TO anon, authenticated;
 GRANT SELECT ON public.sarees      TO anon, authenticated;
 
-GRANT SELECT, INSERT, UPDATE ON public.profiles    TO authenticated;
-GRANT SELECT, INSERT         ON public.orders      TO anon, authenticated;
-GRANT SELECT, INSERT         ON public.order_items TO anon, authenticated;
-GRANT INSERT                 ON public.leads        TO anon, authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.profiles    TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.orders      TO anon, authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.order_items TO anon, authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.leads       TO anon, authenticated;
+GRANT INSERT, UPDATE, DELETE ON public.sarees      TO authenticated;
+GRANT INSERT, UPDATE, DELETE ON public.collections TO authenticated;
+GRANT INSERT, UPDATE, DELETE ON public.artisans    TO authenticated;
 
 -- =========================================================================
 -- END OF SCHEMA
