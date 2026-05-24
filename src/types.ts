@@ -83,6 +83,13 @@ export type ViewState =
   | "admin-console"
   | "user-profile";
 
+export interface SavedAddress {
+  id: string;
+  address: string;
+  city: string;
+  zip: string;
+}
+
 export interface DbProfile {
   id: string;
   auth_user_id?: string | null;
@@ -93,6 +100,7 @@ export interface DbProfile {
   instagram?: string | null;
   is_admin: boolean;
   source: 'online' | 'offline';
+  saved_addresses?: SavedAddress[] | null;
   created_at: string;
   updated_at: string;
 }

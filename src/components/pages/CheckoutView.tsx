@@ -46,6 +46,7 @@ export default function CheckoutView({ cart, clearCart, setView, userSession }: 
   const [generatedOrderId, setGeneratedOrderId] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [savedAddresses, setSavedAddresses] = useState<any[]>([]);
 
   // Auto-populate values from userSession when it updates (e.g. async auth load)
   useEffect(() => {
@@ -56,6 +57,23 @@ export default function CheckoutView({ cart, clearCart, setView, userSession }: 
         email: prev.email || userSession.email || "",
         phone: prev.phone || userSession.phone || "",
       }));
+      
+      const fetchAddresses = async () => {
+        try {
+          let query = supabase.from("profiles").select("saved_addresses");
+          if (userSession.id) query = query.eq("auth_user_id", userSession.id);
+          else query = query.eq("email", userSession.email);
+          
+          const { data } = await query.single();
+          if (data && data.saved_addresses) {
+            setSavedAddresses(data.saved_addresses);
+          }
+        } catch (e) {
+          console.warn("Failed to fetch saved addresses");
+        }
+      };
+      
+      fetchAddresses();
     }
   }, [userSession]);
 
@@ -76,6 +94,23 @@ export default function CheckoutView({ cart, clearCart, setView, userSession }: 
         return next;
       });
     }
+  };
+
+  const handleAddressSelect = (addr: any) => {
+    setForm((prev) => ({
+      ...prev,
+      address: addr.address,
+      city: addr.city,
+      zip: addr.zip,
+    }));
+    // clear validation errors for these fields
+    setValidationErrors((prev) => {
+      const next = { ...prev };
+      delete next.address;
+      delete next.city;
+      delete next.zip;
+      return next;
+    });
   };
 
   const validateForm = () => {
@@ -119,68 +154,125 @@ export default function CheckoutView({ cart, clearCart, setView, userSession }: 
     setErrorMsg("");
 
     try {
-      const orderId = generateUUID();
-      const addressJson = {
-        address: form.address,
-        city: form.city,
-        zip: form.zip,
-        bust_size: form.bustSize || null,
-        waist_size: form.waistSize || null,
-        shoulder_width: form.shoulder || null,
+      // 1. Create order on the backend
+      const response = await fetch('/api/create-order', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ amount: total * 100, currency: 'INR' }), // amount in paise
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create Razorpay order');
+      }
+
+      const order = await response.json();
+
+      // 2. Open Razorpay checkout modal
+      const options = {
+        key: import.meta.env.VITE_RAZORPAY_KEY_ID,
+        amount: order.amount,
+        currency: order.currency,
+        name: "Art & Anchal",
+        description: "Secure Varanasi Handloom Order",
+        order_id: order.id,
+        handler: async function (response: any) {
+          try {
+            // 3. Verify payment signature on the backend
+            const verifyRes = await fetch('/api/verify-payment', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+              }),
+            });
+
+            if (!verifyRes.ok) {
+              throw new Error('Payment verification failed');
+            }
+
+            // 4. Save order to Supabase
+            const orderId = generateUUID();
+            const addressJson = {
+              address: form.address,
+              city: form.city,
+              zip: form.zip,
+              bust_size: form.bustSize || null,
+              waist_size: form.waistSize || null,
+              shoulder_width: form.shoulder || null,
+            };
+
+            const { error: orderError } = await supabase
+              .from("orders")
+              .insert({
+                id: orderId,
+                profile_id: userSession?.id || null,
+                customer_name: form.name,
+                customer_email: form.email,
+                customer_phone: form.phone || null,
+                shipping_address: addressJson,
+                subtotal: total,
+                discount: 0,
+                tax: 0,
+                total: total,
+                status: "paid",
+                payment_mode: form.paymentMethod as any,
+                is_paid: true,
+                is_offline: false,
+                transaction_id: response.razorpay_payment_id,
+                notes: null,
+              });
+
+            if (orderError) throw new Error(`Failed to record order: ${orderError.message}`);
+
+            const itemsToInsert = cart.map((item) => ({
+              order_id: orderId,
+              saree_id: item.saree.id,
+              product_name: item.saree.name,
+              unit_price: item.saree.price,
+              quantity: item.quantity,
+            }));
+
+            const { error: itemsError } = await supabase
+              .from("order_items")
+              .insert(itemsToInsert);
+
+            if (itemsError) throw new Error(`Failed to save items in database ledger: ${itemsError.message}`);
+
+            setGeneratedOrderId(orderId.slice(0, 8).toUpperCase());
+            setProcessing(false);
+            setOrderSuccess(true);
+            clearCart();
+          } catch (err: any) {
+            setErrorMsg(err.message || "An unexpected error occurred finalizing your order.");
+            setProcessing(false);
+          }
+        },
+        prefill: {
+          name: form.name,
+          email: form.email,
+          contact: form.phone,
+        },
+        theme: {
+          color: "#5B0E2D",
+        },
       };
 
-      // 1. Create order record with schema-correct fields
-      const { error: orderError } = await supabase
-        .from("orders")
-        .insert({
-          id: orderId,
-          profile_id: userSession?.id || null,
-          customer_name: form.name,
-          customer_email: form.email,
-          customer_phone: form.phone || null,
-          shipping_address: addressJson,
-          subtotal: total,
-          discount: 0,
-          tax: 0,
-          total: total,
-          status: "pending",
-          payment_mode: form.paymentMethod as any,
-          is_paid: true,
-          is_offline: false,
-          notes: null,
-        });
-
-      if (orderError) {
-        setErrorMsg(`Failed to record order: ${orderError.message}`);
+      const rzp = new (window as any).Razorpay(options);
+      
+      rzp.on('payment.failed', function (response: any) {
+        setErrorMsg(`Payment failed: ${response.error.description}`);
         setProcessing(false);
-        return;
-      }
+      });
 
-      // 2. Create order items records, ensuring the required product_name is included
-      const itemsToInsert = cart.map((item) => ({
-        order_id: orderId,
-        saree_id: item.saree.id,
-        product_name: item.saree.name,
-        unit_price: item.saree.price,
-        quantity: item.quantity,
-      }));
-
-      const { error: itemsError } = await supabase
-        .from("order_items")
-        .insert(itemsToInsert);
-
-      if (itemsError) {
-        setErrorMsg(`Failed to save items in database ledger: ${itemsError.message}`);
-        setProcessing(false);
-        return;
-      }
-
-      setGeneratedOrderId(orderId.slice(0, 8).toUpperCase());
-      setProcessing(false);
-      setOrderSuccess(true);
-      clearCart();
+      rzp.open();
     } catch (err: any) {
-      setErrorMsg(err.message || "An unexpected error occurred processing your checkout.");
+      setErrorMsg(err.message || "An unexpected error occurred starting checkout.");
       setProcessing(false);
     }
   };
@@ -267,6 +359,25 @@ export default function CheckoutView({ cart, clearCart, setView, userSession }: 
                 <h3 className="serif-heading text-xl font-serif text-brand-maroon tracking-wide pb-2 border-b border-brand-gold/15">
                   Insured Delivery Coordinates
                 </h3>
+
+                {savedAddresses.length > 0 && (
+                  <div className="mb-6">
+                    <p className="text-[10px] text-brand-maroon font-bold uppercase tracking-wider mb-3">Use a Saved Address</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {savedAddresses.map((addr) => (
+                        <button
+                          key={addr.id}
+                          type="button"
+                          onClick={() => handleAddressSelect(addr)}
+                          className="text-left border border-brand-gold/30 hover:border-brand-maroon p-3 bg-white transition-colors group"
+                        >
+                          <p className="font-medium text-brand-maroon text-sm group-hover:text-brand-gold truncate">{addr.address}</p>
+                          <p className="text-xs text-brand-warm-gray">{addr.city}, {addr.zip}</p>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">

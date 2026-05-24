@@ -27,7 +27,10 @@ export default function UserProfileView({ userSession, setView, setUserSession }
     phone: userSession?.phone || "",
     whatsapp: "",
     instagram: "",
+    saved_addresses: [],
   });
+
+  const [newAddress, setNewAddress] = useState({ address: "", city: "", zip: "" });
 
   const [orders, setOrders] = useState<DbOrder[]>([]);
 
@@ -60,6 +63,7 @@ export default function UserProfileView({ userSession, setView, setUserSession }
           phone: data.phone || "",
           whatsapp: data.whatsapp || "",
           instagram: data.instagram || "",
+          saved_addresses: data.saved_addresses || [],
         });
       }
     } catch (err) {
@@ -98,6 +102,7 @@ export default function UserProfileView({ userSession, setView, setUserSession }
             phone: profile.phone,
             whatsapp: profile.whatsapp,
             instagram: profile.instagram,
+            saved_addresses: profile.saved_addresses,
           })
           .eq("id", profile.id);
       } else {
@@ -109,6 +114,7 @@ export default function UserProfileView({ userSession, setView, setUserSession }
             phone: profile.phone,
             whatsapp: profile.whatsapp,
             instagram: profile.instagram,
+            saved_addresses: profile.saved_addresses,
           })
           .eq("email", profile.email);
       }
@@ -124,6 +130,39 @@ export default function UserProfileView({ userSession, setView, setUserSession }
       console.error("Error saving profile", err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAddAddress = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newAddress.address || !newAddress.city || !newAddress.zip) return;
+    
+    const addressWithId = {
+      ...newAddress,
+      id: crypto.randomUUID(),
+    };
+
+    const updatedAddresses = [...(profile.saved_addresses || []), addressWithId];
+    setProfile({ ...profile, saved_addresses: updatedAddresses });
+    setNewAddress({ address: "", city: "", zip: "" });
+    
+    // Auto-save the new address directly to DB
+    if (profile.id) {
+      await supabase.from("profiles").update({ saved_addresses: updatedAddresses }).eq("id", profile.id);
+    } else if (profile.email) {
+      await supabase.from("profiles").update({ saved_addresses: updatedAddresses }).eq("email", profile.email);
+    }
+  };
+
+  const handleRemoveAddress = async (addressId: string) => {
+    const updatedAddresses = (profile.saved_addresses || []).filter(a => a.id !== addressId);
+    setProfile({ ...profile, saved_addresses: updatedAddresses });
+    
+    // Auto-save
+    if (profile.id) {
+      await supabase.from("profiles").update({ saved_addresses: updatedAddresses }).eq("id", profile.id);
+    } else if (profile.email) {
+      await supabase.from("profiles").update({ saved_addresses: updatedAddresses }).eq("email", profile.email);
     }
   };
 
@@ -298,6 +337,84 @@ export default function UserProfileView({ userSession, setView, setUserSession }
                       )}
                     </div>
                   </form>
+                </div>
+
+                <div className="bg-white border border-brand-gold/20 p-8 sm:p-12 shadow-sm mt-8">
+                  <h2 className="font-serif text-3xl text-brand-maroon mb-2">Address Book</h2>
+                  <p className="text-xs text-brand-warm-gray mb-8">Save delivery addresses for faster bespoke checkout.</p>
+                  
+                  <div className="space-y-6">
+                    {/* Existing Addresses */}
+                    {profile.saved_addresses && profile.saved_addresses.length > 0 ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+                        {profile.saved_addresses.map(addr => (
+                          <div key={addr.id} className="border border-brand-gold/20 p-4 relative group">
+                            <button 
+                              onClick={() => handleRemoveAddress(addr.id)}
+                              className="absolute top-2 right-2 text-brand-warm-gray hover:text-[#B64545] p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                              title="Remove Address"
+                            >
+                              <span className="text-[10px] uppercase font-bold tracking-widest">Remove</span>
+                            </button>
+                            <div className="flex items-start gap-2">
+                              <MapPin className="w-4 h-4 text-brand-gold shrink-0 mt-0.5" />
+                              <div className="text-sm text-brand-maroon space-y-1">
+                                <p className="font-medium">{addr.address}</p>
+                                <p className="text-xs">{addr.city}, {addr.zip}</p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-xs text-brand-warm-gray mb-6">No saved addresses found.</div>
+                    )}
+
+                    {/* Add New Address Form */}
+                    <form onSubmit={handleAddAddress} className="border-t border-brand-gold/15 pt-6">
+                      <h4 className="text-[10px] font-bold uppercase tracking-widest text-brand-maroon mb-4">Add New Address</h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-end">
+                        <div className="sm:col-span-6 space-y-2">
+                          <label className="text-[9px] uppercase tracking-widest text-brand-maroon block">Street Address</label>
+                          <input 
+                            type="text" 
+                            required
+                            value={newAddress.address}
+                            onChange={(e) => setNewAddress({...newAddress, address: e.target.value})}
+                            className="w-full bg-brand-ivory border border-brand-gold/30 px-3 py-2 text-xs text-brand-maroon" 
+                            placeholder="Apartment, Street..."
+                          />
+                        </div>
+                        <div className="sm:col-span-3 space-y-2">
+                          <label className="text-[9px] uppercase tracking-widest text-brand-maroon block">City</label>
+                          <input 
+                            type="text" 
+                            required
+                            value={newAddress.city}
+                            onChange={(e) => setNewAddress({...newAddress, city: e.target.value})}
+                            className="w-full bg-brand-ivory border border-brand-gold/30 px-3 py-2 text-xs text-brand-maroon" 
+                            placeholder="Varanasi"
+                          />
+                        </div>
+                        <div className="sm:col-span-3 space-y-2">
+                          <label className="text-[9px] uppercase tracking-widest text-brand-maroon block">Zip Code</label>
+                          <input 
+                            type="text" 
+                            required
+                            value={newAddress.zip}
+                            onChange={(e) => setNewAddress({...newAddress, zip: e.target.value})}
+                            className="w-full bg-brand-ivory border border-brand-gold/30 px-3 py-2 text-xs text-brand-maroon" 
+                            placeholder="221001"
+                          />
+                        </div>
+                        <div className="sm:col-span-12 mt-2">
+                          <button type="submit" className="text-[10px] uppercase font-bold tracking-widest bg-brand-sand border border-brand-gold/50 text-brand-maroon px-4 py-2 hover:bg-brand-gold/20 transition-colors">
+                            Add Address
+                          </button>
+                        </div>
+                      </div>
+                    </form>
+                  </div>
                 </div>
               </div>
             )}
