@@ -30,6 +30,7 @@ export default function UserProfileView({
   setSelectedSareeId 
 }: UserProfileViewProps) {
   const [activeTab, setActiveTab] = useState<TabType>("profile");
+  const [activeInvoice, setActiveInvoice] = useState<InvoiceData | null>(null);
   const [loading, setLoading] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   
@@ -55,7 +56,21 @@ export default function UserProfileView({
     if (activeTab === "orders" || activeTab === "profile") {
       fetchOrders();
     }
-  }, [userSession, activeTab]);
+
+    // Also listen to auth state changes to re-fetch once session is absolutely ready
+    if (!isMock) {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+        if (event === "SIGNED_IN" || event === "INITIAL_SESSION") {
+          if (activeTab === "orders" || activeTab === "profile") {
+             fetchOrders();
+          }
+        }
+      });
+      return () => {
+        subscription.unsubscribe();
+      };
+    }
+  }, [userSession?.email, activeTab]);
 
   const fetchProfileData = async () => {
     if (!userSession?.id && !isMock) return;
@@ -601,7 +616,7 @@ export default function UserProfileView({
                                 {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(order.total_amount)}
                               </p>
                             </div>
-                            <button className="text-[10px] uppercase font-bold tracking-widest text-brand-gold hover:text-brand-maroon flex items-center gap-1 transition-colors">
+                            <button onClick={() => handleViewInvoice(order)} className="text-[10px] uppercase font-bold tracking-widest text-brand-gold hover:text-brand-maroon flex items-center gap-1 transition-colors">
                               View Invoice <ArrowRight className="w-3 h-3" />
                             </button>
                           </div>

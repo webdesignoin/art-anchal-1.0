@@ -20,6 +20,7 @@ import {
 import AdminHRTab from "./AdminHRTab";
 import AdminFinanceTab from "./AdminFinanceTab";
 import AdminVendorsTab from "./AdminVendorsTab";
+import InvoiceDocument, { InvoiceData } from "../InvoiceDocument";
 
 interface AdminConsoleViewProps {
   userSession: { id?: string; name: string; email: string; is_admin?: boolean } | null;
@@ -117,6 +118,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
   const fetchAllData = async () => {
     setLoading(true);
     try {
+      await supabase.auth.getSession(); // Guard against race condition on reload
       const [s, ar, col, ld, ord, prof] = await Promise.all([
         supabase.from("sarees").select("*").order("created_at", { ascending: false }),
         supabase.from("artisans").select("*").order("name"),
@@ -472,112 +474,24 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
     showFeedback("Customer profile registered.");
   };
 
-  const handleUpdateOrderStatus = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!statusModalOrder) return;
-    setIsUpdatingStatus(true);
-    
-    try {
-      const isShippedOrDelivered = statusForm.status === 'shipped' || statusForm.status === 'delivered';
-      const { error } = await supabase
-        .from("orders")
-        .update({
-          status: statusForm.status,
-          tracking_number: isShippedOrDelivered ? statusForm.tracking_number : null,
-          shipping_carrier: isShippedOrDelivered ? statusForm.shipping_carrier : null
-        })
-        .eq("id", statusModalOrder.id);
-        
-      if (error) throw error;
-      
-      showFeedback("Order status updated successfully!");
-      setStatusModalOrder(null);
-      fetchAllData();
-    } catch (err: any) {
-      showFeedback(`Error updating order: ${err.message}`);
-    } finally {
-      setIsUpdatingStatus(false);
-    }
-  };
-
-  const handlePOSCheckout = async () => {
-    if (!selectedProfileId) { alert("Please select or register a customer."); return; }
-    if (posCart.length === 0) { alert("Cart is empty."); return; }
-
+  const handleViewInvoice = async (order: any) => {
     setLoading(true);
     try {
-      const profile = dbProfiles.find(p => p.id === selectedProfileId);
-      if (!profile) throw new Error("Profile not found.");
-
-      // 1. Create order (schema-aligned) — no .select() to avoid RETURNING+RLS
-      const { error: orderErr } = await supabase
-        .from("orders")
-        .insert({
-          profile_id: profile.id,
-          customer_name: profile.name,
-          customer_email: profile.email || "showroom@artandanchal.com",
-          customer_phone: profile.phone || null,
-          shipping_address: { type: "showroom", city: "Varanasi", address: "Art&Anchal Boutique, Varanasi" },
-          subtotal: posSubtotal,
-          discount: posDiscountAmt,
-          tax: posTaxAmt,
-          total: posTotal,
-          status: "delivered",
-          payment_mode: posPaymentMethod as any,
-          is_paid: true,
-          is_offline: true,
-          notes: posNotes || null,
-        });
-
-      if (orderErr) throw orderErr;
-
-      // Fetch the order we just created (by profile_id + recency)
-      const { data: latestOrder, error: fetchErr } = await supabase
-        .from("orders")
-        .select("*")
-        .eq("profile_id", profile.id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .single();
-      if (fetchErr) throw fetchErr;
-      const order = latestOrder;
-
-      // 2. Insert order items
-      const itemsPayload = posCart.map(item => ({
-        order_id: order.id,
-        saree_id: item.saree.id,
-        product_name: item.saree.name,
-        unit_price: item.saree.price,
-        quantity: item.quantity,
-      }));
-      const { error: itemsErr } = await supabase.from("order_items").insert(itemsPayload);
-      if (itemsErr) throw itemsErr;
-
-      // 3. Decrement stock for each item sold
-      for (const item of posCart) {
-        const currentStock = item.saree.stock_quantity ?? 0;
-        const newStock = Math.max(0, currentStock - item.quantity);
-        await supabase.from("sarees").update({ stock_quantity: newStock }).eq("id", item.saree.id);
-      }
-
-      // 4. Refresh order to pick up DB-generated invoice_number
-      const { data: freshOrder } = await supabase
-        .from("orders")
-        .select("*")
-        .eq("id", order.id)
-        .single();
-
-      // 5. Show invoice
+      const { data: items } = await supabase.from("order_items").select("*, saree:sarees(*)").eq("order_id", order.id);
       setActiveInvoice({
         invoice_number: freshOrder?.invoice_number || `INV-${Date.now()}`,
-        order: freshOrder || order,
-        profile,
+        created_at: freshOrder?.created_at,
+        customer_name: profile.name,
+        customer_phone: profile.phone || undefined,
+        customer_email: profile.email || undefined,
+        is_offline: true,
         items: posCart,
         subtotal: posSubtotal,
         discount: posDiscountAmt,
         tax: posTaxAmt,
         total: posTotal,
         payment_mode: posPaymentMethod,
+        notes: posNotes || undefined,
       });
 
       // 6. Reset POS
@@ -753,6 +667,10 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
         )}
 
         <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
+          {activeInvoice ? (
+            <InvoiceDocument invoice={activeInvoice} onBack={() => setActiveInvoice(null)} />
+          ) : (
+            <>
 
           {/* ══ OVERVIEW TAB ═══════════════════════════════════════════════ */}
           {activeTab === "overview" && (
@@ -1318,130 +1236,6 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
             </div>
           )}
 
-          {/* ══ INVOICE PRINT VIEW ════════════════════════════════════════ */}
-          {activeTab === "pos" && activeInvoice && (
-            <div className="max-w-2xl mx-auto animate-fade-in">
-              {/* Print toolbar */}
-              <div className="flex justify-between items-center mb-5 print:hidden">
-                <button onClick={() => setActiveInvoice(null)}
-                  className="flex items-center gap-2 text-xs text-brand-warm-gray hover:text-brand-maroon uppercase tracking-wider font-bold transition">
-                  <ArrowLeft className="w-4 h-4" /> Back to POS
-                </button>
-                <button onClick={() => window.print()}
-                  className="bg-brand-maroon text-brand-ivory text-xs uppercase tracking-widest px-6 py-3 font-bold flex items-center gap-2 hover:bg-brand-maroon/90 transition shadow">
-                  <Printer className="w-4 h-4" /> Print Invoice
-                </button>
-              </div>
-
-              {/* Invoice document */}
-              <div id="printable-invoice-area" className="bg-white border-2 border-brand-gold/30 p-8 sm:p-12 space-y-8 shadow-2xl print:shadow-none print:border-none print:p-0">
-                {/* Header */}
-                <div className="flex justify-between items-start border-b-[3px] border-double border-brand-maroon/30 pb-6">
-                  <div className="space-y-1.5">
-                    <h1 className="font-serif text-3.5xl text-brand-maroon tracking-wider font-light">Art&Anchal</h1>
-                    <p className="text-[10.5px] text-brand-warm-gray leading-relaxed font-sans">
-                      Varanasi Handloom Boutique & Weaving Cooperative<br />
-                      Vishwanath Gali, Kotwalipura, Lahori Tola, Varanasi, UP 221001<br />
-                      <span className="font-semibold text-brand-maroon">GSTIN: 09AAHCA9923P1ZH</span> &nbsp;|&nbsp; +91 75250 51124
-                    </p>
-                  </div>
-                  <div className="text-right space-y-1.5 flex-shrink-0 ml-4">
-                    <span className="bg-brand-maroon text-brand-ivory text-[8.5px] uppercase tracking-[0.2em] font-sans font-bold px-3 py-1.5 inline-block">
-                      TAX INVOICE
-                    </span>
-                    <p className="text-xs font-mono font-bold text-brand-maroon block pt-2.5">{activeInvoice.invoice_number}</p>
-                    <p className="text-[10px] font-mono text-brand-warm-gray">
-                      Date: {new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" })}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Bill To */}
-                <div className="grid grid-cols-2 gap-8 text-[11px]">
-                  <div className="space-y-1">
-                    <h5 className="font-bold uppercase tracking-wider text-brand-gold text-[9px]">Bill To:</h5>
-                    <p className="font-serif font-semibold text-base text-brand-maroon">{activeInvoice.profile?.name}</p>
-                    {activeInvoice.profile?.phone && <p className="text-brand-warm-gray">📱 {activeInvoice.profile.phone}</p>}
-                    {activeInvoice.profile?.email && <p className="text-brand-warm-gray">{activeInvoice.profile.email}</p>}
-                    <p className="text-brand-warm-gray">Varanasi Showroom Walk-in</p>
-                  </div>
-                  <div className="space-y-1 text-right">
-                    <h5 className="font-bold uppercase tracking-wider text-brand-gold text-[9px]">Payment Info:</h5>
-                    <p className="font-bold uppercase text-brand-maroon">{activeInvoice.payment_mode}</p>
-                    <span className="inline-block bg-emerald-100 text-emerald-800 text-[9px] font-bold uppercase px-2 py-0.5 rounded-full">PAID ✓</span>
-                  </div>
-                </div>
-
-                {/* Items table */}
-                <table className="w-full text-left border-collapse text-xs">
-                  <thead>
-                    <tr className="border-b-2 border-brand-maroon/20 text-[10px] uppercase font-bold text-brand-maroon">
-                      <th className="py-2.5">Item Description</th>
-                      <th className="py-2.5 text-center">Qty</th>
-                      <th className="py-2.5 text-right">Unit Price</th>
-                      <th className="py-2.5 text-right">Amount</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-brand-gold/15">
-                    {activeInvoice.items?.map((item: any, idx: number) => (
-                      <tr key={idx}>
-                        <td className="py-3.5">
-                          <p className="font-serif font-semibold text-[13px] text-brand-maroon">{item.saree?.name || "Handloom Saree"}</p>
-                          <p className="text-[9px] text-brand-gold uppercase mt-0.5">{item.saree?.weaving_technique || ""} {item.saree?.zari_type ? `• ${item.saree.zari_type}` : ""}</p>
-                          {item.saree?.material && <p className="text-[9px] text-brand-warm-gray">{item.saree.material}</p>}
-                        </td>
-                        <td className="py-3.5 text-center font-mono">{item.quantity}</td>
-                        <td className="py-3.5 text-right font-mono">₹{Number(item.saree?.price || item.unit_price).toLocaleString("en-IN")}</td>
-                        <td className="py-3.5 text-right font-mono font-bold">₹{Number((item.saree?.price || item.unit_price) * item.quantity).toLocaleString("en-IN")}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-
-                {/* Totals */}
-                <div className="flex justify-end border-t-2 border-brand-maroon/10 pt-5">
-                  <div className="w-72 space-y-2 text-xs">
-                    <div className="flex justify-between text-brand-warm-gray">
-                      <span>Subtotal</span>
-                      <span className="font-mono">₹{Number(activeInvoice.subtotal).toLocaleString("en-IN")}</span>
-                    </div>
-                    {activeInvoice.discount > 0 && (
-                      <div className="flex justify-between text-emerald-600">
-                        <span>Discount</span>
-                        <span className="font-mono">−₹{Number(activeInvoice.discount).toLocaleString("en-IN")}</span>
-                      </div>
-                    )}
-                    <div className="flex justify-between text-brand-warm-gray">
-                      <span>CGST @ 2.5%</span>
-                      <span className="font-mono">₹{Math.round(activeInvoice.tax / 2).toLocaleString("en-IN")}</span>
-                    </div>
-                    <div className="flex justify-between text-brand-warm-gray">
-                      <span>SGST @ 2.5%</span>
-                      <span className="font-mono">₹{Math.round(activeInvoice.tax / 2).toLocaleString("en-IN")}</span>
-                    </div>
-                    <div className="flex justify-between font-bold text-sm border-t border-brand-maroon/20 pt-2.5 text-brand-maroon">
-                      <span>Grand Total</span>
-                      <span className="font-mono">₹{Number(activeInvoice.total).toLocaleString("en-IN")}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Footer */}
-                <div className="border-t border-brand-gold/20 pt-6 text-center space-y-2">
-                  {activeInvoice.order?.notes && (
-                    <p className="text-[10px] text-brand-warm-gray italic">Notes: {activeInvoice.order.notes}</p>
-                  )}
-                  <p className="text-[10px] text-brand-warm-gray">
-                    Thank you for choosing Art&Anchal — Preserving Varanasi's living heritage, one thread at a time.
-                  </p>
-                  <p className="text-[9px] text-brand-warm-gray font-mono">
-                    * Handloom sarees: GST @ 5% (CGST 2.5% + SGST 2.5%) as per Notification No. 1/2017-CT(Rate) &nbsp;|&nbsp; E&OE
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* ══ ORDERS TAB ════════════════════════════════════════════════ */}
           {activeTab === "orders" && (
             <div className="space-y-5 animate-fade-in print:hidden">
@@ -1520,6 +1314,12 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                               >
                                 Update
                               </button>
+                              <button 
+                                onClick={() => handleViewInvoice(o)}
+                                className="text-[10px] uppercase font-bold tracking-widest text-brand-gold hover:text-brand-maroon transition ml-3"
+                              >
+                                View Bill
+                              </button>
                             </td>
                           </tr>
                         ))}
@@ -1571,6 +1371,12 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                             >
                               Update
                             </button>
+                            <button 
+                              onClick={() => handleViewInvoice(o)}
+                              className="text-brand-gold font-bold uppercase hover:text-brand-maroon transition ml-1"
+                            >
+                              View Bill
+                            </button>
                           </div>
                         </div>
                       </div>
@@ -1612,6 +1418,8 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
             />
           )}
 
+          </>
+          )}
         </div>
       </main>
 
