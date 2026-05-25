@@ -234,7 +234,7 @@ export default function CheckoutView({ cart, clearCart, setView, userSession }: 
           id: orderId,
           profile_id: profileId,
           customer_name: form.name,
-          customer_email: form.email,
+          customer_email: form.email.toLowerCase(),
           customer_phone: form.phone || null,
           shipping_address: addressJson,
           subtotal: total,

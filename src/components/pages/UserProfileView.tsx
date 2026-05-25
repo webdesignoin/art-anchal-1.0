@@ -112,10 +112,12 @@ export default function UserProfileView({
       // RLS already protects this, but we explicitly filter so admins don't load all orders here.
       let query = supabase.from("orders").select("*, items:order_items(*)").order("created_at", { ascending: false });
       
-      // Resolve the actual profile ID directly to ensure rock-solid matching
+      // Resolve profile ID and use an OR query to catch both hard-linked orders and email-fallback orders
       if (userSession?.id) {
         const { data: prof } = await supabase.from("profiles").select("id").eq("auth_user_id", userSession.id).single();
-        if (prof?.id) {
+        if (prof?.id && userSession?.email) {
+          query = query.or(`profile_id.eq.${prof.id},customer_email.eq.${userSession.email}`);
+        } else if (prof?.id) {
           query = query.eq("profile_id", prof.id);
         } else if (userSession?.email) {
           query = query.eq("customer_email", userSession.email);
