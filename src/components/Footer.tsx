@@ -181,7 +181,10 @@ export default function Footer({ setView }: FooterProps) {
       {/* ── Bottom Underbar ────────────────────────────────────────── */}
       <div className="border-t border-brand-gold/10 py-8 px-4 sm:px-6 lg:px-8 text-[#7E726B] text-[10px] tracking-[0.15em] uppercase font-bold relative z-10">
         <div className="max-w-7xl mx-auto flex flex-col lg:flex-row justify-between items-center gap-6 text-center lg:text-left">
-          <p>© {new Date().getFullYear()} Art & Anchal Saree Brand Co. All Rights Reserved.</p>
+          <div className="flex flex-col lg:flex-row items-center gap-4">
+            <img src="/logo2.png" alt="Art & Anchal Logo" className="h-10 w-auto opacity-75" />
+            <p>© {new Date().getFullYear()} Art & Anchal Saree Brand Co. All Rights Reserved.</p>
+          </div>
           <div className="flex flex-wrap justify-center gap-4 sm:gap-8">
             <a href="#" className="hover:text-brand-gold transition cursor-pointer">Security Code of Artisans</a>
             <a href="#" className="hover:text-brand-gold transition cursor-pointer">Privacy Policy</a>
