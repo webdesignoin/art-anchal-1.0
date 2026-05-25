@@ -325,6 +325,7 @@ CREATE POLICY "Users can view own orders"
     ON public.orders FOR SELECT
     USING (
         profile_id IN (SELECT id FROM public.profiles WHERE auth_user_id = auth.uid())
+        OR customer_email = (auth.jwt() ->> 'email')
         OR public.is_admin()
     );
 
@@ -341,9 +342,9 @@ CREATE POLICY "Users can view own order items"
     ON public.order_items FOR SELECT
     USING (
         order_id IN (
-            SELECT o.id FROM public.orders o
-            JOIN public.profiles p ON p.id = o.profile_id
-            WHERE p.auth_user_id = auth.uid()
+            SELECT id FROM public.orders 
+            WHERE profile_id IN (SELECT id FROM public.profiles WHERE auth_user_id = auth.uid())
+               OR customer_email = (auth.jwt() ->> 'email')
         )
         OR public.is_admin()
     );

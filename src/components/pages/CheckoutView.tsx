@@ -374,21 +374,46 @@ export default function CheckoutView({ cart, clearCart, setView, userSession }: 
           </div>
 
           <div className="space-y-2">
-            <span className="text-[10px] tracking-[0.2em] uppercase text-brand-gold font-bold">Secure Order Verified</span>
+            <div className="inline-flex items-center gap-2 bg-[#E7F3EC] text-[#2E7D32] px-4 py-1.5 rounded-full border border-[#2E7D32]/20 mb-2">
+              <CheckCircle className="w-4 h-4" />
+              <span className="text-[10px] tracking-[0.1em] uppercase font-bold">Payment Complete</span>
+            </div>
             <h2 className="serif-heading text-3xl text-brand-maroon font-serif leading-tight">Order Placed Successfully!</h2>
             <p className="text-xs text-brand-warm-gray leading-relaxed font-light">
               Your order is registered in our Varanasi cooperative guild database under ID: <strong className="font-mono text-brand-maroon">{generatedOrderId}</strong>
             </p>
           </div>
 
-          <div className="bg-brand-ivory border border-brand-gold/15 p-5 text-left text-xs text-brand-warm-gray space-y-3">
-            <h4 className="font-semibold text-brand-maroon uppercase text-[10px] tracking-wider flex items-center gap-1">
+          <div className="bg-brand-ivory border border-brand-gold/15 p-6 text-left space-y-5">
+            <h4 className="font-semibold text-brand-maroon uppercase text-[10px] tracking-wider flex items-center gap-1 pb-2 border-b border-brand-gold/10">
               <Truck className="w-3.5 h-3.5 text-brand-gold" />
-              What happens next?
+              Next Steps
             </h4>
-            <p>1. Our tailoring division will coordinate blouse custom stitching guides via email within 12 business hours.</p>
-            <p>2. You will receive real loom photographs/videos of our family finishing your saree’s pallu before final conservation packing.</p>
-            <p>3. Dispatch inside climate-controlled signature cedar boxes starts within 3-5 working days with global tracking codes.</p>
+            
+            <div className="relative pl-6 space-y-6">
+              {/* Timeline line */}
+              <div className="absolute left-[7px] top-2 bottom-2 w-0.5 bg-brand-gold/20"></div>
+              
+              {/* Step 1 */}
+              <div className="relative">
+                <div className="absolute -left-6 top-0.5 w-4 h-4 rounded-full bg-[#E7F3EC] border border-[#2E7D32] flex items-center justify-center z-10">
+                  <CheckCircle className="w-2.5 h-2.5 text-[#2E7D32]" />
+                </div>
+                <h5 className="text-[11px] font-bold text-brand-maroon uppercase tracking-wider mb-1">Order Confirmed & Paid</h5>
+                <p className="text-[10px] text-brand-warm-gray leading-relaxed">Payment has been verified and securely processed.</p>
+              </div>
+
+              {/* Step 2 */}
+              <div className="relative">
+                <div className="absolute -left-[24px] top-0.5 w-4 h-4 rounded-full bg-brand-ivory border-2 border-brand-gold flex items-center justify-center z-10">
+                  <div className="w-1.5 h-1.5 bg-brand-gold rounded-full animate-pulse"></div>
+                </div>
+                <h5 className="text-[11px] font-bold text-brand-maroon uppercase tracking-wider mb-1">Waiting for shipment details</h5>
+                <p className="text-[10px] text-brand-warm-gray leading-relaxed">
+                  Our tailoring division is coordinating custom stitching. Dispatch inside climate-controlled cedar boxes will start within 3-5 days. You will receive tracking links via email/WhatsApp once shipped.
+                </p>
+              </div>
+            </div>
           </div>
 
           <div className="pt-4">

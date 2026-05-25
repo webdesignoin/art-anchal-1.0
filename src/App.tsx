@@ -62,8 +62,21 @@ export default function App() {
   // App-wide loading screen state
   const [appLoading, setAppLoading] = useState(true);
 
-  const refreshCatalog = async () => {
+  const refreshCatalog = async (force = false) => {
     try {
+      if (!force) {
+        const lastFetchStr = localStorage.getItem("art_anchal_last_fetch");
+        if (lastFetchStr) {
+          const lastFetch = parseInt(lastFetchStr, 10);
+          const now = Date.now();
+          // TTL of 1 hour (3600000 ms)
+          if (now - lastFetch < 3600000) {
+            console.log("Cache is still fresh, skipping background catalog fetch.");
+            return;
+          }
+        }
+      }
+
       const { data: dbSarees } = await supabase.from("sarees").select("*");
       const { data: dbArtisans } = await supabase.from("artisans").select("*");
       const { data: dbCollections } = await supabase.from("collections").select("*");
@@ -100,6 +113,9 @@ export default function App() {
         setCollections(parsedCollections);
         localStorage.setItem("art_anchal_collections", JSON.stringify(parsedCollections));
       }
+      
+      // Update cache timestamp
+      localStorage.setItem("art_anchal_last_fetch", Date.now().toString());
       setDbTick((prev) => !prev);
     } catch (err) {
       console.warn("Failed to synchronize database state: ", err);
