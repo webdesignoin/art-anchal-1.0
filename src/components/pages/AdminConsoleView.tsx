@@ -25,7 +25,7 @@ interface AdminConsoleViewProps {
   userSession: { id?: string; name: string; email: string; is_admin?: boolean } | null;
   setUserSession: (session: any) => void;
   setView: (view: ViewState) => void;
-  refreshCatalog: () => Promise<void>;
+  refreshCatalog: (force?: boolean) => Promise<void>;
 }
 
 type TabType = "overview" | "catalog" | "crm" | "pos" | "orders" | "hr" | "finance" | "vendors";
@@ -157,7 +157,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
 
   useEffect(() => {
     if (userSession?.is_admin) fetchAllData();
-  }, [userSession]);
+  }, [userSession, activeTab]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -278,7 +278,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
       setEditingSaree(null);
       setSareeForm({ ...emptySaree });
       fetchAllData();
-      await refreshCatalog();
+      await refreshCatalog(true);
     } catch (err: any) {
       alert(`Error: ${err.message}`);
     }
@@ -289,7 +289,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
     await supabase.from("sarees").update({ is_active: false }).eq("id", id);
     showFeedback("Saree retired.");
     fetchAllData();
-    await refreshCatalog();
+    await refreshCatalog(true);
   };
 
   const handleOpenEditSaree = (s: any) => {
@@ -586,7 +586,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
       setPosDiscount(0);
       setPosNotes("");
       fetchAllData();
-      await refreshCatalog();
+      await refreshCatalog(true);
       showFeedback("Bill generated! Stock updated.");
     } catch (err: any) {
       alert(`POS Error: ${err.message}`);

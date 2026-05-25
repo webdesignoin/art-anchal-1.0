@@ -52,8 +52,10 @@ export default function UserProfileView({
       return;
     }
     fetchProfileData();
-    fetchOrders();
-  }, [userSession]);
+    if (activeTab === "orders" || activeTab === "profile") {
+      fetchOrders();
+    }
+  }, [userSession, activeTab]);
 
   const fetchProfileData = async () => {
     if (!userSession?.id && !isMock) return;
