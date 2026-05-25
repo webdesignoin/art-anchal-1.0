@@ -108,12 +108,23 @@ export default function UserProfileView({
       // Force Supabase to finish hydrating its internal session before querying RLS tables
       if (!isMock) await supabase.auth.getSession();
 
-      // Find orders matching this profile's email
-      const { data, error } = await supabase
-        .from("orders")
-        .select("*, items:order_items(*)")
-        .eq("customer_email", userSession?.email)
-        .order("created_at", { ascending: false });
+      // Find orders matching this profile's exact ID, fallback to email safely.
+      // RLS already protects this, but we explicitly filter so admins don't load all orders here.
+      let query = supabase.from("orders").select("*, items:order_items(*)").order("created_at", { ascending: false });
+      
+      // Resolve the actual profile ID directly to ensure rock-solid matching
+      if (userSession?.id) {
+        const { data: prof } = await supabase.from("profiles").select("id").eq("auth_user_id", userSession.id).single();
+        if (prof?.id) {
+          query = query.eq("profile_id", prof.id);
+        } else if (userSession?.email) {
+          query = query.eq("customer_email", userSession.email);
+        }
+      } else if (userSession?.email) {
+        query = query.eq("customer_email", userSession.email);
+      }
+
+      const { data, error } = await query;
 
       if (data) {
         setOrders(data);
@@ -619,7 +630,7 @@ export default function UserProfileView({
                             <div>
                               <p className="text-xs text-brand-warm-gray">Total Amount</p>
                               <p className="font-mono text-brand-maroon font-bold text-lg">
-                                {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(order.total_amount)}
+                                {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(order.total)}
                               </p>
                             </div>
                             <button onClick={() => handleViewInvoice(order)} className="text-[10px] uppercase font-bold tracking-widest text-brand-gold hover:text-brand-maroon flex items-center gap-1 transition-colors">
