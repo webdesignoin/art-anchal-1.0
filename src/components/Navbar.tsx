@@ -367,12 +367,26 @@ export default function Navbar({
                     <p className="text-[10px] uppercase tracking-[0.2em] text-brand-gold mb-1">Signed in as</p>
                     <p className="text-lg font-serif text-brand-ivory">{userSession.name}</p>
                   </div>
+                  {userSession.is_admin ? (
+                    <button
+                      onClick={() => selectNavLink("admin-console")}
+                      className="flex items-center gap-3 text-xs tracking-[0.2em] uppercase font-bold text-brand-warm-gray hover:text-brand-ivory transition"
+                    >
+                      <LayoutDashboard className="w-5 h-5" /> Admin Console
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => selectNavLink("user-profile")}
+                      className="flex items-center gap-3 text-xs tracking-[0.2em] uppercase font-bold text-brand-warm-gray hover:text-brand-ivory transition"
+                    >
+                      <User className="w-5 h-5" /> My Dashboard
+                    </button>
+                  )}
                   <button
-                    onClick={userSession.is_admin ? () => selectNavLink("admin-console") : handleLogout}
+                    onClick={handleLogout}
                     className="flex items-center gap-3 text-xs tracking-[0.2em] uppercase font-bold text-brand-warm-gray hover:text-brand-ivory transition"
                   >
-                    {userSession.is_admin ? <LayoutDashboard className="w-5 h-5" /> : <LogOut className="w-5 h-5" />} 
-                    {userSession.is_admin ? "Admin Console" : "Sign Out"}
+                    <LogOut className="w-5 h-5" /> Sign Out
                   </button>
                 </div>
               )}
