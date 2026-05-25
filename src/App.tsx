@@ -34,7 +34,20 @@ import { Sparkles, Eye, ShoppingBag, CheckCircle } from "lucide-react";
 
 export default function App() {
   // App routing and filters
-  const [currentView, setView] = useState<ViewState>("home");
+  const [currentView, _setView] = useState<ViewState>(() => {
+    try {
+      const saved = localStorage.getItem("art_anchal_view");
+      if (saved) return saved as ViewState;
+    } catch {}
+    return "home";
+  });
+
+  const setView = (v: ViewState) => {
+    _setView(v);
+    try {
+      localStorage.setItem("art_anchal_view", v);
+    } catch {}
+  };
   const [selectedSareeId, setSelectedSareeId] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -160,8 +173,11 @@ export default function App() {
           setUserSession(newSession);
           localStorage.setItem("art_anchal_user", JSON.stringify(newSession));
 
-          if (isAdmin) setView("admin-console");
-          else setView("home");
+          // Only navigate if we were on the login screen
+          if (currentView === "login-register") {
+            if (isAdmin) setView("admin-console");
+            else setView("home");
+          }
           
           // Clear hash to prevent infinite loops on reload
           if (window.location.hash.includes("access_token")) {
@@ -283,11 +299,10 @@ export default function App() {
             setUserSession(newSession);
             localStorage.setItem("art_anchal_user", JSON.stringify(newSession));
 
-            // Route admin to console, others to home
-            if (isAdmin) {
-              setView("admin-console");
-            } else {
-              setView("home");
+            // Route only if coming from login or redirected
+            if (currentView === "login-register" || window.location.hash.includes("access_token")) {
+              if (isAdmin) setView("admin-console");
+              else setView("home");
             }
           }
 
