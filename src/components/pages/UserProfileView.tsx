@@ -60,17 +60,17 @@ export default function UserProfileView({
     // Also listen to auth state changes to re-fetch once session is absolutely ready
     if (!isMock) {
       const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-        if (event === "SIGNED_IN" || event === "INITIAL_SESSION") {
-          if (activeTab === "orders" || activeTab === "profile") {
-             fetchOrders();
-          }
+        // Trigger fetch on ANY auth state change (e.g. TOKEN_REFRESHED) to ensure 
+        // we capture data if the initial page load used a stale/refreshing token
+        if (activeTab === "orders" || activeTab === "profile") {
+           fetchOrders();
         }
       });
       return () => {
         subscription.unsubscribe();
       };
     }
-  }, [userSession?.email, activeTab]);
+  }, [userSession, activeTab]);
 
   const fetchProfileData = async () => {
     if (!userSession?.id && !isMock) return;

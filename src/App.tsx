@@ -263,16 +263,7 @@ export default function App() {
               triggerToast("Database Error", upsertErr.message);
             }
 
-            // Skip setting session state only if the session is fully identical
-            // (same email AND same admin flag) — do NOT skip for admin logins
-            try {
-              const existing = localStorage.getItem("art_anchal_user");
-              if (existing) {
-                const parsed = JSON.parse(existing);
-                // Only skip if email matches AND we're not doing an admin login
-                if (parsed.email === u.email && !u.email?.toLowerCase().includes("admin")) return;
-              }
-            } catch {}
+            // Always update session state so children re-render and re-fetch if they had a stale RLS token
 
             // Fetch full profile (including is_admin flag)
             const { data: profile, error: fetchErr } = await supabase
