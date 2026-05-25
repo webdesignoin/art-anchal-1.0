@@ -155,7 +155,13 @@ export default function UserProfileView({
       }
 
       // Update local session
-      const updatedSession = { ...userSession, name: profile.name!, phone: profile.phone! };
+      // Preserve the email string if one existed so orders still match
+      const updatedSession = { 
+        ...userSession, 
+        name: profile.name!, 
+        phone: profile.phone!, 
+        email: profile.email || userSession?.email || "" 
+      };
       setUserSession(updatedSession);
       localStorage.setItem("art_anchal_user", JSON.stringify(updatedSession));
       

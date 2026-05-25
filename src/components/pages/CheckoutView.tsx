@@ -305,6 +305,15 @@ export default function CheckoutView({ cart, clearCart, setView, userSession }: 
                   notes: null,
                 })
                 .eq("id", orderId);
+                
+              // Deplete Inventory Stock safely
+              for (const item of cart) {
+                const newStock = Math.max(0, (item.saree.stock_quantity || 1) - item.quantity);
+                await supabase
+                  .from("sarees")
+                  .update({ stock_quantity: newStock })
+                  .eq("id", item.saree.id);
+              }
             } else {
               console.warn("Frontend verification failed. Relying on Webhook.");
             }

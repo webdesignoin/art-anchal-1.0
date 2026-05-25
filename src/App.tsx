@@ -376,8 +376,14 @@ export default function App() {
   const addToCart = (saree: Saree, quantity: number) => {
     const existingIndex = cart.findIndex((item) => item.saree.id === saree.id);
     let updatedCart = [...cart];
+    const stockLimit = saree.stock_quantity ?? 1;
 
     if (existingIndex > -1) {
+      // Validate stock
+      if (quantity > 0 && updatedCart[existingIndex].quantity + quantity > stockLimit) {
+        triggerToast("Out of Stock", `Only ${stockLimit} ${stockLimit === 1 ? 'piece is' : 'pieces are'} available.`);
+        return;
+      }
       const newQuantity = updatedCart[existingIndex].quantity + quantity;
       if (newQuantity <= 0) {
         updatedCart.splice(existingIndex, 1);
@@ -390,6 +396,10 @@ export default function App() {
         }
       }
     } else if (quantity > 0) {
+      if (quantity > stockLimit) {
+        triggerToast("Out of Stock", `Only ${stockLimit} ${stockLimit === 1 ? 'piece is' : 'pieces are'} available.`);
+        return;
+      }
       updatedCart.push({ saree, quantity });
       triggerToast("Added to showroom bag", saree.name);
       setIsCartOpen(true);
