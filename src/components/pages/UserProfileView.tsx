@@ -60,6 +60,9 @@ export default function UserProfileView({
   const fetchProfileData = async () => {
     if (!userSession?.id && !isMock) return;
     try {
+      // Force Supabase to finish hydrating its internal session before querying RLS tables
+      if (!isMock) await supabase.auth.getSession();
+
       // For mock, we rely on email if ID isn't easily available, or fetch by ID
       let query = supabase.from("profiles").select("*");
       if (userSession?.id && !isMock) {
@@ -87,6 +90,9 @@ export default function UserProfileView({
 
   const fetchOrders = async () => {
     try {
+      // Force Supabase to finish hydrating its internal session before querying RLS tables
+      if (!isMock) await supabase.auth.getSession();
+
       // Find orders matching this profile's email
       const { data, error } = await supabase
         .from("orders")
