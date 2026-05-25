@@ -85,11 +85,11 @@ export default function UserProfileView({
 
   const fetchOrders = async () => {
     try {
-      // Find orders matching this profile's email (simple mock fallback)
+      // Find orders matching this profile's email
       const { data, error } = await supabase
         .from("orders")
         .select("*, items:order_items(*)")
-        .eq("shipping_email", userSession?.email)
+        .eq("customer_email", userSession?.email)
         .order("created_at", { ascending: false });
 
       if (data) {

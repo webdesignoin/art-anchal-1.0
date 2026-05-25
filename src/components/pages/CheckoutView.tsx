@@ -275,7 +275,13 @@ export default function CheckoutView({ cart, clearCart, setView, userSession }: 
         order_id: order.id,
         handler: async function (response: any) {
           try {
-            // 4. Verify payment signature on the backend
+            // OPTIMISTIC UPDATE: Show success screen & clear cart instantly
+            setGeneratedOrderId(orderId.slice(0, 8).toUpperCase());
+            setProcessing(false);
+            setOrderSuccess(true);
+            clearCart();
+
+            // 4. Verify payment signature on the backend in background
             const verifyRes = await fetch('/api/verify-payment', {
               method: 'POST',
               headers: {
@@ -288,28 +294,23 @@ export default function CheckoutView({ cart, clearCart, setView, userSession }: 
               }),
             });
 
-            if (!verifyRes.ok) {
-              throw new Error('Payment verification failed');
+            if (verifyRes.ok) {
+              // Update order to paid
+              await supabase
+                .from("orders")
+                .update({
+                  status: "paid",
+                  is_paid: true,
+                  transaction_id: response.razorpay_payment_id,
+                  notes: null,
+                })
+                .eq("id", orderId);
+            } else {
+              console.warn("Frontend verification failed. Relying on Webhook.");
             }
-
-            // Update order to paid
-            await supabase
-              .from("orders")
-              .update({
-                status: "paid",
-                is_paid: true,
-                transaction_id: response.razorpay_payment_id,
-                notes: null,
-              })
-              .eq("id", orderId);
-
-            setGeneratedOrderId(orderId.slice(0, 8).toUpperCase());
-            setProcessing(false);
-            setOrderSuccess(true);
-            clearCart();
           } catch (err: any) {
-            setErrorMsg(err.message || "Payment completed but verification failed.");
-            setProcessing(false);
+            console.warn("Background verification error:", err);
+            // We already showed success screen, so don't block the user.
           }
         },
         modal: {
