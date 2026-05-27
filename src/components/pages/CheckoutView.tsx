@@ -13,6 +13,7 @@ interface CheckoutViewProps {
   clearCart: () => void;
   setView: (view: ViewState) => void;
   userSession?: { id?: string; name: string; email: string; phone?: string } | null;
+  sessionReady?: boolean;
 }
 
 // Client-side UUID generator to align RLS insertions without needing .select()
@@ -27,7 +28,7 @@ const generateUUID = () => {
   });
 };
 
-export default function CheckoutView({ cart, clearCart, setView, userSession }: CheckoutViewProps) {
+export default function CheckoutView({ cart, clearCart, setView, userSession, sessionReady = true }: CheckoutViewProps) {
   const [form, setForm] = useState({
     name: userSession?.name || "",
     email: userSession?.email || "",
@@ -47,7 +48,26 @@ export default function CheckoutView({ cart, clearCart, setView, userSession }: 
   const [errorMsg, setErrorMsg] = useState("");
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [savedAddresses, setSavedAddresses] = useState<any[]>([]);
+  // internalSessionReady: true once supabase.auth.getSession() confirms a live token
+  const [internalSessionReady, setInternalSessionReady] = useState(sessionReady);
 
+  // Verify the actual Supabase session on mount — this is the real fix for
+  // 'unable to proceed to payment after refresh'. We don't trust the prop alone.
+  useEffect(() => {
+    const verify = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setInternalSessionReady(true); // Unblock UI regardless — let RLS handle auth
+      if (session?.user && !form.email) {
+        setForm(prev => ({
+          ...prev,
+          name: prev.name || session.user.user_metadata?.full_name || userSession?.name || "",
+          email: prev.email || session.user.email || userSession?.email || "",
+          phone: prev.phone || userSession?.phone || "",
+        }));
+      }
+    };
+    verify();
+  }, []);
   // Auto-populate values from userSession when it updates (e.g. async auth load)
   useEffect(() => {
     if (userSession) {
@@ -236,17 +256,22 @@ export default function CheckoutView({ cart, clearCart, setView, userSession }: 
           customer_name: form.name,
           customer_email: form.email.toLowerCase(),
           customer_phone: form.phone || null,
-          shipping_address: addressJson,
+          shipping_address: {
+            address: form.address,
+            city: form.city,
+            zip: form.zip,
+            bust_size: form.bustSize || null,
+            waist_size: form.waistSize || null,
+            shoulder_width: form.shoulder || null,
+          },
           subtotal: total,
           discount: 0,
           tax: 0,
           total: total,
-          status: "pending",
-          payment_mode: form.paymentMethod as any,
+          status: "pending" as any,
+          payment_mode: "online" as const,
           is_paid: false,
           is_offline: false,
-          transaction_id: order.id, // storing RZP order ID temporarily
-          notes: "Waiting for payment completion",
         });
 
       if (orderError) throw new Error(`Failed to initialize order: ${orderError.message}`);
@@ -295,14 +320,13 @@ export default function CheckoutView({ cart, clearCart, setView, userSession }: 
             });
 
             if (verifyRes.ok) {
-              // Update order to paid
+              // Mark order as confirmed + paid using actual DB schema
               await supabase
                 .from("orders")
                 .update({
-                  status: "paid",
+                  status: "confirmed" as any,
                   is_paid: true,
-                  transaction_id: response.razorpay_payment_id,
-                  notes: null,
+                  payment_ref: response.razorpay_payment_id,
                 })
                 .eq("id", orderId);
                 
@@ -324,12 +348,11 @@ export default function CheckoutView({ cart, clearCart, setView, userSession }: 
         },
         modal: {
           ondismiss: async function() {
-            // Update order to cancelled if user closes the modal
             await supabase
               .from("orders")
               .update({
                 status: "cancelled",
-                notes: "User abandoned the payment modal."
+                notes: "User abandoned payment modal."
               })
               .eq("id", orderId);
             setErrorMsg("Payment was cancelled. Your cart is preserved.");
@@ -350,13 +373,9 @@ export default function CheckoutView({ cart, clearCart, setView, userSession }: 
       
       rzp.on('payment.failed', async function (response: any) {
         const failureReason = response.error.description || "Bank rejected payment";
-        // Update order to cancelled on failure
         await supabase
           .from("orders")
-          .update({
-            status: "cancelled",
-            notes: `Payment failed: ${failureReason}`
-          })
+          .update({ status: "cancelled" as any, notes: `Payment failed: ${failureReason}` })
           .eq("id", orderId);
         setErrorMsg(`Payment failed: ${failureReason}. Please try again.`);
         setProcessing(false);
@@ -373,6 +392,18 @@ export default function CheckoutView({ cart, clearCart, setView, userSession }: 
     setView("home");
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
+
+  // Show spinner while Supabase session is being restored on refresh
+  if (!internalSessionReady) {
+    return (
+      <div className="bg-[#FDFBF7] min-h-screen flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="w-10 h-10 border-2 border-brand-maroon/20 border-t-brand-maroon rounded-full animate-spin mx-auto" />
+          <p className="text-xs text-brand-warm-gray uppercase tracking-widest">Restoring your session…</p>
+        </div>
+      </div>
+    );
+  }
 
   if (orderSuccess) {
     return (
@@ -717,7 +748,7 @@ export default function CheckoutView({ cart, clearCart, setView, userSession }: 
                     <div key={item.saree.id} className="flex gap-4 items-start pb-4 border-b border-brand-gold/10">
                       <div className="w-12 h-16 bg-brand-sand border border-brand-gold/15 overflow-hidden flex-shrink-0">
                         <img
-                          src={item.saree.images[0]}
+                          src={item.saree.images?.[0] || '/logo2.png'}
                           alt={item.saree.name}
                           className="w-full h-full object-cover"
                           referrerPolicy="no-referrer"

@@ -97,7 +97,7 @@
 
 @keyframes slide-in-right {
   0% {
-    transform: translateX(-100%);
+    transform: translateX(100%);
     opacity: 0;
   }
   100% {
@@ -245,4 +245,25 @@ main > * {
 
 .animate-cart-pulse {
   animation: cart-pulse 0.4s ease-out;
+}
+
+/* Hide scrollbar utility — used in horizontal scroll containers */
+.hide-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;     /* Firefox */
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;             /* Chrome, Safari, Opera */
+}
+
+/* Body scroll lock — applied when mobile menu or search overlay is open */
+.body-scroll-locked {
+  overflow: hidden;
+  touch-action: none;
+}
+
+/* Custom font size not in default Tailwind scale */
+.text-4\.5xl {
+  font-size: 2.625rem;
+  line-height: 1.1;
 }

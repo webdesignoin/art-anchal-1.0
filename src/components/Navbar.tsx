@@ -109,18 +109,21 @@ export default function Navbar({
   const selectNavLink = (view: ViewState) => {
     setView(view);
     setIsMobileMenuOpen(false);
+    // Release body scroll lock if it was applied for mobile menu
+    document.body.classList.remove("body-scroll-locked");
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleLogout = async () => {
-    // Basic logout logic
     try {
+      // Must call signOut() to invalidate the JWT server-side — clearing
+      // localStorage alone leaves the Supabase token valid (security hole).
+      await supabase.auth.signOut();
       setUserSession(null);
       localStorage.removeItem("art_anchal_user");
-      // If we had supabase imported here, we could call supabase.auth.signOut(), 
-      // but clearing session is sufficient as it triggers re-render to home/login.
       setIsProfileOpen(false);
       setIsMobileMenuOpen(false);
+      document.body.classList.remove("body-scroll-locked");
       setView("home");
     } catch (err) {
       console.warn("Logout failed", err);
@@ -269,7 +272,10 @@ export default function Navbar({
 
             {/* Mobile Menu Toggle */}
             <button
-              onClick={() => setIsMobileMenuOpen(true)}
+              onClick={() => {
+                setIsMobileMenuOpen(true);
+                document.body.classList.add("body-scroll-locked");
+              }}
               className={`lg:hidden transition-colors ${isDarkGlass ? 'text-brand-maroon' : 'text-brand-ivory'}`}
               aria-label="Open navigation menu"
             >
@@ -331,7 +337,14 @@ export default function Navbar({
               <h1 className="serif-heading text-2xl font-light text-brand-ivory tracking-wider">
                 Art<span className="font-serif italic font-normal text-brand-gold">&</span>Anchal
               </h1>
-              <button onClick={() => setIsMobileMenuOpen(false)} className="text-brand-gold hover:text-brand-ivory transition" aria-label="Close navigation menu">
+              <button
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  document.body.classList.remove("body-scroll-locked");
+                }}
+                className="text-brand-gold hover:text-brand-ivory transition"
+                aria-label="Close navigation menu"
+              >
                 <X className="w-6 h-6 stroke-[1.5]" aria-hidden="true" />
               </button>
             </div>

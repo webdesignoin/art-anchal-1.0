@@ -6,3 +6,22 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# Debug/patch scripts left over from development (should not be committed)
+check_orders.ts
+check_profiles.ts
+check_rls.ts
+test_signup.ts
+test_fetch_orders.cjs
+fix_admin.cjs
+fix_admin2.cjs
+patch_admin.cjs
+patch_app_cart.cjs
+patch_app_view.cjs
+patch_user.cjs
+patch_user_email.cjs
+patch_user_fetch.cjs
+
+# OS specific
+Thumbs.db
+Desktop.ini

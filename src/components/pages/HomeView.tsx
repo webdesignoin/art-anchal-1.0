@@ -12,9 +12,6 @@ interface HomeViewProps {
   setView: (view: ViewState) => void;
   setSelectedSareeId: (id: string | null) => void;
   setQuickViewSaree: (saree: Saree) => void;
-  toggleFavorite: (saree: Saree) => void;
-  wishlist: Saree[];
-  addToCart: (saree: Saree, quantity: number) => void;
   setSelectedCategory: (category: string | null) => void;
   sarees: Saree[];
   collections: Collection[];

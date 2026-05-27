@@ -53,7 +53,7 @@ export default function ShopView({
 
   const handleResetFilters = () => {
     setActiveCategory("All");
-    setSelectedCategory("All");
+    setSelectedCategory(null);
     setActiveZari("All");
     setActiveWeave("All");
     setActiveColor("All");
@@ -337,11 +337,11 @@ export default function ShopView({
                       className="group relative bg-[#FDFBF7] border border-brand-gold/15 flex flex-col justify-between hover:shadow-lg transition-transform"
                     >
                       {/* Interactive Visual cover wrap */}
-                      <div className="relative aspect-3/4 overflow-hidden bg-brand-sand">
+                      <div className="relative aspect-[3/4] overflow-hidden bg-brand-sand">
                         <img
                           src={saree.images[0]}
                           alt={`${saree.name} - Handwoven Pure Silk ${saree.category} Banarasi Saree`}
-                          className="w-full h-full object-cover group-hover:scale-102 transition duration-500 cursor-pointer"
+                          className="w-full h-full object-cover group-hover:scale-[1.02] transition duration-500 cursor-pointer"
                           onClick={() => handleSareeClick(saree.id)}
                           referrerPolicy="no-referrer"
                         />

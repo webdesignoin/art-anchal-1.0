@@ -133,7 +133,7 @@ export default function CartDrawer({
                       >
                         <div className="flex-shrink-0 w-20 h-24 border border-brand-gold/15 bg-brand-sand overflow-hidden">
                           <img
-                            src={item.saree.images[0]}
+                            src={item.saree.images?.[0] || '/logo2.png'}
                             alt={item.saree.name}
                             className="w-full h-full object-cover"
                             referrerPolicy="no-referrer"
@@ -164,6 +164,7 @@ export default function CartDrawer({
                                 onClick={() => handleMinusQuantity(item)}
                                 className="px-2.5 py-1 text-xs text-brand-maroon hover:bg-brand-gold/10 cursor-pointer"
                                 id={`qty-minus-${item.saree.id}`}
+                                aria-label={`Decrease quantity of ${item.saree.name}`}
                               >
                                 -
                               </button>

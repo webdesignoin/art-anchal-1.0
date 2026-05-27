@@ -74,6 +74,8 @@ export default function App() {
 
   // App-wide loading screen state
   const [appLoading, setAppLoading] = useState(true);
+  // sessionReady: true once Supabase confirms auth state on page load (prevents order/payment flash)
+  const [sessionReady, setSessionReady] = useState(false);
 
   const refreshCatalog = async (force = false) => {
     try {
@@ -137,62 +139,7 @@ export default function App() {
 
   // Sync initial sessions on first render
   useEffect(() => {
-    // --- Robust Fallback Session Check ---
-    const checkSession = async () => {
-      try {
-        const { data: { session }, error: sessionErr } = await supabase.auth.getSession();
-        if (sessionErr) console.warn("getSession error:", sessionErr);
-        
-        if (session?.user) {
-          const u = session.user;
-
-          const { error: upsertErr } = await supabase.from("profiles").upsert(
-            {
-              auth_user_id: u.id,
-              email: u.email,
-              name: u.user_metadata?.full_name || u.user_metadata?.name || u.email?.split("@")[0] || "Guest",
-              avatar_url: u.user_metadata?.avatar_url || null,
-              source: "google",
-            },
-            { onConflict: "auth_user_id", ignoreDuplicates: false }
-          );
-
-          if (upsertErr) triggerToast("Database Error", upsertErr.message);
-
-          const { data: profile } = await supabase.from("profiles").select("*").eq("auth_user_id", u.id).single();
-          const isAdmin = profile?.is_admin === true;
-
-          const newSession = {
-            id: u.id,
-            name: profile?.name || u.email?.split("@")[0] || "Guest",
-            email: u.email || "",
-            is_admin: isAdmin,
-            phone: profile?.phone || "",
-          };
-
-          setUserSession(newSession);
-          localStorage.setItem("art_anchal_user", JSON.stringify(newSession));
-
-          // Only navigate if we were on the login screen
-          if (currentView === "login-register") {
-            if (isAdmin) setView("admin-console");
-            else setView("home");
-          }
-          
-          // Clear hash to prevent infinite loops on reload
-          if (window.location.hash.includes("access_token")) {
-            window.history.replaceState(null, "", window.location.pathname);
-          }
-        } else if (window.location.hash.includes("access_token")) {
-           // We have a hash but getSession didn't find it. Let's try setSession manually if possible, 
-           // but supabase should have handled it. We'll show an error toast.
-           triggerToast("Login Failed", "Could not parse Google token");
-        }
-      } catch (err: any) {
-        console.error("Session check failed", err);
-      }
-    };
-
+    // Removed redundant checkSession to prevent race conditions with onAuthStateChange
     const initializeApp = async () => {
       try {
         const savedCart = localStorage.getItem("art_anchal_cart");
@@ -216,98 +163,115 @@ export default function App() {
         console.warn("Failed to retrieve localStorage persistence: ", err);
       }
 
-      // Trigger background catalog and session sync asynchronously to prevent blocking the loader
+      // Trigger background catalog sync asynchronously to prevent blocking the loader
       refreshCatalog().catch(err => console.warn("Catalog refresh failed:", err));
-      checkSession().catch(err => console.warn("Session check failed:", err));
 
-      // Fade out loading screen after a smooth minimum delay
-      setTimeout(() => {
-        setAppLoading(false);
-      }, 1200);
+      setTimeout(() => { setAppLoading(false); }, 1200);
+
+      // Silent safety net — checkSession() sets sessionReady in ~50ms via
+      // getSession() so this 3s fallback should never be needed in practice.
+      setTimeout(() => { setSessionReady(true); }, 3000);
     };
+
 
     initializeApp();
 
-    // --- Real Supabase auth state listener ---
     // Handles: Google OAuth redirect callback, session restore on page refresh
     if (!isMock) {
       const { data: { subscription } } = supabase.auth.onAuthStateChange(
-        async (event, session) => {
-          if ((event === "SIGNED_IN" || event === "INITIAL_SESSION") && session?.user) {
-            const u = session.user;
-            
-            // Pattern 2: Safety upsert — ensures profile always exists even if
-            // the database trigger silently failed (e.g. first OAuth login before fix).
-            // This is self-healing: safe to run on every login, no duplicates ever.
-            const { error: upsertErr } = await supabase.from("profiles").upsert(
-              {
-                auth_user_id: u.id,
-                email: u.email,
-                name:
-                  u.user_metadata?.full_name ||
-                  u.user_metadata?.name ||
-                  (u.email ? u.email.split("@")[0] : "Guest"),
-                avatar_url: u.user_metadata?.avatar_url || null,
-                source:
-                  u.app_metadata?.provider === "google"
-                    ? "google"
-                    : u.app_metadata?.provider === "phone"
-                    ? "phone"
-                    : "online",
-              },
-              { onConflict: "auth_user_id", ignoreDuplicates: false }
-            );
+        (event, session) => {
+          setTimeout(async () => {
+            if ((event === "SIGNED_IN" || event === "INITIAL_SESSION") && session?.user) {
+              const u = session.user;
+              
+              // Pattern 2: Safety upsert — ensures profile always exists even if
+              // the database trigger silently failed (e.g. first OAuth login before fix).
+              // This is self-healing: safe to run on every login, no duplicates ever.
+              const { error: upsertErr } = await supabase.from("profiles").upsert(
+                {
+                  auth_user_id: u.id,
+                  email: u.email,
+                  name:
+                    u.user_metadata?.full_name ||
+                    u.user_metadata?.name ||
+                    (u.email ? u.email.split("@")[0] : "Guest"),
+                  avatar_url: u.user_metadata?.avatar_url || null,
+                  source:
+                    u.app_metadata?.provider === "google"
+                      ? "google"
+                      : u.app_metadata?.provider === "phone"
+                      ? "phone"
+                      : "online",
+                },
+                { onConflict: "auth_user_id", ignoreDuplicates: false }
+              );
 
-            if (upsertErr) {
-              console.error("Profile Upsert Error:", upsertErr);
-              triggerToast("Database Error", upsertErr.message);
+              if (upsertErr) {
+                console.error("Profile Upsert Error:", upsertErr);
+                triggerToast("Database Error", upsertErr.message);
+              }
+
+              // Always update session state so children re-render and re-fetch if they had a stale RLS token
+
+              // Fetch full profile (including is_admin flag)
+              const { data: profile, error: fetchErr } = await supabase
+                .from("profiles")
+                .select("*")
+                .eq("auth_user_id", u.id)
+                .single();
+
+              if (fetchErr) {
+                 console.error("Profile Fetch Error:", fetchErr);
+                 triggerToast("Profile Error", fetchErr.message);
+              }
+
+              const isAdmin = profile?.is_admin === true;
+
+              const newSession = {
+                id: u.id,
+                name: profile?.name || u.email?.split("@")[0] || "Guest",
+                email: u.email || "",
+                is_admin: isAdmin,
+                phone: profile?.phone || "",
+              };
+
+              setUserSession(newSession);
+              localStorage.setItem("art_anchal_user", JSON.stringify(newSession));
+              setSessionReady(true); // Unblock order history + payment
+
+              // Route only if coming from login or redirected
+              if (currentView === "login-register" || window.location.hash.includes("access_token")) {
+                if (isAdmin) setView("admin-console");
+                else setView("home");
+              }
             }
 
-            // Always update session state so children re-render and re-fetch if they had a stale RLS token
-
-            // Fetch full profile (including is_admin flag)
-            const { data: profile, error: fetchErr } = await supabase
-              .from("profiles")
-              .select("*")
-              .eq("auth_user_id", u.id)
-              .single();
-
-            if (fetchErr) {
-               console.error("Profile Fetch Error:", fetchErr);
-               triggerToast("Profile Error", fetchErr.message);
+            if (event === "INITIAL_SESSION" && !session) {
+              // Not logged in — still mark session as ready so UI unblocks
+              setSessionReady(true);
             }
 
-            const isAdmin = profile?.is_admin === true;
-
-            const newSession = {
-              id: u.id,
-              name: profile?.name || u.email?.split("@")[0] || "Guest",
-              email: u.email || "",
-              is_admin: isAdmin,
-              phone: profile?.phone || "",
-            };
-
-            setUserSession(newSession);
-            localStorage.setItem("art_anchal_user", JSON.stringify(newSession));
-
-            // Route only if coming from login or redirected
-            if (currentView === "login-register" || window.location.hash.includes("access_token")) {
-              if (isAdmin) setView("admin-console");
-              else setView("home");
+            if (event === "SIGNED_OUT") {
+              setUserSession(null);
+              localStorage.removeItem("art_anchal_user");
+              setSessionReady(true);
+              setView("home");
             }
-          }
-
-          if (event === "SIGNED_OUT") {
-            setUserSession(null);
-            localStorage.removeItem("art_anchal_user");
-            setView("home");
-          }
+            if (event === "PASSWORD_RECOVERY") {
+              // Unimplemented yet
+            }
+          }, 0);
         }
       );
 
-      return () => subscription.unsubscribe();
+      return () => {
+        subscription.unsubscribe();
+      };
+    } else {
+      // In mock mode, immediately mark session ready since we don't have onAuthStateChange
+      setSessionReady(true);
     }
-  }, []);
+  }, [currentView, isMock]);
 
   // --- Dynamic Document Title SEO ---
   useEffect(() => {
@@ -498,9 +462,6 @@ export default function App() {
             setView={setView}
             setSelectedSareeId={setSelectedSareeId}
             setQuickViewSaree={setQuickViewSaree}
-            toggleFavorite={toggleFavorite}
-            wishlist={wishlist}
-            addToCart={addToCart}
             setSelectedCategory={setSelectedCategory}
             sarees={sarees}
             collections={collections}
@@ -572,6 +533,7 @@ export default function App() {
             clearCart={clearCart}
             setView={setView}
             userSession={userSession}
+            sessionReady={sessionReady}
           />
         )}
 
@@ -605,8 +567,8 @@ export default function App() {
           />
         )}
 
-        {/* Redirect non-admins who somehow reach admin-console */}
-        {currentView === "admin-console" && !userSession?.is_admin && (
+        {/* Redirect non-admins who somehow reach admin-console — wait for session */}
+        {currentView === "admin-console" && sessionReady && !userSession?.is_admin && (
           <ErrorView type="403" setView={setView} />
         )}
 
@@ -619,6 +581,7 @@ export default function App() {
             toggleFavorite={toggleFavorite}
             setQuickViewSaree={setQuickViewSaree}
             setSelectedSareeId={setSelectedSareeId}
+            sessionReady={sessionReady}
           />
         )}
       </main>

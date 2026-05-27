@@ -24,6 +24,7 @@ export interface Saree {
   isBestseller?: boolean;
   isFeatured?: boolean;
   isNew?: boolean;
+  stock_quantity?: number;
   specifications: {
     length: string;
     width: string;
@@ -135,36 +136,50 @@ export interface DbLeadInteraction {
 export interface DbOrder {
   id: string;
   profile_id?: string | null;
-  source: 'online' | 'offline';
-  status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'completed' | 'canceled';
-  tracking_number?: string | null;
-  shipping_carrier?: string | null;
-  payment_status: 'unpaid' | 'partially_paid' | 'paid' | 'refunded';
-  payment_method?: 'card' | 'upi' | 'bank_transfer' | 'cash' | null;
-  shipping_name: string;
-  shipping_email: string;
-  shipping_phone?: string | null;
-  shipping_address: string;
-  shipping_zip: string;
-  shipping_city?: string | null;
-  size_bust_inches?: string | null;
-  size_waist_inches?: string | null;
-  size_shoulder_inches?: string | null;
-  total_amount: number;
+  // Snapshot of customer at time of order
+  customer_name: string;
+  customer_email: string;
+  customer_phone?: string | null;
+  // Shipping details as JSONB object
+  shipping_address: {
+    address: string;
+    city: string;
+    zip: string;
+    bust_size?: string | null;
+    waist_size?: string | null;
+    shoulder_width?: string | null;
+  };
+  // Financials — matches DB columns exactly
+  subtotal: number;
+  discount: number;
+  tax: number;
+  total: number;               // DB column is "total" NOT "total_amount"
+  // Status — matches DB enum order_status
+  status: 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded';
+  // Payment — matches DB enum payment_mode
+  payment_mode: 'online' | 'cash' | 'card' | 'upi' | 'bank_transfer';
+  payment_ref?: string | null;  // Razorpay order ID / UPI ref
+  is_paid: boolean;             // DB column is "is_paid" NOT "payment_status"
+  is_offline: boolean;
+  notes?: string | null;
+  invoice_number?: string | null;
   created_at: string;
   updated_at: string;
-  client_profile?: DbProfile | null;
+  // Joined relations (not DB columns — from select with joins)
   items?: DbOrderItem[];
-  invoice?: DbInvoice | null;
 }
 
 export interface DbOrderItem {
   id: string;
   order_id: string;
   saree_id?: string | null;
-  quantity: number;
+  product_name: string;        // snapshot of name at time of order
   unit_price: number;
-  saree?: Saree | null;
+  quantity: number;
+  subtotal?: number;           // generated column: unit_price * quantity
+  created_at: string;
+  // Joined
+  saree?: { id: string; name: string; images: string[]; } | null;
 }
 
 export interface DbInvoice {

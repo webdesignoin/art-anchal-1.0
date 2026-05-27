@@ -14,7 +14,7 @@ import {
   TrendingUp, Printer, ArrowLeft, CheckCircle, RefreshCw, Lock,
   Sparkles, Package, AlertTriangle, X, Check, ChevronRight,
   LayoutDashboard, MessageSquare, Minus, Search, IndianRupee,
-  ShieldCheck, Tag, Upload, Edit2, Archive, Phone, Download, UserPlus, Image as ImageIcon, CreditCard, HelpCircle, LogOut
+  ShieldCheck, Tag, Upload, Edit2, Archive, Phone, Download, UserPlus, Image as ImageIcon, CreditCard, HelpCircle, LogOut, MoreHorizontal
 } from "lucide-react";
 
 import AdminHRTab from "./AdminHRTab";
@@ -50,6 +50,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
   const [activeTab, setActiveTab] = useState<TabType>("overview");
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState("");
+  const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
   const [viewState, setViewState] = useState<"list" | "pos" | "history">("list");
   
   const interactionPanelRef = useRef<HTMLDivElement>(null);
@@ -172,7 +173,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
   }, []);
 
   // ── KPI helpers ───────────────────────────────────────────────────────────
-  const totalRevenue = dbOrders.reduce((s, o) => s + Number(o.total || 0), 0);
+  const totalRevenue = dbOrders.reduce((s, o) => s + Number(o.total ?? 0), 0);
   const activeLeads = dbLeads.filter(l => l.status !== "won" && l.status !== "lost").length;
   const lowStockSarees = dbSarees.filter(s => (s.stock_quantity ?? 1) <= 2);
   const outOfStock = dbSarees.filter(s => (s.stock_quantity ?? 1) <= 0);
@@ -477,13 +478,44 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
   const handleViewInvoice = async (order: any) => {
     setLoading(true);
     try {
+      // Fetch order items with associated saree data
       const { data: items } = await supabase.from("order_items").select("*, saree:sarees(*)").eq("order_id", order.id);
       setActiveInvoice({
-        invoice_number: freshOrder?.invoice_number || `INV-${Date.now()}`,
-        created_at: freshOrder?.created_at,
-        customer_name: profile.name,
-        customer_phone: profile.phone || undefined,
-        customer_email: profile.email || undefined,
+        invoice_number: order.invoice_number || `INV-${order.id?.slice(0, 8).toUpperCase()}`,
+        created_at: order.created_at,
+        customer_name: order.customer_name || "Customer",
+        customer_phone: order.customer_phone || undefined,
+        customer_email: order.customer_email || undefined,
+        is_offline: order.is_offline ?? false,
+        items: items || [],
+        subtotal: order.subtotal || order.total || 0,
+        discount: order.discount || 0,
+        tax: order.tax || 0,
+        total: order.total ?? 0,
+        payment_mode: order.payment_mode || 'online',
+        notes: order.notes || undefined,
+      });
+    } catch (err: any) {
+      alert(`Invoice Error: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // POS bill generation (different from viewing existing order invoice)
+  const handlePOSCheckout = async () => {
+    if (posCart.length === 0) { alert("Cart is empty."); return; }
+    setLoading(true);
+    try {
+      // Get profile details for the selected customer
+      const selectedProfile = dbProfiles.find(p => p.id === selectedProfileId);
+      
+      setActiveInvoice({
+        invoice_number: `POS-${Date.now()}`,
+        created_at: new Date().toISOString(),
+        customer_name: selectedProfile?.name || "Walk-in Customer",
+        customer_phone: selectedProfile?.phone || undefined,
+        customer_email: selectedProfile?.email || undefined,
         is_offline: true,
         items: posCart,
         subtotal: posSubtotal,
@@ -494,7 +526,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
         notes: posNotes || undefined,
       });
 
-      // 6. Reset POS
+      // Reset POS
       setPosCart([]);
       setSelectedProfileId("");
       setPosDiscount(0);
@@ -508,6 +540,33 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
       setLoading(false);
     }
   };
+
+  // Order status update (for admin order management)
+  const handleUpdateOrderStatus = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!statusModalOrder || !statusForm.status) return;
+    setIsUpdatingStatus(true);
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .update({
+          status: statusForm.status as any,
+          tracking_number: statusForm.tracking_number || null,
+          shipping_carrier: statusForm.shipping_carrier || null,
+        })
+        .eq('id', statusModalOrder.id);
+      if (error) throw error;
+      setStatusModalOrder(null);
+      setStatusForm({ status: "", tracking_number: "", shipping_carrier: "" });
+      fetchAllData();
+      showFeedback('Order status updated.');
+    } catch (err: any) {
+      alert(`Error: ${err.message}`);
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
+
 
   const handleLogout = async () => {
     try {
@@ -558,48 +617,168 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
   );
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row bg-[#FDFBF7] font-sans text-brand-maroon" id="admin-console-view">
+    <div className="min-h-screen flex flex-col lg:flex-row bg-[#FDFBF7] font-sans text-brand-maroon pb-20 lg:pb-0" id="admin-console-view">
 
-      {/* ── MOBILE TOP NAV BAR (visible on small screens only) ────────────── */}
-      <div className="md:hidden bg-[#1C050E] text-[#F9F5F0] flex flex-col sticky top-0 z-[60] shadow-xl print:hidden">
-        {/* Brand strip */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
-          <div>
-            <span className="text-[8px] tracking-[0.25em] uppercase text-brand-gold font-bold">Art & Anchal</span>
-            <p className="font-serif text-base font-light text-white">Admin Console</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <button onClick={fetchAllData} disabled={loading} className="text-white/60 hover:text-white">
-              <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
-            </button>
-            <button onClick={() => setView("home")} className="text-white/60 hover:text-white" title="Back to Store">
-              <ArrowLeft className="w-4 h-4" />
-            </button>
-            <button onClick={handleLogout} className="text-white/60 hover:text-white" title="Log Out">
-              <LogOut className="w-4 h-4" />
-            </button>
-          </div>
+      {/* ── MOBILE TOP HEADER STRIP (simplified brand strip) ────────────── */}
+      <div className="lg:hidden bg-[#1C050E] text-[#F9F5F0] flex items-center justify-between px-5 py-4 sticky top-0 z-[45] shadow-md print:hidden">
+        <div>
+          <span className="text-[8px] tracking-[0.25em] uppercase text-brand-gold font-bold">Art & Anchal</span>
+          <p className="font-serif text-base font-light text-white">Admin Console</p>
         </div>
-        {/* Horizontal scroll tab bar */}
-        <div className="flex overflow-x-auto scrollbar-hide gap-0.5 px-2 py-2">
-          {navItems.map(({ id, label, icon: Icon, badge }) => (
-            <button key={id}
-              onClick={() => { setActiveTab(id); setActiveInvoice(null); }}
-              className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider whitespace-nowrap transition ${
-                activeTab === id
-                  ? "bg-brand-gold/20 text-brand-gold"
-                  : "text-white/60 hover:bg-white/5 hover:text-white"
-              }`}>
-              <Icon className="w-3.5 h-3.5 flex-shrink-0" />
-              {label}
-              {badge ? <span className="bg-brand-gold text-[#1C050E] text-[8px] font-bold px-1.5 py-0.5 rounded-full">{badge}</span> : null}
-            </button>
-          ))}
+        <div className="flex items-center gap-3.5">
+          <button onClick={fetchAllData} disabled={loading} className="text-white/60 hover:text-white p-1 rounded hover:bg-white/5 active:scale-95 transition">
+            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+          </button>
+          <button onClick={() => setView("home")} className="text-white/60 hover:text-white p-1 rounded hover:bg-white/5 active:scale-95 transition" title="Back to Store">
+            <ArrowLeft className="w-4 h-4" />
+          </button>
+          <button onClick={handleLogout} className="text-white/60 hover:text-white p-1 rounded hover:bg-white/5 active:scale-95 transition" title="Log Out">
+            <LogOut className="w-4 h-4" />
+          </button>
         </div>
       </div>
 
+      {/* ── MOBILE BOTTOM NAVIGATION BAR (Swiggy partner style) ────────────── */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#1c050edc] backdrop-blur-md border-t border-white/10 px-2 py-1.5 flex justify-around items-center shadow-[0_-8px_24px_rgba(0,0,0,0.3)] print:hidden pb-safe">
+        {/* Dashboard / Overview */}
+        <button
+          onClick={() => { setActiveTab("overview"); setActiveInvoice(null); setIsMoreMenuOpen(false); }}
+          className={`flex flex-col items-center gap-1 py-1 px-3 transition-all ${
+            activeTab === "overview" && !isMoreMenuOpen ? "text-brand-gold scale-105 font-bold" : "text-white/50"
+          }`}
+        >
+          <LayoutDashboard className="w-5 h-5" />
+          <span className="text-[8px] uppercase tracking-wider">Overview</span>
+        </button>
+
+        {/* Catalog */}
+        <button
+          onClick={() => { setActiveTab("catalog"); setActiveInvoice(null); setIsMoreMenuOpen(false); }}
+          className={`flex flex-col items-center gap-1 py-1 px-3 relative transition-all ${
+            activeTab === "catalog" && !isMoreMenuOpen ? "text-brand-gold scale-105 font-bold" : "text-white/50"
+          }`}
+        >
+          <ShoppingBag className="w-5 h-5" />
+          <span className="text-[8px] uppercase tracking-wider">Catalog</span>
+          {outOfStock.length ? (
+            <span className="absolute top-0.5 right-2 bg-red-500 text-white text-[7px] font-bold px-1 rounded-full scale-90">
+              {outOfStock.length}
+            </span>
+          ) : null}
+        </button>
+
+        {/* Generate Bill (POS) */}
+        <button
+          onClick={() => { setActiveTab("pos"); setActiveInvoice(null); setIsMoreMenuOpen(false); }}
+          className={`flex flex-col items-center gap-1 py-1 px-3 transition-all ${
+            activeTab === "pos" && !isMoreMenuOpen ? "text-brand-gold scale-105 font-bold" : "text-white/50"
+          }`}
+        >
+          <IndianRupee className="w-5 h-5" />
+          <span className="text-[8px] uppercase tracking-wider">POS Bill</span>
+        </button>
+
+        {/* Orders */}
+        <button
+          onClick={() => { setActiveTab("orders"); setActiveInvoice(null); setIsMoreMenuOpen(false); }}
+          className={`flex flex-col items-center gap-1 py-1 px-3 transition-all ${
+            activeTab === "orders" && !isMoreMenuOpen ? "text-brand-gold scale-105 font-bold" : "text-white/50"
+          }`}
+        >
+          <FileText className="w-5 h-5" />
+          <span className="text-[8px] uppercase tracking-wider">Orders</span>
+        </button>
+
+        {/* More Menu */}
+        <button
+          onClick={() => setIsMoreMenuOpen(prev => !prev)}
+          className={`flex flex-col items-center gap-1 py-1 px-3 relative transition-all ${
+            isMoreMenuOpen ? "text-brand-gold scale-105 font-bold" : "text-white/50"
+          }`}
+        >
+          <MoreHorizontal className="w-5 h-5" />
+          <span className="text-[8px] uppercase tracking-wider">More</span>
+          {/* Badge indicator if CRM has new leads */}
+          {dbLeads.filter(l => l.status === "new").length ? (
+            <span className="absolute top-0.5 right-2 bg-brand-gold text-[#1C050E] text-[7px] font-bold px-1 rounded-full scale-90">
+              ●
+            </span>
+          ) : null}
+        </button>
+      </div>
+
+      {/* ── MOBILE "MORE" BOTTOM SHEET OVERLAY (Swiggy partner style) ────────────── */}
+      {isMoreMenuOpen && (
+        <div className="lg:hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-sm flex flex-col justify-end transition-opacity print:hidden" onClick={() => setIsMoreMenuOpen(false)}>
+          <div className="bg-[#1C050E] border-t border-brand-gold/25 rounded-t-3xl max-h-[75vh] overflow-y-auto flex flex-col p-6 space-y-6 shadow-2xl animate-slide-in-up" onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div className="flex justify-between items-center border-b border-white/10 pb-4">
+              <div>
+                <p className="text-[8px] tracking-[0.25em] uppercase text-brand-gold font-bold">Additional Controls</p>
+                <h3 className="font-serif text-lg text-white font-light">Management Menu</h3>
+              </div>
+              <button onClick={() => setIsMoreMenuOpen(false)} className="text-white/50 hover:text-white p-2 rounded-full hover:bg-white/5">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Grid list of other tabs */}
+            <div className="grid grid-cols-2 gap-4 pb-12">
+              {/* CRM Leads */}
+              <button
+                onClick={() => { setActiveTab("crm"); setActiveInvoice(null); setIsMoreMenuOpen(false); }}
+                className={`flex flex-col items-center justify-center p-4 border rounded-xl gap-2 transition ${
+                  activeTab === "crm" ? "bg-brand-gold/15 border-brand-gold text-brand-gold" : "bg-white/5 border-white/5 text-white/80 hover:bg-white/10"
+                }`}
+              >
+                <Users className="w-6 h-6" />
+                <span className="text-[10px] font-bold uppercase tracking-wider text-center">CRM Leads</span>
+                {dbLeads.filter(l => l.status === "new").length ? (
+                  <span className="bg-brand-gold text-[#1C050E] text-[8px] font-bold px-2 py-0.5 rounded-full mt-1">
+                    {dbLeads.filter(l => l.status === "new").length} New
+                  </span>
+                ) : null}
+              </button>
+
+              {/* HR & Staffing */}
+              <button
+                onClick={() => { setActiveTab("hr"); setActiveInvoice(null); setIsMoreMenuOpen(false); }}
+                className={`flex flex-col items-center justify-center p-4 border rounded-xl gap-2 transition ${
+                  activeTab === "hr" ? "bg-brand-gold/15 border-brand-gold text-brand-gold" : "bg-white/5 border-white/5 text-white/80 hover:bg-white/10"
+                }`}
+              >
+                <UserPlus className="w-6 h-6" />
+                <span className="text-[10px] font-bold uppercase tracking-wider text-center">HR & Staffing</span>
+              </button>
+
+              {/* Finance Ledger */}
+              <button
+                onClick={() => { setActiveTab("finance"); setActiveInvoice(null); setIsMoreMenuOpen(false); }}
+                className={`flex flex-col items-center justify-center p-4 border rounded-xl gap-2 transition ${
+                  activeTab === "finance" ? "bg-brand-gold/15 border-brand-gold text-brand-gold" : "bg-white/5 border-white/5 text-white/80 hover:bg-white/10"
+                }`}
+              >
+                <TrendingUp className="w-6 h-6" />
+                <span className="text-[10px] font-bold uppercase tracking-wider text-center">Finance</span>
+              </button>
+
+              {/* Vendors & Suppliers */}
+              <button
+                onClick={() => { setActiveTab("vendors"); setActiveInvoice(null); setIsMoreMenuOpen(false); }}
+                className={`flex flex-col items-center justify-center p-4 border rounded-xl gap-2 transition ${
+                  activeTab === "vendors" ? "bg-brand-gold/15 border-brand-gold text-brand-gold" : "bg-white/5 border-white/5 text-white/80 hover:bg-white/10"
+                }`}
+              >
+                <Package className="w-6 h-6" />
+                <span className="text-[10px] font-bold uppercase tracking-wider text-center">Vendors</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── SIDEBAR (desktop only) ────────────────────────────────────── */}
-      <aside className="hidden md:flex w-64 flex-shrink-0 bg-[#1C050E] text-[#F9F5F0] flex-col print:hidden sticky top-0 h-screen overflow-y-auto">
+      <aside className="hidden lg:flex w-64 flex-shrink-0 bg-[#1C050E] text-[#F9F5F0] flex-col print:hidden sticky top-0 h-screen overflow-y-auto">
         {/* Brand */}
         <div className="px-6 py-7 border-b border-white/10">
           <span className="text-[9px] tracking-[0.3em] uppercase text-brand-gold font-bold block">Art & Anchal</span>
@@ -735,7 +914,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                         <p className="text-brand-warm-gray font-mono">{o.invoice_number || o.id?.slice(0, 8)}</p>
                       </div>
                       <div className="text-right">
-                        <p className="font-mono font-bold text-brand-maroon">₹{Number(o.total || 0).toLocaleString("en-IN")}</p>
+                        <p className="font-mono font-bold text-brand-maroon">₹{Number(o.total ?? 0).toLocaleString("en-IN")}</p>
                         <span className={`text-[9px] uppercase font-bold px-2 py-0.5 rounded-full ${
                           o.is_offline ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-blue-700"
                         }`}>{o.is_offline ? "Showroom" : "Online"}</span>
@@ -766,7 +945,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
               </div>
 
               <div className="bg-[#FAF7F2] border border-brand-gold/15 rounded-lg overflow-hidden">
-                <div className="hidden md:block overflow-x-auto">
+                <div className="hidden lg:block overflow-x-auto">
                   <table className="w-full text-left text-xs">
                     <thead>
                       <tr className="bg-[#1C050E] text-[#F9F5F0] text-[10px] uppercase tracking-wider">
@@ -824,7 +1003,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                     </tbody>
                   </table>
                   {/* Mobile Card Grid */}
-                  <div className="grid grid-cols-1 gap-4 p-4 md:hidden">
+                  <div className="grid grid-cols-1 gap-4 p-4 lg:hidden">
                     {dbSarees.map(s => {
                       const stock = s.stock_quantity ?? 0;
                       const stockColor = stock <= 0 ? "text-red-700 bg-red-50" : stock <= 2 ? "text-amber-700 bg-amber-50" : "text-emerald-700 bg-emerald-50";
@@ -872,7 +1051,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
               </div>
 
               {/* Status summary */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                 {[
                   { label: "New", status: "new", color: "bg-blue-50 border-blue-200 text-blue-700" },
                   { label: "Contacted", status: "contacted", color: "bg-amber-50 border-amber-200 text-amber-700" },
@@ -1255,7 +1434,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
               <div className="bg-[#FAF7F2] border border-brand-gold/15 rounded-lg overflow-hidden">
                 
                 {/* ── DESKTOP TABLE ── */}
-                <div className="hidden md:block overflow-x-auto">
+                <div className="hidden lg:block overflow-x-auto">
                   <table className="w-full text-left text-xs">
                     <thead>
                       <tr className="bg-[#1C050E] text-[#F9F5F0] text-[10px] uppercase tracking-wider">
@@ -1328,7 +1507,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                 </div>
 
                 {/* ── MOBILE STACKED CARDS ── */}
-                <div className="md:hidden divide-y divide-brand-gold/10">
+                <div className="lg:hidden divide-y divide-brand-gold/10">
                   {dbOrders
                     .filter(o =>
                       o.customer_name?.toLowerCase().includes(orderSearch.toLowerCase()) ||

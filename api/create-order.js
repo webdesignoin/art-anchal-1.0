@@ -6,10 +6,22 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { amount, currency = 'INR', receipt = 'receipt_1' } = req.body;
+    const { amount, currency = 'INR', receipt = `receipt_${Date.now()}` } = req.body;
 
-    if (!amount || amount < 100) {
-      return res.status(400).json({ error: 'Amount must be at least 100 paise' });
+    // Validate and sanitize amount
+    const parsedAmount = parseInt(amount, 10);
+    if (!parsedAmount || isNaN(parsedAmount) || parsedAmount < 100) {
+      return res.status(400).json({ error: 'Amount must be at least 100 paise (₹1)' });
+    }
+    // Cap at 10 crore paise (₹1,00,000) to prevent abuse
+    const MAX_AMOUNT_PAISE = 100_000_00; // ₹1,00,000 in paise
+    if (parsedAmount > MAX_AMOUNT_PAISE) {
+      return res.status(400).json({ error: 'Amount exceeds maximum allowed order value' });
+    }
+    // Validate currency
+    const ALLOWED_CURRENCIES = ['INR', 'USD', 'GBP', 'EUR'];
+    if (!ALLOWED_CURRENCIES.includes(currency)) {
+      return res.status(400).json({ error: 'Invalid currency code' });
     }
 
     if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
@@ -22,7 +34,7 @@ export default async function handler(req, res) {
     });
 
     const options = {
-      amount,
+      amount: parsedAmount,
       currency,
       receipt,
     };

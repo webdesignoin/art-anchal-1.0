@@ -35,27 +35,36 @@ export default async function handler(req, res) {
       const razorpayOrderId = payload.payment?.entity?.order_id || payload.order?.entity?.id;
       
       if (razorpayOrderId) {
-        // Initialize Supabase client
-        const supabase = createClient(
-          process.env.VITE_SUPABASE_URL,
-          process.env.VITE_SUPABASE_ANON_KEY
-        );
+        // Initialize Supabase with SERVICE KEY — must bypass RLS for webhook updates
+        const razorpayPaymentId = payload.payment?.entity?.id;
+        const supabaseUrl = process.env.SUPABASE_URL;
+        const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
+        
+        if (!supabaseUrl || !supabaseKey) {
+          console.error('[webhook] Supabase service credentials missing');
+          return res.status(500).json({ error: 'Database configuration missing' });
+        }
+        
+        const supabase = createClient(supabaseUrl, supabaseKey);
 
-        // Update the order in the database
+        // Update the order — support both original and migrated schema fields
         const { error } = await supabase
           .from('orders')
           .update({
-            status: 'paid',
-            is_paid: true,
-            notes: 'Verified via Webhook'
+            status: 'confirmed',              // Valid in order_status enum
+            is_paid: true,                    // Original schema field
+            payment_ref: razorpayPaymentId,   // Original schema field
+            payment_status: 'paid',           // Migration-added field
+            tracking_number: razorpayPaymentId, // Migration-added field
           })
-          .eq('transaction_id', razorpayOrderId);
+          .eq('tracking_number', razorpayOrderId);
           
         if (error) {
-          console.error('Failed to update order via webhook:', error);
+          console.error('[webhook] Failed to update order:', error);
         } else {
-          console.log(`Order ${razorpayOrderId} marked as paid via webhook!`);
+          console.log(`[webhook] Order ${razorpayOrderId} confirmed as paid`);
         }
+
       }
     }
 

@@ -1,6 +1,5 @@
 import React, { useEffect, useRef } from "react";
 import { ViewState } from "../../types";
-import { Helmet } from "react-helmet-async";
 import { MapPin, Phone } from "lucide-react";
 
 const kamlaDeviImg = "/images/about/kamla_devi.jpg";
@@ -33,13 +32,18 @@ export default function AboutView({ setView }: AboutViewProps) {
     return () => observerRef.current?.disconnect();
   }, []);
 
+  // Set page title and meta description for SEO
+  useEffect(() => {
+    document.title = 'About Art & Anchal – The Funky Genesis';
+    const meta = document.querySelector('meta[name="description"]') || document.createElement('meta');
+    (meta as HTMLMetaElement).name = 'description';
+    (meta as HTMLMetaElement).content = 'Discover the vibrant story behind Art & Anchal, founded by Kamla Devi, Priyanka Yadav, and Vandana Yadav.';
+    if (!document.querySelector('meta[name="description"]')) document.head.appendChild(meta);
+    return () => { document.title = 'Art & Anchal'; };
+  }, []);
+
   return (
     <>
-      <Helmet>
-        <title>About Art & Anchal – The Funky Genesis</title>
-        <meta name="description" content="Discover the vibrant story behind Art & Anchal, founded by Kamla Devi, Priyanka Yadav, and Vandana Yadav." />
-      </Helmet>
-
       {/* ── HERO SECTION (PARALLAX + GLASSMORPHISM) ───────────────────────── */}
       <section className="relative w-full h-[110vh] overflow-hidden flex items-center justify-center">
         {/* Parallax Background */}

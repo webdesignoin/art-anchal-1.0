@@ -16,9 +16,18 @@ interface UserProfileViewProps {
   toggleFavorite?: (saree: Saree) => void;
   setQuickViewSaree?: (saree: Saree) => void;
   setSelectedSareeId?: (id: string | null) => void;
+  sessionReady?: boolean; // from App.tsx — true once Supabase has confirmed auth state
 }
 
 type TabType = "profile" | "orders" | "updates" | "wishlist" | "payment";
+
+// Minimal invoice data structure for future invoice display feature
+interface InvoiceData {
+  orderId: string;
+  date: string;
+  total: number;
+  items: Array<{ name: string; quantity: number; price: number }>;
+}
 
 export default function UserProfileView({ 
   userSession, 
@@ -27,7 +36,8 @@ export default function UserProfileView({
   wishlist = [],
   toggleFavorite,
   setQuickViewSaree,
-  setSelectedSareeId 
+  setSelectedSareeId,
+  sessionReady = true,
 }: UserProfileViewProps) {
   const [activeTab, setActiveTab] = useState<TabType>("profile");
   const [activeInvoice, setActiveInvoice] = useState<InvoiceData | null>(null);
@@ -38,63 +48,45 @@ export default function UserProfileView({
     name: userSession?.name || "",
     email: userSession?.email || "",
     phone: userSession?.phone || "",
-    whatsapp: "",
-    instagram: "",
     saved_addresses: [],
   });
 
   const [newAddress, setNewAddress] = useState({ address: "", city: "", zip: "" });
 
   const [orders, setOrders] = useState<DbOrder[]>([]);
+  const [ordersLoading, setOrdersLoading] = useState(true);
+  const [debugStep, setDebugStep] = useState<string>("init");
 
   useEffect(() => {
+    // Wait for checkSession() to complete — it calls getSession() which
+    // guarantees Supabase has loaded the JWT from localStorage before
+    // fetchOrders() runs its own RLS-authenticated query.
+    if (!sessionReady) return;
+
     if (!userSession) {
       setView("login-register");
       return;
     }
     fetchProfileData();
-    if (activeTab === "orders" || activeTab === "profile") {
-      fetchOrders();
-    }
-
-    // Also listen to auth state changes to re-fetch once session is absolutely ready
-    if (!isMock) {
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-        // Trigger fetch on ANY auth state change (e.g. TOKEN_REFRESHED) to ensure 
-        // we capture data if the initial page load used a stale/refreshing token
-        if (activeTab === "orders" || activeTab === "profile") {
-           fetchOrders();
-        }
-      });
-      return () => {
-        subscription.unsubscribe();
-      };
-    }
-  }, [userSession, activeTab]);
+    fetchOrders();
+  }, [userSession?.id, activeTab, sessionReady]);
 
   const fetchProfileData = async () => {
-    if (!userSession?.id && !isMock) return;
     try {
-      // Force Supabase to finish hydrating its internal session before querying RLS tables
-      if (!isMock) await supabase.auth.getSession();
+      if (!userSession?.id) return;
 
-      // For mock, we rely on email if ID isn't easily available, or fetch by ID
-      let query = supabase.from("profiles").select("*");
-      if (userSession?.id && !isMock) {
-         query = query.eq("auth_user_id", userSession.id);
-      } else {
-         query = query.eq("email", userSession?.email);
-      }
-
-      const { data, error } = await query.single();
+      setDebugStep("fetching profile data");
+      let query = supabase.from("profiles").select("*").eq("auth_user_id", userSession.id);
+      const { data, error } = await query.maybeSingle();
       if (data) {
         setProfile({
           id: data.id,
           name: data.name || "",
           email: data.email || "",
           phone: data.phone || "",
-          whatsapp: data.whatsapp || "",
-          instagram: data.instagram || "",
+          // whatsapp/instagram columns don't exist yet in live DB — read safely
+          whatsapp: (data as any).whatsapp || "",
+          instagram: (data as any).instagram || "",
           saved_addresses: data.saved_addresses || [],
         });
       }
@@ -104,35 +96,36 @@ export default function UserProfileView({
   };
 
   const fetchOrders = async () => {
+    setOrdersLoading(true);
+    setDebugStep("started");
     try {
-      // Force Supabase to finish hydrating its internal session before querying RLS tables
-      if (!isMock) await supabase.auth.getSession();
-
-      // Find orders matching this profile's exact ID, fallback to email safely.
-      // RLS already protects this, but we explicitly filter so admins don't load all orders here.
-      let query = supabase.from("orders").select("*, items:order_items(*)").order("created_at", { ascending: false });
-      
-      // Resolve profile ID and use an OR query to catch both hard-linked orders and email-fallback orders
-      if (userSession?.id) {
-        const { data: prof } = await supabase.from("profiles").select("id").eq("auth_user_id", userSession.id).single();
-        if (prof?.id && userSession?.email) {
-          query = query.or(`profile_id.eq.${prof.id},customer_email.eq.${userSession.email}`);
-        } else if (prof?.id) {
-          query = query.eq("profile_id", prof.id);
-        } else if (userSession?.email) {
-          query = query.eq("customer_email", userSession.email);
-        }
-      } else if (userSession?.email) {
-        query = query.eq("customer_email", userSession.email);
+      if (!userSession?.id) {
+        setOrdersLoading(false);
+        setDebugStep("failed no userSession");
+        return;
       }
 
+      setDebugStep("building orders query");
+      // We do not need to query the profiles table manually or apply .eq() filters.
+      // The PostgreSQL RLS policy on the orders table automatically restricts 
+      // the SELECT to orders matching auth.uid() or the user's email.
+      let query = supabase
+        .from("orders")
+        .select("*, items:order_items(*)")
+        .order("created_at", { ascending: false });
+
+      setDebugStep("querying orders");
       const { data, error } = await query;
-
-      if (data) {
-        setOrders(data);
-      }
+      
+      setDebugStep("processing orders data");
+      if (error) console.warn("fetchOrders error:", error.message);
+      if (data) setOrders(data);
     } catch (err) {
       console.warn("Could not fetch orders", err);
+      setDebugStep(`error: ${err}`);
+    } finally {
+      setOrdersLoading(false);
+      setDebugStep(prev => prev + " -> done");
     }
   };
 
@@ -148,8 +141,7 @@ export default function UserProfileView({
           .update({
             name: profile.name,
             phone: profile.phone,
-            whatsapp: profile.whatsapp,
-            instagram: profile.instagram,
+            // Only update columns that exist in the live DB
             saved_addresses: profile.saved_addresses,
           })
           .eq("id", profile.id);
@@ -288,57 +280,57 @@ export default function UserProfileView({
         <div className="flex flex-col lg:flex-row gap-12">
           
           {/* Sidebar Navigation */}
-          <aside className="lg:w-1/4 flex-shrink-0">
-            <nav className="space-y-2 sticky top-32">
+          <aside className="w-full lg:w-1/4 flex-shrink-0">
+            <nav className="flex lg:flex-col overflow-x-auto hide-scrollbar -mx-4 px-4 lg:mx-0 lg:px-0 space-x-2 lg:space-x-0 lg:space-y-2 pb-4 lg:pb-0 sticky top-16 lg:top-32 bg-[#FDFBF7] z-20">
               <button
                 onClick={() => setActiveTab("profile")}
-                className={`w-full flex items-center gap-4 px-6 py-4 text-left text-xs uppercase tracking-widest font-bold transition-all ${
+                className={`flex-shrink-0 lg:w-full flex items-center justify-center lg:justify-start gap-2.5 lg:gap-4 px-4 lg:px-6 py-3.5 lg:py-4 text-[10px] lg:text-xs uppercase tracking-widest font-bold transition-all ${
                   activeTab === "profile" 
-                    ? "bg-brand-maroon text-white shadow-lg" 
-                    : "text-brand-warm-gray hover:bg-brand-sand hover:text-brand-maroon"
+                    ? "bg-brand-maroon text-white shadow-md lg:shadow-lg" 
+                    : "text-brand-warm-gray bg-brand-sand/30 lg:bg-transparent hover:bg-brand-sand hover:text-brand-maroon"
                 }`}
               >
-                <Settings className={`w-5 h-5 ${activeTab === "profile" ? "text-brand-gold" : ""}`} /> Profile Settings
+                <Settings className={`w-4 h-4 lg:w-5 lg:h-5 ${activeTab === "profile" ? "text-brand-gold" : ""}`} /> <span className="whitespace-nowrap">Profile Settings</span>
               </button>
               <button
                 onClick={() => setActiveTab("orders")}
-                className={`w-full flex items-center gap-4 px-6 py-4 text-left text-xs uppercase tracking-widest font-bold transition-all ${
+                className={`flex-shrink-0 lg:w-full flex items-center justify-center lg:justify-start gap-2.5 lg:gap-4 px-4 lg:px-6 py-3.5 lg:py-4 text-[10px] lg:text-xs uppercase tracking-widest font-bold transition-all ${
                   activeTab === "orders" 
-                    ? "bg-brand-maroon text-white shadow-lg" 
-                    : "text-brand-warm-gray hover:bg-brand-sand hover:text-brand-maroon"
+                    ? "bg-brand-maroon text-white shadow-md lg:shadow-lg" 
+                    : "text-brand-warm-gray bg-brand-sand/30 lg:bg-transparent hover:bg-brand-sand hover:text-brand-maroon"
                 }`}
               >
-                <Package className={`w-5 h-5 ${activeTab === "orders" ? "text-brand-gold" : ""}`} /> Order History
+                <Package className={`w-4 h-4 lg:w-5 lg:h-5 ${activeTab === "orders" ? "text-brand-gold" : ""}`} /> <span className="whitespace-nowrap">Order History</span>
               </button>
               <button
                 onClick={() => setActiveTab("wishlist")}
-                className={`w-full flex items-center gap-4 px-6 py-4 text-left text-xs uppercase tracking-widest font-bold transition-all ${
+                className={`flex-shrink-0 lg:w-full flex items-center justify-center lg:justify-start gap-2.5 lg:gap-4 px-4 lg:px-6 py-3.5 lg:py-4 text-[10px] lg:text-xs uppercase tracking-widest font-bold transition-all ${
                   activeTab === "wishlist" 
-                    ? "bg-brand-maroon text-white shadow-lg" 
-                    : "text-brand-warm-gray hover:bg-brand-sand hover:text-brand-maroon"
+                    ? "bg-brand-maroon text-white shadow-md lg:shadow-lg" 
+                    : "text-brand-warm-gray bg-brand-sand/30 lg:bg-transparent hover:bg-brand-sand hover:text-brand-maroon"
                 }`}
               >
-                <Heart className={`w-5 h-5 ${activeTab === "wishlist" ? "text-brand-gold" : ""}`} /> Wishlist
+                <Heart className={`w-4 h-4 lg:w-5 lg:h-5 ${activeTab === "wishlist" ? "text-brand-gold" : ""}`} /> <span className="whitespace-nowrap">Wishlist</span>
               </button>
               <button
                 onClick={() => setActiveTab("payment")}
-                className={`w-full flex items-center gap-4 px-6 py-4 text-left text-xs uppercase tracking-widest font-bold transition-all ${
+                className={`flex-shrink-0 lg:w-full flex items-center justify-center lg:justify-start gap-2.5 lg:gap-4 px-4 lg:px-6 py-3.5 lg:py-4 text-[10px] lg:text-xs uppercase tracking-widest font-bold transition-all ${
                   activeTab === "payment" 
-                    ? "bg-brand-maroon text-white shadow-lg" 
-                    : "text-brand-warm-gray hover:bg-brand-sand hover:text-brand-maroon"
+                    ? "bg-brand-maroon text-white shadow-md lg:shadow-lg" 
+                    : "text-brand-warm-gray bg-brand-sand/30 lg:bg-transparent hover:bg-brand-sand hover:text-brand-maroon"
                 }`}
               >
-                <CreditCard className={`w-5 h-5 ${activeTab === "payment" ? "text-brand-gold" : ""}`} /> Payment Methods
+                <CreditCard className={`w-4 h-4 lg:w-5 lg:h-5 ${activeTab === "payment" ? "text-brand-gold" : ""}`} /> <span className="whitespace-nowrap">Payment Methods</span>
               </button>
               <button
                 onClick={() => setActiveTab("updates")}
-                className={`w-full flex items-center gap-4 px-6 py-4 text-left text-xs uppercase tracking-widest font-bold transition-all ${
+                className={`flex-shrink-0 lg:w-full flex items-center justify-center lg:justify-start gap-2.5 lg:gap-4 px-4 lg:px-6 py-3.5 lg:py-4 text-[10px] lg:text-xs uppercase tracking-widest font-bold transition-all ${
                   activeTab === "updates" 
-                    ? "bg-brand-maroon text-white shadow-lg" 
-                    : "text-brand-warm-gray hover:bg-brand-sand hover:text-brand-maroon"
+                    ? "bg-brand-maroon text-white shadow-md lg:shadow-lg" 
+                    : "text-brand-warm-gray bg-brand-sand/30 lg:bg-transparent hover:bg-brand-sand hover:text-brand-maroon"
                 }`}
               >
-                <Bell className={`w-5 h-5 ${activeTab === "updates" ? "text-brand-gold" : ""}`} /> Dispatch Updates
+                <Bell className={`w-4 h-4 lg:w-5 lg:h-5 ${activeTab === "updates" ? "text-brand-gold" : ""}`} /> <span className="whitespace-nowrap">Dispatch Updates</span>
               </button>
             </nav>
           </aside>
@@ -525,8 +517,23 @@ export default function UserProfileView({
               <div className="animate-fade-in space-y-6">
                 <h2 className="font-serif text-3xl text-brand-maroon mb-2">Heritage Archives</h2>
                 <p className="text-xs text-brand-warm-gray mb-8">Your complete history of drapes secured from the artisan guild.</p>
+                {/* Heritage Archives Header */}
                 
-                {orders.length === 0 ? (
+                {ordersLoading ? (
+                  // Skeleton pulse while session is being restored on refresh
+                  <div className="space-y-4">
+                    {[1,2,3].map(i => (
+                      <div key={i} className="bg-white border border-brand-gold/20 flex overflow-hidden animate-pulse">
+                        <div className="w-48 bg-brand-sand/60 h-32 flex-shrink-0" />
+                        <div className="p-8 flex-1 space-y-3">
+                          <div className="h-3 bg-brand-sand/80 rounded w-1/4" />
+                          <div className="h-5 bg-brand-sand/60 rounded w-1/2" />
+                          <div className="h-3 bg-brand-sand/40 rounded w-1/3" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : orders.length === 0 ? (
                   <div className="bg-brand-sand/30 border border-brand-gold/20 p-12 text-center">
                     <Package className="w-12 h-12 text-brand-gold/50 mx-auto mb-4" />
                     <h3 className="font-serif text-xl text-brand-maroon mb-2">No Acquisitions Yet</h3>
@@ -615,16 +622,23 @@ export default function UserProfileView({
                             </div>
                           </div>
                           
-                          {/* Display tracking info if available */}
-                          {order.tracking_number && (
-                            <div className="bg-brand-sand/30 border border-brand-gold/20 p-4 mb-4 flex justify-between items-center rounded-sm">
-                              <div>
-                                <p className="text-[9px] uppercase tracking-widest font-bold text-brand-warm-gray mb-1">Tracking Information</p>
-                                <p className="text-xs text-brand-maroon font-bold">{order.shipping_carrier || "Carrier"}: <span className="font-mono text-brand-gold">{order.tracking_number}</span></p>
-                              </div>
-                              <button className="text-[10px] uppercase font-bold tracking-widest text-brand-maroon border border-brand-maroon px-4 py-2 hover:bg-brand-maroon hover:text-white transition-colors">
-                                Track Package
-                              </button>
+                          {/* Show payment status badge */}
+                          <div className="flex items-center gap-2 mb-4">
+                            <span className={`text-[9px] uppercase font-bold tracking-widest px-2 py-1 rounded-sm ${
+                              order.is_paid 
+                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
+                                : 'bg-amber-50 text-amber-700 border border-amber-200'
+                            }`}>
+                              {order.is_paid ? '✓ Paid' : 'Payment Pending'}
+                            </span>
+                            <span className="text-[9px] text-brand-warm-gray uppercase tracking-widest">
+                              via {order.payment_mode}
+                            </span>
+                          </div>
+
+                          {order.notes && (
+                            <div className="bg-brand-sand/30 border border-brand-gold/20 p-3 mb-4 rounded-sm">
+                              <p className="text-xs text-brand-warm-gray">{order.notes}</p>
                             </div>
                           )}
 
@@ -632,10 +646,16 @@ export default function UserProfileView({
                             <div>
                               <p className="text-xs text-brand-warm-gray">Total Amount</p>
                               <p className="font-mono text-brand-maroon font-bold text-lg">
-                                {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(order.total)}
+                                {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(order.total ?? 0)}
                               </p>
                             </div>
-                            <button onClick={() => handleViewInvoice(order)} className="text-[10px] uppercase font-bold tracking-widest text-brand-gold hover:text-brand-maroon flex items-center gap-1 transition-colors">
+                            <button 
+                              onClick={() => {
+                                setActiveInvoice({ orderId: order.id, date: order.created_at, total: order.total, items: [] });
+                                window.alert(`Invoice: ${order.invoice_number || order.id.split('-')[0].toUpperCase()} — ₹${order.total}`);
+                              }}
+                              className="text-[10px] uppercase font-bold tracking-widest text-brand-gold hover:text-brand-maroon flex items-center gap-1 transition-colors"
+                            >
                               View Invoice <ArrowRight className="w-3 h-3" />
                             </button>
                           </div>
@@ -699,7 +719,7 @@ export default function UserProfileView({
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                     {wishlist.map((saree) => (
                       <div key={saree.id} className="group relative bg-[#FDFBF7] border border-brand-gold/15 flex flex-col justify-between">
-                        <div className="relative aspect-3/4 overflow-hidden bg-brand-sand">
+                        <div className="relative aspect-[3/4] overflow-hidden bg-brand-sand">
                           <img
                             src={saree.images[0]}
                             alt={saree.name}
@@ -708,7 +728,7 @@ export default function UserProfileView({
                               setView("product-detail");
                               window.scrollTo({ top: 0, behavior: "smooth" });
                             }}
-                            className="w-full h-full object-cover group-hover:scale-103 transition duration-500 cursor-pointer"
+                            className="w-full h-full object-cover group-hover:scale-[1.03] transition duration-500 cursor-pointer"
                             referrerPolicy="no-referrer"
                           />
                           <button

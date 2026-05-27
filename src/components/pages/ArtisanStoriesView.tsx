@@ -6,7 +6,7 @@
 import { ViewState, Saree, Artisan } from "../../types";
 import { ArrowRight, MapPin, Scissors, Award, Clock } from "lucide-react";
 import ResponsiveImage from "../ResponsiveImage";
-import { Helmet } from "react-helmet-async";
+import { useEffect } from "react";
 
 interface ArtisanStoriesViewProps {
   setView: (view: ViewState) => void;
@@ -37,12 +37,14 @@ export default function ArtisanStoriesView({
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  // SEO: set page title dynamically
+  useEffect(() => {
+    document.title = 'Artisan Stories – Art & Anchal';
+    return () => { document.title = 'Art & Anchal'; };
+  }, []);
+
   return (
     <>
-      <Helmet>
-        <title>Artisan Stories – Art &amp; Anchal</title>
-        <meta name="description" content="Meet the master weavers behind Art &amp; Anchal's luxury sarees and explore their unique craftsmanship." />
-      </Helmet>
       <h1 className="sr-only">Artisan Stories – Art &amp; Anchal</h1>
       <div className="bg-[#FDFBF7] min-h-screen py-16 px-4 sm:px-6 lg:px-8 font-sans" id="artisan-stories-view">
         <div className="max-w-5xl mx-auto space-y-16">
