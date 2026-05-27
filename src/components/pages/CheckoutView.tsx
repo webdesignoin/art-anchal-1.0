@@ -272,6 +272,7 @@ export default function CheckoutView({ cart, clearCart, setView, userSession, se
           payment_mode: "online" as const,
           is_paid: false,
           is_offline: false,
+          tracking_number: order.id, // Store Razorpay order ID so verify-payment & webhook can find this order
         });
 
       if (orderError) throw new Error(`Failed to initialize order: ${orderError.message}`);

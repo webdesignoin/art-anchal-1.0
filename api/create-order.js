@@ -24,13 +24,17 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Invalid currency code' });
     }
 
-    if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
-      return res.status(500).json({ error: 'Razorpay keys are missing' });
+    const keyId = process.env.RAZORPAY_KEY_ID?.trim();
+    const keySecret = process.env.RAZORPAY_KEY_SECRET?.trim();
+
+    if (!keyId || !keySecret) {
+      console.error('[create-order] RAZORPAY_KEY_ID or RAZORPAY_KEY_SECRET is missing from environment variables.');
+      return res.status(500).json({ error: 'Payment gateway credentials are not configured.' });
     }
 
     const razorpay = new Razorpay({
-      key_id: process.env.RAZORPAY_KEY_ID,
-      key_secret: process.env.RAZORPAY_KEY_SECRET,
+      key_id: keyId,
+      key_secret: keySecret,
     });
 
     const options = {
@@ -43,7 +47,18 @@ export default async function handler(req, res) {
     
     return res.status(200).json(order);
   } catch (error) {
-    console.error('Error creating order:', error);
-    return res.status(500).json({ error: 'Failed to create order' });
+    // Log masked key for debugging auth failures
+    const maskedKey = process.env.RAZORPAY_KEY_ID
+      ? `${process.env.RAZORPAY_KEY_ID.substring(0, 8)}...${process.env.RAZORPAY_KEY_ID.slice(-4)}`
+      : '(not set)';
+    console.error(`[create-order] Error (key_id: ${maskedKey}):`, error);
+
+    // Surface Razorpay-specific error description when available
+    const rzpDescription = error?.error?.description || error?.description;
+    const clientMessage = rzpDescription
+      ? `Payment gateway error: ${rzpDescription}`
+      : 'Failed to create order. Please try again.';
+
+    return res.status(500).json({ error: clientMessage });
   }
 }

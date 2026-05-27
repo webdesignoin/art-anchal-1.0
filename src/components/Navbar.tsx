@@ -45,17 +45,18 @@ export default function Navbar({
 
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 30);
+      const threshold = (currentView === "home" || currentView === "about") ? window.innerHeight - 90 : 20;
+      setIsScrolled(window.scrollY > threshold);
     };
     // Initialize immediately
     handleScroll();
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  }, [currentView]);
 
   // Determine if the navbar should have the dark glassmorphic look
-  // It should be glassmorphic if the user has scrolled down, OR if they are not on the home page (since other pages have light backgrounds)
-  const isDarkGlass = isScrolled || currentView !== "home";
+  // It should be glassmorphic if the user has scrolled down, OR if they are not on home/about page (since other pages have light backgrounds)
+  const isDarkGlass = isScrolled || (currentView !== "home" && currentView !== "about");
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -134,14 +135,14 @@ export default function Navbar({
 
   return (
     <>
-      {/* Spacer to prevent content from hiding under fixed navbar on non-home pages */}
-      {currentView !== "home" && <div className="h-[72px] w-full shrink-0" aria-hidden="true" />}
+      {/* Spacer to prevent content from hiding under fixed navbar on non-home/non-about pages */}
+      {(currentView !== "home" && currentView !== "about") && <div className="h-[72px] w-full shrink-0" aria-hidden="true" />}
       
       <header 
-        className={`fixed top-0 w-full z-50 transition-all duration-500 ${
+        className={`fixed top-0 w-full z-50 transition-all duration-500 border-b ${
           isDarkGlass 
-            ? "bg-[#FDFBF7]/95 backdrop-blur-xl border-b border-brand-gold/20 py-3 shadow-sm" 
-            : "bg-transparent py-6"
+            ? "bg-[#FDFBF7]/95 backdrop-blur-xl border-brand-gold/20 py-3 shadow-sm" 
+            : "bg-transparent border-transparent py-6 shadow-none"
         }`}
       >
         <div className="max-w-[90rem] mx-auto px-6 sm:px-10 lg:px-14 flex items-center justify-between">

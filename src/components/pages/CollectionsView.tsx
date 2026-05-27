@@ -34,7 +34,7 @@ export default function CollectionsView({ setView, setSelectedCategory, collecti
   };
 
   return (
-    <div className="bg-[#1C050E] min-h-screen py-24 px-4 sm:px-6 lg:px-8 font-sans overflow-hidden" id="collections-view-wrapper">
+    <div className="bg-[#1C050E] min-h-screen pt-12 pb-24 px-4 sm:px-6 lg:px-8 font-sans overflow-hidden" id="collections-view-wrapper">
       <div className="max-w-7xl mx-auto space-y-32">
         
         {/* Editorial Header */}
