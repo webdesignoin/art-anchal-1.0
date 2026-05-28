@@ -45,7 +45,23 @@
 
     <!-- Razorpay: deferred so it doesn't block initial render (only needed at checkout) -->
     <script src="https://checkout.razorpay.com/v1/checkout.js" defer></script>
+
+    <!-- Inline Service Worker Unregistration to break cache deadlocks -->
+    <script>
+
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(regs) {
+          if (regs.length > 0) {
+            for (var i = 0; i < regs.length; i++) {
+              regs[i].unregister();
+            }
+            window.location.reload();
+          }
+        });
+      }
+    </script>
   </head>
+
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
