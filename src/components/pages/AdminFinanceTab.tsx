@@ -2,7 +2,7 @@ import React, { useState, FormEvent } from "react";
 import { supabase } from "../../lib/supabase";
 import { CheckCircle, TrendingUp, TrendingDown, DollarSign, Plus, Package, FileText, CreditCard } from "lucide-react";
 
-export default function AdminFinanceTab({ dbExpenses, dbPurchases, dbDues, dbOrders, fetchAllData }: { dbExpenses: any[], dbPurchases: any[], dbDues: any[], dbOrders: any[], fetchAllData: () => void }) {
+export default function AdminFinanceTab({ dbExpenses, dbPurchases, dbDues, dbOrders, dbEmployees = [], dbDuePayments = [], fetchAllData }: { dbExpenses: any[], dbPurchases: any[], dbDues: any[], dbOrders: any[], dbEmployees: any[], dbDuePayments: any[], fetchAllData: () => void }) {
   const [feedback, setFeedback] = useState("");
   
   // Modals
@@ -13,9 +13,16 @@ export default function AdminFinanceTab({ dbExpenses, dbPurchases, dbDues, dbOrd
 
   // Forms
   const [expenseForm, setExpenseForm] = useState({ category: "Operational", amount: 0, description: "", date: new Date().toISOString().split('T')[0] });
-  const [purchaseForm, setPurchaseForm] = useState({ vendor_name: "", items_description: "", total_amount: 0, amount_paid: 0, date: new Date().toISOString().split('T')[0] });
+  const [purchaseForm, setPurchaseForm] = useState({ vendor_name: "", items_description: "", total_amount: 0, amount_paid: 0, quantity: 1, date: new Date().toISOString().split('T')[0] });
   const [dueForm, setDueForm] = useState({ entity_name: "", due_type: "payable", total_amount: 0, amount_paid: 0, due_date: "" });
   
+  // Search dropdown states
+  const [isVendorDropdownOpen, setIsVendorDropdownOpen] = useState(false);
+  const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
+
+  // Salary employee selection state
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState("");
+
   // Payment Form
   const [selectedDue, setSelectedDue] = useState<any>(null);
   const [paymentForm, setPaymentForm] = useState({ amount_paid: 0, payment_date: new Date().toISOString().split('T')[0] });
@@ -25,13 +32,31 @@ export default function AdminFinanceTab({ dbExpenses, dbPurchases, dbDues, dbOrd
     setTimeout(() => setFeedback(""), 3500);
   };
 
+  const handleEmployeeChange = (employeeId: string) => {
+    setSelectedEmployeeId(employeeId);
+    const emp = dbEmployees.find(e => e.id === employeeId);
+    if (emp) {
+      setExpenseForm(prev => ({
+        ...prev,
+        amount: Number(emp.base_salary),
+        description: `Monthly salary payout for ${emp.name} (${emp.role})`
+      }));
+    }
+  };
+
   const handleAddExpense = async (e: FormEvent) => {
     e.preventDefault();
     if (!expenseForm.amount || !expenseForm.description) return;
-    const { error } = await supabase.from("expenses").insert(expenseForm);
+    const { error } = await supabase.from("expenses").insert({
+      category: expenseForm.category,
+      amount: Number(expenseForm.amount),
+      description: expenseForm.description,
+      date: expenseForm.date
+    });
     if (error) { alert(error.message); return; }
     setIsExpenseModalOpen(false);
     setExpenseForm({ category: "Operational", amount: 0, description: "", date: new Date().toISOString().split('T')[0] });
+    setSelectedEmployeeId("");
     fetchAllData();
     showFeedback("Expense logged successfully.");
   };
@@ -47,30 +72,49 @@ export default function AdminFinanceTab({ dbExpenses, dbPurchases, dbDues, dbOrd
     const { data: purchaseData, error: purchaseError } = await supabase.from("purchases").insert({
       vendor_name: purchaseForm.vendor_name,
       items_description: purchaseForm.items_description,
+      amount: Number(purchaseForm.total_amount),
       total_amount: purchaseForm.total_amount,
       amount_paid: purchaseForm.amount_paid,
+      quantity: Number(purchaseForm.quantity || 1),
       status: status,
       date: purchaseForm.date
     }).select().single();
 
     if (purchaseError) { alert(purchaseError.message); return; }
 
-    // 2. If partial payment, automatically generate a "Due" for the remainder
-    if (isPartial && purchaseData) {
-      await supabase.from("dues").insert({
-        entity_name: purchaseForm.vendor_name,
-        due_type: 'payable',
-        total_amount: purchaseForm.total_amount,
+    // 2. Automatically generate a "Due" ledger record
+    const dueStatus = purchaseForm.amount_paid >= purchaseForm.total_amount ? 'cleared' : 'pending';
+    const { data: dueData, error: dueError } = await supabase.from("dues").insert({
+      entity_name: purchaseForm.vendor_name,
+      due_type: 'payable',
+      amount: Number(purchaseForm.total_amount),
+      total_amount: purchaseForm.total_amount,
+      amount_paid: purchaseForm.amount_paid,
+      status: dueStatus,
+      linked_purchase_id: purchaseData.id
+    }).select().single();
+
+    if (dueError) {
+      alert(`Error auto-creating ledger entry: ${dueError.message}`);
+      return;
+    }
+
+    // 3. Log initial payment in payment history if amount_paid > 0
+    if (purchaseForm.amount_paid > 0 && dueData) {
+      const { error: paymentError } = await supabase.from("due_payments").insert({
+        due_id: dueData.id,
         amount_paid: purchaseForm.amount_paid,
-        status: 'pending',
-        linked_purchase_id: purchaseData.id
+        payment_date: purchaseForm.date
       });
+      if (paymentError) {
+        console.error("Error logging initial payment:", paymentError.message);
+      }
     }
 
     setIsPurchaseModalOpen(false);
-    setPurchaseForm({ vendor_name: "", items_description: "", total_amount: 0, amount_paid: 0, date: new Date().toISOString().split('T')[0] });
+    setPurchaseForm({ vendor_name: "", items_description: "", total_amount: 0, amount_paid: 0, quantity: 1, date: new Date().toISOString().split('T')[0] });
     fetchAllData();
-    showFeedback("Purchase logged" + (isPartial ? " & Auto-Due Created." : "."));
+    showFeedback("Purchase logged & synced to Ledger.");
   };
 
   const handleAddDue = async (e: FormEvent) => {
@@ -79,6 +123,7 @@ export default function AdminFinanceTab({ dbExpenses, dbPurchases, dbDues, dbOrd
     const status = dueForm.amount_paid >= dueForm.total_amount ? 'cleared' : 'pending';
     const { error } = await supabase.from("dues").insert({
       ...dueForm,
+      amount: Number(dueForm.total_amount),
       status: status,
       due_date: dueForm.due_date || null
     });
@@ -233,8 +278,9 @@ export default function AdminFinanceTab({ dbExpenses, dbPurchases, dbDues, dbOrd
                       <span className="truncate pr-2">{pur.vendor_name}</span>
                       <span className="font-mono">Total: ₹{Number(pur.total_amount).toLocaleString("en-IN")}</span>
                     </div>
-                    <div className="text-[10px] text-brand-warm-gray border-b border-brand-gold/10 pb-2">
-                      {pur.items_description}
+                    <div className="text-[10px] text-brand-warm-gray border-b border-brand-gold/10 pb-2 flex justify-between items-center">
+                      <span>{pur.items_description}</span>
+                      {pur.quantity && <span className="font-mono bg-brand-gold/10 text-brand-gold-dark px-1.5 py-0.5 rounded text-[9px] font-bold">Qty: {pur.quantity}</span>}
                     </div>
                     <div className="flex justify-between items-center pt-1">
                       <span className={`text-[9px] uppercase font-bold px-2 py-0.5 rounded ${pur.status === 'paid' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
@@ -295,15 +341,86 @@ export default function AdminFinanceTab({ dbExpenses, dbPurchases, dbDues, dbOrd
             <h3 className="font-serif text-xl text-brand-maroon mb-4">Log General Expense</h3>
             <form onSubmit={handleAddExpense} className="space-y-3">
               <input type="date" required value={expenseForm.date} onChange={e => setExpenseForm({...expenseForm, date: e.target.value})} className="w-full bg-white border border-brand-gold/20 p-2 text-xs" />
-              <select value={expenseForm.category} onChange={e => setExpenseForm({...expenseForm, category: e.target.value})} className="w-full bg-white border border-brand-gold/20 p-2 text-xs">
-                <option>Operational</option>
-                <option>Salary</option>
-                <option>Marketing</option>
-                <option>Rent/Utilities</option>
-                <option>Other</option>
-              </select>
-              <input type="number" min="0" required placeholder="Amount (₹)" value={expenseForm.amount || ""} onChange={e => setExpenseForm({...expenseForm, amount: Number(e.target.value)})} className="w-full bg-white border border-brand-gold/20 p-2 text-xs" />
-              <input type="text" required placeholder="Description" value={expenseForm.description} onChange={e => setExpenseForm({...expenseForm, description: e.target.value})} className="w-full bg-white border border-brand-gold/20 p-2 text-xs" />
+              
+              {/* Category Searchable Dropdown */}
+              <div className="space-y-1 relative">
+                <label className="text-[10px] uppercase font-bold block text-brand-maroon">Expense Category *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Type or select category..."
+                  value={expenseForm.category}
+                  onChange={(e) => {
+                    const cat = e.target.value;
+                    setExpenseForm({ ...expenseForm, category: cat });
+                    setIsCategoryDropdownOpen(true);
+                    if (cat !== "Salary") {
+                      setSelectedEmployeeId("");
+                    }
+                  }}
+                  onFocus={() => setIsCategoryDropdownOpen(true)}
+                  onBlur={() => {
+                    setTimeout(() => setIsCategoryDropdownOpen(false), 200);
+                  }}
+                  className="w-full bg-white border border-brand-gold/20 p-2 text-xs focus:outline-none focus:border-brand-maroon"
+                />
+                {isCategoryDropdownOpen && (
+                  <div className="absolute left-0 right-0 z-50 bg-white border border-brand-gold/20 shadow-lg max-h-36 overflow-y-auto mt-1 divide-y divide-brand-gold/10 rounded">
+                    {Array.from(new Set(["Operational", "Salary", "Marketing", "Rent/Utilities", "Other", ...dbExpenses.map(e => e.category).filter(Boolean)]))
+                      .filter(c => c.toLowerCase().includes(expenseForm.category.toLowerCase()))
+                      .map(cat => (
+                        <div
+                          key={cat}
+                          onMouseDown={() => {
+                            setExpenseForm({ ...expenseForm, category: cat });
+                            setIsCategoryDropdownOpen(false);
+                            if (cat === "Salary" && dbEmployees.length > 0) {
+                              handleEmployeeChange(dbEmployees[0].id);
+                            } else {
+                              setSelectedEmployeeId("");
+                            }
+                          }}
+                          className="px-3 py-2 text-xs hover:bg-brand-sand/50 cursor-pointer text-brand-maroon font-semibold"
+                        >
+                          {cat}
+                        </div>
+                      ))}
+                    {expenseForm.category && !["Operational", "Salary", "Marketing", "Rent/Utilities", "Other", ...dbExpenses.map(e => e.category).filter(Boolean)].some(c => c.toLowerCase() === expenseForm.category.toLowerCase()) && (
+                      <div className="px-3 py-2 text-xs text-brand-warm-gray bg-brand-sand/35 font-bold italic">
+                        + Create Category: "{expenseForm.category}"
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {expenseForm.category === "Salary" && (
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase font-bold block text-brand-maroon">Select Staff Member *</label>
+                  <select
+                    required
+                    value={selectedEmployeeId}
+                    onChange={e => handleEmployeeChange(e.target.value)}
+                    className="w-full bg-white border border-brand-gold/20 p-2 text-xs focus:outline-none"
+                  >
+                    <option value="" disabled>-- Select Employee --</option>
+                    {dbEmployees.map(emp => (
+                      <option key={emp.id} value={emp.id}>{emp.name} ({emp.role})</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase font-bold block text-brand-maroon">Amount (₹)</label>
+                <input type="number" min="1" required placeholder="Amount (₹)" value={expenseForm.amount || ""} onChange={e => setExpenseForm({...expenseForm, amount: Number(e.target.value)})} className="w-full bg-white border border-brand-gold/20 p-2 text-xs focus:outline-none font-mono" />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase font-bold block text-brand-maroon">Description</label>
+                <input type="text" required placeholder="Description" value={expenseForm.description} onChange={e => setExpenseForm({...expenseForm, description: e.target.value})} className="w-full bg-white border border-brand-gold/20 p-2 text-xs focus:outline-none" />
+              </div>
+
               <div className="flex justify-end gap-2 pt-2">
                 <button type="button" onClick={() => setIsExpenseModalOpen(false)} className="text-xs uppercase font-bold px-3 text-brand-warm-gray hover:text-brand-maroon">Cancel</button>
                 <button type="submit" className="bg-brand-maroon text-white text-xs uppercase font-bold px-4 py-2">Save</button>
@@ -319,8 +436,56 @@ export default function AdminFinanceTab({ dbExpenses, dbPurchases, dbDues, dbOrd
             <h3 className="font-serif text-xl text-brand-maroon mb-4">Log Inventory Purchase</h3>
             <form onSubmit={handleAddPurchase} className="space-y-3">
               <input type="date" required value={purchaseForm.date} onChange={e => setPurchaseForm({...purchaseForm, date: e.target.value})} className="w-full bg-white border border-brand-gold/20 p-2 text-xs" />
-              <input type="text" required placeholder="Vendor Name" value={purchaseForm.vendor_name} onChange={e => setPurchaseForm({...purchaseForm, vendor_name: e.target.value})} className="w-full bg-white border border-brand-gold/20 p-2 text-xs" />
+              
+              {/* Vendor Searchable Dropdown */}
+              <div className="space-y-1 relative">
+                <label className="text-[10px] uppercase font-bold block text-brand-maroon">Vendor Name *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Type or select vendor..."
+                  value={purchaseForm.vendor_name}
+                  onChange={(e) => {
+                    setPurchaseForm({ ...purchaseForm, vendor_name: e.target.value });
+                    setIsVendorDropdownOpen(true);
+                  }}
+                  onFocus={() => setIsVendorDropdownOpen(true)}
+                  onBlur={() => {
+                    setTimeout(() => setIsVendorDropdownOpen(false), 200);
+                  }}
+                  className="w-full bg-white border border-brand-gold/20 p-2 text-xs focus:outline-none focus:border-brand-maroon"
+                />
+                {isVendorDropdownOpen && (
+                  <div className="absolute left-0 right-0 z-50 bg-white border border-brand-gold/20 shadow-lg max-h-36 overflow-y-auto mt-1 divide-y divide-brand-gold/10 rounded">
+                    {Array.from(new Set([...dbPurchases.map(p => p.vendor_name).filter(Boolean), ...dbDues.filter(d => d.due_type === 'payable').map(d => d.entity_name).filter(Boolean)]))
+                      .filter(v => v.toLowerCase().includes(purchaseForm.vendor_name.toLowerCase()))
+                      .map(vendor => (
+                        <div
+                          key={vendor}
+                          onMouseDown={() => {
+                            setPurchaseForm({ ...purchaseForm, vendor_name: vendor });
+                            setIsVendorDropdownOpen(false);
+                          }}
+                          className="px-3 py-2 text-xs hover:bg-brand-sand/50 cursor-pointer text-brand-maroon font-semibold"
+                        >
+                          {vendor}
+                        </div>
+                      ))}
+                    {purchaseForm.vendor_name && !Array.from(new Set([...dbPurchases.map(p => p.vendor_name).filter(Boolean), ...dbDues.filter(d => d.due_type === 'payable').map(d => d.entity_name).filter(Boolean)])).some(v => v.toLowerCase() === purchaseForm.vendor_name.toLowerCase()) && (
+                      <div className="px-3 py-2 text-xs text-brand-warm-gray bg-brand-sand/35 font-bold italic">
+                        + Add Vendor: "{purchaseForm.vendor_name}"
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
               <input type="text" required placeholder="Items (e.g. 10x Katan Silk)" value={purchaseForm.items_description} onChange={e => setPurchaseForm({...purchaseForm, items_description: e.target.value})} className="w-full bg-white border border-brand-gold/20 p-2 text-xs" />
+              
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase font-bold block text-brand-maroon">Quantity</label>
+                <input type="number" min="1" required value={purchaseForm.quantity} onChange={e => setPurchaseForm({...purchaseForm, quantity: Number(e.target.value)})} className="w-full bg-white border border-brand-gold/20 p-2 text-xs focus:outline-none font-mono" />
+              </div>
               
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">

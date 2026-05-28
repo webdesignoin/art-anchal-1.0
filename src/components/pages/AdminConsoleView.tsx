@@ -68,6 +68,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
   const [dbExpenses, setDbExpenses] = useState<any[]>([]);
   const [dbPurchases, setDbPurchases] = useState<any[]>([]);
   const [dbDues, setDbDues] = useState<any[]>([]);
+  const [dbDuePayments, setDbDuePayments] = useState<any[]>([]);
 
   // CMS states
   const [editingSaree, setEditingSaree] = useState<any | null>(null);
@@ -136,18 +137,20 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
       if (prof.data) setDbProfiles(prof.data);
 
       try {
-        const [emp, att, exp, pur, due] = await Promise.all([
+        const [emp, att, exp, pur, due, dp] = await Promise.all([
           supabase.from("employees").select("*").order("name"),
           supabase.from("attendance").select("*, employee:employees(name)").order("date", { ascending: false }),
           supabase.from("expenses").select("*").order("date", { ascending: false }),
           supabase.from("purchases").select("*").order("date", { ascending: false }),
           supabase.from("dues").select("*").order("due_date", { ascending: false }),
+          supabase.from("due_payments").select("*").order("payment_date", { ascending: false }),
         ]);
         if (emp.data) setDbEmployees(emp.data);
         if (att.data) setDbAttendance(att.data);
         if (exp.data) setDbExpenses(exp.data);
         if (pur.data) setDbPurchases(pur.data);
         if (due.data) setDbDues(due.data);
+        if (dp.data) setDbDuePayments(dp.data);
       } catch (erpErr) {
         console.warn("ERP tables might not exist yet", erpErr);
       }
@@ -252,7 +255,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
       artisan_id: sareeForm.artisan_id || null,
       images: (() => {
         const urls = sareeForm.images.filter(Boolean);
-        return urls.length > 0 ? urls : ["https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=800"];
+        return urls.length > 0 ? urls : ["/images/katan_collection_1779547545862.png"];
       })(),
       description: sareeForm.description,
       drape_recommendation: sareeForm.drape_recommendation || null,
@@ -510,14 +513,70 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
       // Get profile details for the selected customer
       const selectedProfile = dbProfiles.find(p => p.id === selectedProfileId);
       
+      // 1. Insert Order
+      const { data: orderData, error: orderError } = await supabase
+        .from("orders")
+        .insert({
+          profile_id: selectedProfileId || null,
+          customer_name: selectedProfile?.name || "Walk-in Customer",
+          customer_email: selectedProfile?.email || "walkin@artandanchal.com",
+          customer_phone: selectedProfile?.phone || null,
+          shipping_address: { address: "Showroom Walk-in", city: "Varanasi", zip: "221001" },
+          subtotal: posSubtotal,
+          discount: posDiscountAmt,
+          tax: posTaxAmt,
+          total: posTotal,
+          status: "confirmed",
+          payment_mode: posPaymentMethod,
+          payment_ref: "POS Showroom",
+          is_paid: true,
+          is_offline: true,
+          notes: posNotes || null,
+        })
+        .select("id, invoice_number, created_at")
+        .single();
+
+      if (orderError) throw orderError;
+
+      // 2. Insert Order Items
+      const orderItemsPayload = posCart.map(item => ({
+        order_id: orderData.id,
+        saree_id: item.saree.id,
+        product_name: item.saree.name,
+        unit_price: item.saree.price,
+        quantity: item.quantity,
+      }));
+
+      const { error: itemsError } = await supabase
+        .from("order_items")
+        .insert(orderItemsPayload);
+
+      if (itemsError) throw itemsError;
+
+      // 3. Decrement Stock Quantity
+      for (const item of posCart) {
+        const currentStock = Number(item.saree.stock_quantity ?? 1);
+        const { error: stockError } = await supabase
+          .from("sarees")
+          .update({ stock_quantity: Math.max(0, currentStock - item.quantity) })
+          .eq("id", item.saree.id);
+        
+        if (stockError) console.error("Stock update failed for Saree ID:", item.saree.id, stockError);
+      }
+
       setActiveInvoice({
-        invoice_number: `POS-${Date.now()}`,
-        created_at: new Date().toISOString(),
+        invoice_number: orderData.invoice_number || `POS-${Date.now()}`,
+        created_at: orderData.created_at || new Date().toISOString(),
         customer_name: selectedProfile?.name || "Walk-in Customer",
         customer_phone: selectedProfile?.phone || undefined,
         customer_email: selectedProfile?.email || undefined,
         is_offline: true,
-        items: posCart,
+        items: posCart.map(item => ({
+          saree: item.saree,
+          product_name: item.saree.name,
+          unit_price: item.saree.price,
+          quantity: item.quantity
+        })),
         subtotal: posSubtotal,
         discount: posDiscountAmt,
         tax: posTaxAmt,
@@ -533,7 +592,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
       setPosNotes("");
       fetchAllData();
       await refreshCatalog(true);
-      showFeedback("Bill generated! Stock updated.");
+      showFeedback("Bill generated! Stock updated in database.");
     } catch (err: any) {
       alert(`POS Error: ${err.message}`);
     } finally {
@@ -1002,36 +1061,36 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                       })}
                     </tbody>
                   </table>
-                  {/* Mobile Card Grid */}
-                  <div className="grid grid-cols-1 gap-4 p-4 lg:hidden">
-                    {dbSarees.map(s => {
-                      const stock = s.stock_quantity ?? 0;
-                      const stockColor = stock <= 0 ? "text-red-700 bg-red-50" : stock <= 2 ? "text-amber-700 bg-amber-50" : "text-emerald-700 bg-emerald-50";
-                      return (
-                        <div key={s.id} className="glass-card p-4 flex flex-col space-y-2">
-                          <div className="flex items-center gap-3">
-                            <img src={s.images?.[0]} alt="" className="w-12 h-12 object-cover rounded" />
-                            <div>
-                              <p className="font-serif font-semibold text-sm text-brand-maroon">{s.name}</p>
-                              <p className="text-xs text-brand-warm-gray">{s.weaving_technique}</p>
-                            </div>
-                          </div>
-                          <p className="font-mono font-bold">₹{Number(s.price).toLocaleString("en-IN")}</p>
-                          <span className={`inline-block text-[10px] font-bold px-2.5 py-1 rounded-full ${stockColor}`}>{stock <= 0 ? "Out of Stock" : `${stock} pcs`}</span>
-                          <div className="flex gap-2">
-                            <button onClick={() => handleOpenEditSaree(s)} className="text-brand-gold-dark hover:text-brand-maroon transition" title="Edit"><Edit className="w-4 h-4"/></button>
-                            <button onClick={() => handleDeleteSaree(s.id)} className="text-red-600 hover:text-red-800 transition" title="Remove"><Trash2 className="w-4 h-4"/></button>
+                </div>
+                {/* Mobile Card Grid */}
+                <div className="grid grid-cols-1 gap-4 p-4 lg:hidden">
+                  {dbSarees.map(s => {
+                    const stock = s.stock_quantity ?? 0;
+                    const stockColor = stock <= 0 ? "text-red-700 bg-red-50" : stock <= 2 ? "text-amber-700 bg-amber-50" : "text-emerald-700 bg-emerald-50";
+                    return (
+                      <div key={s.id} className="glass-card p-4 flex flex-col space-y-2">
+                        <div className="flex items-center gap-3">
+                          <img src={s.images?.[0]} alt="" className="w-12 h-12 object-cover rounded" />
+                          <div>
+                            <p className="font-serif font-semibold text-sm text-brand-maroon">{s.name}</p>
+                            <p className="text-xs text-brand-warm-gray">{s.weaving_technique}</p>
                           </div>
                         </div>
-                      );
-                    })}
-                  </div>
-                  {dbSarees.length === 0 && (
-                    <div className="py-16 text-center text-xs text-brand-warm-gray italic">
-                      No sarees in catalog. Add your first saree above.
-                    </div>
-                  )}
+                        <p className="font-mono font-bold">₹{Number(s.price).toLocaleString("en-IN")}</p>
+                        <span className={`inline-block text-[10px] font-bold px-2.5 py-1 rounded-full ${stockColor}`}>{stock <= 0 ? "Out of Stock" : `${stock} pcs`}</span>
+                        <div className="flex gap-2">
+                          <button onClick={() => handleOpenEditSaree(s)} className="text-brand-gold-dark hover:text-brand-maroon transition" title="Edit"><Edit className="w-4 h-4"/></button>
+                          <button onClick={() => handleDeleteSaree(s.id)} className="text-red-600 hover:text-red-800 transition" title="Remove"><Trash2 className="w-4 h-4"/></button>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
+                {dbSarees.length === 0 && (
+                  <div className="py-16 text-center text-xs text-brand-warm-gray italic">
+                    No sarees in catalog. Add your first saree above.
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -1574,6 +1633,8 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
             <AdminHRTab 
               dbEmployees={dbEmployees} 
               dbAttendance={dbAttendance} 
+              dbProfiles={dbProfiles}
+              dbExpenses={dbExpenses}
               fetchAllData={fetchAllData} 
             />
           )}
@@ -1585,6 +1646,8 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
               dbPurchases={dbPurchases} 
               dbDues={dbDues} 
               dbOrders={dbOrders} 
+              dbEmployees={dbEmployees}
+              dbDuePayments={dbDuePayments}
               fetchAllData={fetchAllData} 
             />
           )}
@@ -1594,6 +1657,8 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
             <AdminVendorsTab 
               dbPurchases={dbPurchases} 
               dbDues={dbDues} 
+              dbDuePayments={dbDuePayments}
+              fetchAllData={fetchAllData}
             />
           )}
 

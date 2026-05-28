@@ -11,6 +11,7 @@
     "preview": "vite preview",
     "lint": "tsc --noEmit",
     "start": "node server.js",
+    "get-tables": "node get_tables.js",
     "clean": "node -e \"const fs=require('fs');['dist'].forEach(d=>{try{fs.rmSync(d,{recursive:true,force:true})}catch(e){}});\""
   },
   "dependencies": {
