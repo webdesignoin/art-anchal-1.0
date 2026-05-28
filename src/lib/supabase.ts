@@ -605,7 +605,16 @@ const mockSupabase = {
   },
 };
 
+const isValidUrl = (url: string) => {
+  try {
+    new URL(url);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 // Export actual or mock Supabase based on environment key configuration
-export const supabase = isMock
+export const supabase = (isMock || !supabaseUrl || !supabaseAnonKey || !isValidUrl(supabaseUrl))
   ? (mockSupabase as any)
   : createClient(supabaseUrl, supabaseAnonKey);
