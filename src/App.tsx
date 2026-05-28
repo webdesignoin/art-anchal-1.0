@@ -34,23 +34,73 @@ import { Sparkles, Eye, ShoppingBag, CheckCircle } from "lucide-react";
 
 export default function App() {
   // App routing and filters
-  const [currentView, _setView] = useState<ViewState>(() => {
-    try {
-      const saved = localStorage.getItem("art_anchal_view");
-      if (saved) return saved as ViewState;
-    } catch {}
-    return "home";
-  });
-
-  const setView = (v: ViewState) => {
-    _setView(v);
-    try {
-      localStorage.setItem("art_anchal_view", v);
-    } catch {}
-  };
+  const [currentView, setView] = useState<ViewState>("home");
   const [selectedSareeId, setSelectedSareeId] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
+
+  // Synchronize URL hash with React state changes
+  useEffect(() => {
+    if (currentView === "product-detail" && selectedSareeId) {
+      const targetHash = `#/product/${selectedSareeId}`;
+      if (window.location.hash !== targetHash) {
+        window.location.hash = targetHash;
+      }
+    } else if (currentView === "shop" && selectedCategory) {
+      const targetHash = `#/shop?category=${encodeURIComponent(selectedCategory)}`;
+      if (window.location.hash !== targetHash) {
+        window.location.hash = targetHash;
+      }
+    } else {
+      const targetHash = `#/${currentView}`;
+      if (window.location.hash !== targetHash) {
+        window.location.hash = targetHash;
+      }
+    }
+    
+    try {
+      localStorage.setItem("art_anchal_view", currentView);
+    } catch {}
+  }, [currentView, selectedSareeId, selectedCategory]);
+
+  // Listen for window hash changes (e.g. back button / direct link)
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash || "#/home";
+      const path = hash.replace(/^#\/?/, "");
+      
+      const queryIndex = path.indexOf("?");
+      let view = path;
+      let queryString = "";
+      if (queryIndex !== -1) {
+        view = path.substring(0, queryIndex);
+        queryString = path.substring(queryIndex + 1);
+      }
+
+      if (view.startsWith("product/")) {
+        const id = view.replace("product/", "");
+        setSelectedSareeId(id);
+        setView("product-detail");
+      } else {
+        if (view === "shop" && queryString) {
+          const params = new URLSearchParams(queryString);
+          const cat = params.get("category");
+          if (cat) {
+            setSelectedCategory(decodeURIComponent(cat));
+          }
+        }
+        setView((view || "home") as ViewState);
+      }
+    };
+
+    window.addEventListener("hashchange", handleHashChange);
+    handleHashChange(); // Sync initial load
+
+    return () => {
+      window.removeEventListener("hashchange", handleHashChange);
+    };
+  }, []);
+
 
   const [cart, setCart] = useState<CartItem[]>([]);
   const [wishlist, setWishlist] = useState<Saree[]>([]);
