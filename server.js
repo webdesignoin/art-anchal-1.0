@@ -16,23 +16,32 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 const isDev = process.env.NODE_ENV !== 'production';
 
-// ── CORS — restrict to known origins in production ────────────────────────────
 const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:5173',
   'https://artandanchal.com',
   'https://www.artandanchal.com',
+  'https://art-anchal-1-0.onrender.com',
 ];
 
 app.use(cors({
   origin: (origin, callback) => {
     // Allow requests with no origin (mobile apps, Postman, same-origin server calls)
     if (!origin || isDev) return callback(null, true);
-    if (allowedOrigins.includes(origin)) return callback(null, true);
+    
+    // Check if origin matches allowed list or any Render subdomain
+    if (
+      allowedOrigins.includes(origin) || 
+      origin.endsWith('.onrender.com') || 
+      origin.includes('art-anchal')
+    ) {
+      return callback(null, true);
+    }
     callback(new Error(`CORS: Origin ${origin} not allowed`));
   },
   credentials: true,
 }));
+
 
 // ── Security headers ───────────────────────────────────────────────────────────
 app.use((req, res, next) => {
