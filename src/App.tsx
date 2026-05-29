@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ViewState, Saree, CartItem, Artisan, Collection } from "./types";
 import { SAREES, ARTISANS, COLLECTIONS } from "./data/sarees";
 import { supabase, isMock } from "./lib/supabase";
@@ -39,65 +39,68 @@ export default function App() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
 
-  // Synchronize URL hash with React state changes
+  // Ref to track current view for use inside closures (e.g. onAuthStateChange)
+  const currentViewRef = useRef<ViewState>(currentView);
+  useEffect(() => { currentViewRef.current = currentView; }, [currentView]);
+
+  // Synchronize URL pathname with React state changes (History API)
   useEffect(() => {
+    let targetPath: string;
     if (currentView === "product-detail" && selectedSareeId) {
-      const targetHash = `#/product/${selectedSareeId}`;
-      if (window.location.hash !== targetHash) {
-        window.location.hash = targetHash;
-      }
+      targetPath = `/product/${selectedSareeId}`;
     } else if (currentView === "shop" && selectedCategory) {
-      const targetHash = `#/shop?category=${encodeURIComponent(selectedCategory)}`;
-      if (window.location.hash !== targetHash) {
-        window.location.hash = targetHash;
-      }
+      targetPath = `/shop?category=${encodeURIComponent(selectedCategory)}`;
+    } else if (currentView === "home") {
+      targetPath = "/";
     } else {
-      const targetHash = `#/${currentView}`;
-      if (window.location.hash !== targetHash) {
-        window.location.hash = targetHash;
-      }
+      targetPath = `/${currentView}`;
     }
-    
+
+    const currentUrl = window.location.pathname + window.location.search;
+    if (currentUrl !== targetPath) {
+      window.history.pushState({ view: currentView }, "", targetPath);
+    }
+
     try {
       localStorage.setItem("art_anchal_view", currentView);
     } catch {}
   }, [currentView, selectedSareeId, selectedCategory]);
 
-  // Listen for window hash changes (e.g. back button / direct link)
+  // Parse URL on mount and listen for browser back/forward navigation (popstate)
   useEffect(() => {
-    const handleHashChange = () => {
-      const hash = window.location.hash || "#/home";
-      const path = hash.replace(/^#\/?/, "");
-      
-      const queryIndex = path.indexOf("?");
-      let view = path;
-      let queryString = "";
-      if (queryIndex !== -1) {
-        view = path.substring(0, queryIndex);
-        queryString = path.substring(queryIndex + 1);
+    const parseLocation = () => {
+      const pathname = window.location.pathname;
+      const search = window.location.search;
+
+      // Don't route if Supabase OAuth tokens are present in the hash —
+      // let onAuthStateChange handle the redirect after processing them
+      if (window.location.hash && window.location.hash.includes("access_token")) {
+        return;
       }
 
-      if (view.startsWith("product/")) {
-        const id = view.replace("product/", "");
+      const path = pathname.replace(/^\/+/, ""); // Remove leading slash(es)
+
+      if (path.startsWith("product/")) {
+        const id = path.replace("product/", "");
         setSelectedSareeId(id);
         setView("product-detail");
       } else {
-        if (view === "shop" && queryString) {
-          const params = new URLSearchParams(queryString);
+        if (path === "shop" && search) {
+          const params = new URLSearchParams(search);
           const cat = params.get("category");
           if (cat) {
             setSelectedCategory(decodeURIComponent(cat));
           }
         }
-        setView((view || "home") as ViewState);
+        setView((path || "home") as ViewState);
       }
     };
 
-    window.addEventListener("hashchange", handleHashChange);
-    handleHashChange(); // Sync initial load
+    window.addEventListener("popstate", parseLocation);
+    parseLocation(); // Parse initial URL on mount
 
     return () => {
-      window.removeEventListener("hashchange", handleHashChange);
+      window.removeEventListener("popstate", parseLocation);
     };
   }, []);
 
@@ -187,9 +190,8 @@ export default function App() {
     }
   };
 
-  // Sync initial sessions on first render
+  // Sync initial sessions on first render (mount-only)
   useEffect(() => {
-    // Removed redundant checkSession to prevent race conditions with onAuthStateChange
     const initializeApp = async () => {
       try {
         const savedCart = localStorage.getItem("art_anchal_cart");
@@ -229,14 +231,13 @@ export default function App() {
     // Handles: Google OAuth redirect callback, session restore on page refresh
     if (!isMock) {
       const { data: { subscription } } = supabase.auth.onAuthStateChange(
-        (event, session) => {
+        (event: string, session: any) => {
           setTimeout(async () => {
             if ((event === "SIGNED_IN" || event === "INITIAL_SESSION") && session?.user) {
               const u = session.user;
               
-              // Pattern 2: Safety upsert — ensures profile always exists even if
-              // the database trigger silently failed (e.g. first OAuth login before fix).
-              // This is self-healing: safe to run on every login, no duplicates ever.
+              // Safety upsert — ensures profile always exists even if
+              // the database trigger silently failed (e.g. first OAuth login).
               const { error: upsertErr } = await supabase.from("profiles").upsert(
                 {
                   auth_user_id: u.id,
@@ -260,8 +261,6 @@ export default function App() {
                 console.error("Profile Upsert Error:", upsertErr);
                 triggerToast("Database Error", upsertErr.message);
               }
-
-              // Always update session state so children re-render and re-fetch if they had a stale RLS token
 
               // Fetch full profile (including is_admin flag)
               const { data: profile, error: fetchErr } = await supabase
@@ -289,8 +288,15 @@ export default function App() {
               localStorage.setItem("art_anchal_user", JSON.stringify(newSession));
               setSessionReady(true); // Unblock order history + payment
 
-              // Route only if coming from login or redirected
-              if (currentView === "login-register" || window.location.hash.includes("access_token")) {
+              // Route if coming from login page or returning from an OAuth redirect
+              const liveView = currentViewRef.current;
+              const oauthPending = localStorage.getItem("art_anchal_oauth_pending");
+              if (liveView === "login-register" || oauthPending || window.location.hash.includes("access_token")) {
+                localStorage.removeItem("art_anchal_oauth_pending");
+                // Clean up any OAuth hash fragments from the URL
+                if (window.location.hash) {
+                  window.history.replaceState(null, "", window.location.pathname + window.location.search);
+                }
                 if (isAdmin) setView("admin-console");
                 else setView("home");
               }
@@ -321,7 +327,8 @@ export default function App() {
       // In mock mode, immediately mark session ready since we don't have onAuthStateChange
       setSessionReady(true);
     }
-  }, [currentView, isMock]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // --- Dynamic Document Title SEO ---
   useEffect(() => {

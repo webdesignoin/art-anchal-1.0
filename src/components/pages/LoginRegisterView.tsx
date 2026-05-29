@@ -79,30 +79,12 @@ export default function LoginRegisterView({
         // Clear any stale cached session before fresh login
         localStorage.removeItem("art_anchal_user");
 
-        const { data, error } = await supabase.auth.signInWithPassword({ email: inp.email, password: inp.password });
+        const { error } = await supabase.auth.signInWithPassword({ email: inp.email, password: inp.password });
         if (error) { showMsg(error.message); return; }
 
-        const userId = data.user.id;
-        const userEmail = data.user.email || "";
-
-        // Fetch profile — is_admin comes exclusively from the database
-        const { data: profile, error: profErr } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("auth_user_id", userId)
-          .single();
-
-        if (profErr && import.meta.env.DEV) console.warn("Profile fetch error:", profErr.message);
-
-        const session = {
-          id: userId,
-          name: profile?.name || userEmail?.split("@")[0] || "Guest",
-          email: userEmail || "",
-          is_admin: profile?.is_admin === true,
-          phone: profile?.phone || "",
-        };
-        setUserSession(session);
-        localStorage.setItem("art_anchal_user", JSON.stringify(session));
+        // onAuthStateChange in App.tsx will handle profile fetch, setUserSession, and routing.
+        // Show brief feedback while the auth listener processes.
+        showMsg("Signing in...");
       } else {
         const { data, error } = await supabase.auth.signUp({ email: inp.email, password: inp.password });
         if (error) { showMsg(error.message); return; }
@@ -339,6 +321,8 @@ export default function LoginRegisterView({
                 }
                 setIsLoading(true);
                 localStorage.removeItem("art_anchal_user");
+                // Flag so onAuthStateChange knows this is a returning OAuth redirect
+                localStorage.setItem("art_anchal_oauth_pending", "1");
                 try {
                   const { error } = await supabase.auth.signInWithOAuth({
                     provider: 'google',
