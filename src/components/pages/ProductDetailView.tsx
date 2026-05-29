@@ -8,7 +8,8 @@ import { ViewState, Saree } from "../../types";
 import {
   Heart, ShoppingBag, Award, ZoomIn, ArrowLeft,
   ChevronLeft, ChevronRight, CheckCircle2, Star,
-  Package, Truck, RotateCcw, X, Share2, Info
+  Package, Truck, RotateCcw, X, Share2, Compass,
+  Sparkles, Check, ChevronDown, BookOpen
 } from "lucide-react";
 
 interface ProductDetailViewProps {
@@ -23,7 +24,12 @@ interface ProductDetailViewProps {
   sarees: Saree[];
 }
 
-const IMAGE_LABELS = ["Main Details", "Artisan Weave", "Graceful Drape"];
+const STITCHING_OPTIONS = [
+  { id: "unstitched", label: "Unstitched Fabric Only", price: 0, desc: "Standard 80cm matching blouse piece included" },
+  { id: "classic", label: "Classic Round Neck", price: 1500, desc: "Stitched with cotton lining, classic half-sleeves" },
+  { id: "sleeveless", label: "Modern Sleeveless", price: 1800, desc: "Contemporary sleeveless design, V-neck style" },
+  { id: "elbow", label: "Signature Elbow Sleeves", price: 2200, desc: "Elegant elbow-length sleeves, designer back neck" }
+];
 
 export default function ProductDetailView({
   sareeId,
@@ -37,15 +43,19 @@ export default function ProductDetailView({
 }: ProductDetailViewProps) {
   const [activeImageIdx, setActiveImageIdx] = useState(0);
   const [quantity, setQuantity] = useState(1);
-  const [selectedTab, setSelectedTab] = useState<"fabric" | "weave" | "wash">("fabric");
-  const [customBlouse, setCustomBlouse] = useState(false);
+  const [stitchingChoice, setStitchingChoice] = useState("unstitched");
+  const [customMeasurements, setCustomMeasurements] = useState("");
   const [zoomStyle, setZoomStyle] = useState<CSSProperties>({ display: "none" });
   const [addedPulse, setAddedPulse] = useState(false);
   const [showStickyBar, setShowStickyBar] = useState(false);
   const [showLightbox, setShowLightbox] = useState(false);
+  
+  // Accordion state
+  const [openAccordion, setOpenAccordion] = useState<"specs" | "heritage" | "care" | null>("specs");
+
   const ctaRef = useRef<HTMLDivElement>(null);
 
-  // Show sticky bar when main CTA scrolls out of view
+  // Monitor sticky bar state
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => setShowStickyBar(!entry.isIntersecting),
@@ -54,17 +64,6 @@ export default function ProductDetailView({
     if (ctaRef.current) observer.observe(ctaRef.current);
     return () => observer.disconnect();
   }, []);
-
-  // Handle ESC key to close lightbox
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setShowLightbox(false);
-      if (e.key === "ArrowLeft" && showLightbox) goPrev();
-      if (e.key === "ArrowRight" && showLightbox) goNext();
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [showLightbox]);
 
   const rawSaree = useMemo(() => sarees.find((s) => s.id === sareeId) || sarees[0], [sareeId, sarees]);
 
@@ -103,12 +102,20 @@ export default function ProductDetailView({
     ? Math.round((1 - saree.price / saree.originalPrice) * 100)
     : null;
 
+  // Calculate final price based on stitching selection
+  const selectedStitchingPrice = STITCHING_OPTIONS.find(o => o.id === stitchingChoice)?.price ?? 0;
+  const finalPrice = saree.price + selectedStitchingPrice;
+
   const priceFormatted = new Intl.NumberFormat("en-IN", {
+    style: "currency", currency: "INR", maximumFractionDigits: 0,
+  }).format(finalPrice);
+
+  const basePriceFormatted = new Intl.NumberFormat("en-IN", {
     style: "currency", currency: "INR", maximumFractionDigits: 0,
   }).format(saree.price);
 
   const originalPriceFormatted = saree.originalPrice
-    ? new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(saree.originalPrice)
+    ? new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(saree.originalPrice + selectedStitchingPrice)
     : null;
 
   const relatedProducts = useMemo(() =>
@@ -120,6 +127,7 @@ export default function ProductDetailView({
     setSelectedSareeId(id);
     setActiveImageIdx(0);
     setQuantity(1);
+    setStitchingChoice("unstitched");
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -140,7 +148,13 @@ export default function ProductDetailView({
   const goNext = () => setActiveImageIdx(i => (i + 1) % images.length);
 
   const handleAddToBag = () => {
-    addToCart(saree, quantity);
+    const customizedSaree = {
+      ...saree,
+      price: finalPrice,
+      customStitching: STITCHING_OPTIONS.find(o => o.id === stitchingChoice)?.label,
+      measurements: customMeasurements || "Standard Size"
+    };
+    addToCart(customizedSaree, quantity);
     setAddedPulse(true);
     setTimeout(() => setAddedPulse(false), 1200);
   };
@@ -154,32 +168,32 @@ export default function ProductDetailView({
       }).catch(() => {});
     } else {
       navigator.clipboard.writeText(window.location.href);
-      alert("Product link copied to clipboard!");
+      alert("Link copied to clipboard!");
     }
   };
 
   return (
-    <div className="bg-[#FDFBF7] min-h-screen font-sans antialiased text-[#3E3E3E]" id="product-detail-view-container">
+    <div className="bg-[#FAF8F5] min-h-screen font-sans antialiased text-[#2E2E2E]" id="product-detail-view-container">
 
-      {/* ── Sticky Add-to-Bag Bar ─────────────────────────────────────── */}
+      {/* ── Sticky Purchase Bar ────────────────────────────────────────── */}
       <div
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ease-in-out ${
-          showStickyBar ? "translate-y-0 opacity-100 shadow-xl" : "-translate-y-full opacity-0"
-        } bg-[#FDFBF7]/95 backdrop-blur-md border-b border-brand-gold/15`}
+          showStickyBar ? "translate-y-0 opacity-100 shadow-lg" : "-translate-y-full opacity-0"
+        } bg-[#FAF8F5]/90 backdrop-blur-lg border-b border-[#C5A880]/20`}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
             {images[0] && (
-              <img src={images[0]} alt={`${saree.name} thumbnail`} className="w-10 h-13 object-cover rounded border border-brand-gold/20 flex-shrink-0" />
+              <img src={images[0]} alt="" className="w-9 h-12 object-cover rounded border border-[#C5A880]/15 flex-shrink-0" />
             )}
             <div className="min-w-0">
-              <p className="text-xs font-bold text-brand-maroon truncate tracking-wide uppercase font-serif">{saree.name}</p>
-              <p className="text-xs font-mono text-brand-gold font-bold">{priceFormatted}</p>
+              <span className="text-[10px] font-bold text-[#5B0E2D] block uppercase font-serif tracking-wider truncate">{saree.name}</span>
+              <span className="text-xs font-mono text-[#A4865E] font-bold">{priceFormatted}</span>
             </div>
           </div>
           <button
             onClick={handleAddToBag}
-            className="bg-brand-maroon hover:bg-[#3E061E] active:scale-95 text-brand-ivory text-[10px] tracking-widest uppercase font-bold py-2.5 px-6 transition-all duration-300 flex-shrink-0 flex items-center gap-2 shadow-lg shadow-brand-maroon/10"
+            className="bg-[#5B0E2D] hover:bg-[#3E061E] active:scale-95 text-[#FDFBF7] text-[10px] tracking-widest uppercase font-bold py-2 px-6 transition-all duration-300 flex-shrink-0 flex items-center gap-2"
           >
             <ShoppingBag className="w-3.5 h-3.5" />
             Add to Bag
@@ -187,398 +201,386 @@ export default function ProductDetailView({
         </div>
       </div>
 
-      {/* ── Breadcrumb & Action Row ─────────────────────────────────────────── */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-4 flex items-center justify-between">
+      {/* ── Top Navigation Row ────────────────────────────────────────── */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-2 flex items-center justify-between">
         <button
           onClick={() => setView("shop")}
-          className="inline-flex items-center gap-1.5 text-[10px] sm:text-[11px] uppercase tracking-widest font-semibold text-brand-warm-gray hover:text-brand-maroon transition group"
+          className="inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] font-semibold text-[#7E726B] hover:text-[#5B0E2D] transition group"
           id="detail-back-to-shop-btn"
         >
-          <ArrowLeft className="w-3.5 h-3.5 text-brand-gold transition group-hover:-translate-x-0.5" />
-          Back to Collection
-          <span className="text-brand-gold/40 mx-1">/</span>
-          <span className="text-brand-gold-dark capitalize">{saree.category}</span>
+          <ArrowLeft className="w-4 h-4 text-[#C5A880] transition group-hover:-translate-x-1" />
+          Back to Atelier
         </button>
 
         <button
           onClick={handleShare}
-          className="p-2 text-brand-warm-gray hover:text-brand-maroon transition rounded-full hover:bg-brand-sand/50"
-          title="Share product"
+          className="p-2 text-[#7E726B] hover:text-[#5B0E2D] transition rounded-full hover:bg-[#F5EFEB]"
+          title="Share Saree"
         >
           <Share2 className="w-4 h-4" />
         </button>
       </div>
 
-      {/* ── Main Product Grid ─────────────────────────────────────────── */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-24">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-start">
+      {/* ── Main Editorial Structure ──────────────────────────────────── */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-24 pt-4">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-start">
 
-          {/* LEFT: Image Gallery (Span 5) ───────────────────────────────────────── */}
-          <div className="lg:col-span-5 max-w-md mx-auto lg:max-w-none w-full space-y-4">
+          {/* LEFT: Asymmetric Editorial Gallery (Span 4) ────────────────── */}
+          <div className="lg:col-span-4 max-w-sm mx-auto lg:max-w-none w-full space-y-6">
             
-            {/* Main Interactive Display Box */}
+            {/* Main Interactive Canvas */}
             <div
               onClick={() => setShowLightbox(true)}
-              className="relative w-full aspect-[3/4] overflow-hidden bg-brand-sand cursor-zoom-in group shadow-sm border border-brand-gold/10 hover:shadow-md transition-shadow duration-300"
+              className="relative w-full aspect-[3/4] overflow-hidden bg-[#F5EFEB] cursor-zoom-in group rounded-md shadow-xs border border-[#C5A880]/10"
               onMouseMove={handleZoomMove}
               onMouseLeave={handleZoomLeave}
             >
               <img
                 key={images[activeImageIdx]}
                 src={images[activeImageIdx] || images[0]}
-                alt={`${saree.name} view`}
-                className="w-full h-full object-cover transition-all duration-700 ease-out group-hover:scale-[1.02]"
+                alt={saree.name}
+                className="w-full h-full object-cover transition-transform duration-[1.2s] cubic-bezier(0.16, 1, 0.3, 1) group-hover:scale-[1.03]"
                 referrerPolicy="no-referrer"
-                fetchPriority="high"
               />
 
-              {/* Zoom lens overlay (only visible on mousemove) */}
+              {/* High-fidelity zoom lens (desktop only) */}
               <div className="absolute inset-0 pointer-events-none transition-opacity duration-300 hidden md:block" style={zoomStyle} />
 
-              {/* Sophisticated gradient overlay for editorial feel */}
-              <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/25 via-black/5 to-transparent pointer-events-none" />
+              {/* Sophisticated bottom overlay gradient */}
+              <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/25 via-black/5 to-transparent pointer-events-none" />
 
-              {/* Navigation overlays */}
+              {/* Cinematic Prev/Next indicators */}
               {images.length > 1 && (
                 <>
                   <button
                     onClick={e => { e.stopPropagation(); goPrev(); }}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 hover:bg-white active:scale-95 backdrop-blur-sm rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 shadow-md z-10"
+                    className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-[#FAF8F5]/90 hover:bg-[#FAF8F5] active:scale-95 backdrop-blur-sm rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 shadow-sm z-10"
                   >
-                    <ChevronLeft className="w-5 h-5 text-brand-maroon" />
+                    <ChevronLeft className="w-5 h-5 text-[#5B0E2D]" />
                   </button>
                   <button
                     onClick={e => { e.stopPropagation(); goNext(); }}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 hover:bg-white active:scale-95 backdrop-blur-sm rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 shadow-md z-10"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-[#FAF8F5]/90 hover:bg-[#FAF8F5] active:scale-95 backdrop-blur-sm rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 shadow-sm z-10"
                   >
-                    <ChevronRight className="w-5 h-5 text-brand-maroon" />
+                    <ChevronRight className="w-5 h-5 text-[#5B0E2D]" />
                   </button>
                 </>
               )}
 
-              {/* Badges / Labels */}
+              {/* Status and discount tags */}
               <div className="absolute top-4 left-4 flex flex-col gap-2 z-10">
-                {images.length > 1 && (
-                  <span className="bg-brand-maroon/90 backdrop-blur-sm text-brand-ivory text-[9px] uppercase tracking-[0.2em] font-bold px-3 py-1.5 shadow-sm rounded-sm">
-                    {IMAGE_LABELS[activeImageIdx] ?? `${activeImageIdx + 1} / ${images.length}`}
-                  </span>
-                )}
+                <span className="bg-[#5B0E2D] text-[#FDFBF7] text-[8px] uppercase tracking-[0.25em] font-extrabold px-3 py-1.5 shadow-sm rounded-xs">
+                  {saree.category} Handloom
+                </span>
                 {discount && (
-                  <span className="bg-emerald-600/90 backdrop-blur-sm text-white text-[9px] uppercase tracking-widest font-bold px-3 py-1.5 shadow-sm rounded-sm self-start">
-                    {discount}% OFF
+                  <span className="bg-emerald-600 text-white text-[8px] uppercase tracking-[0.20em] font-bold px-3 py-1.5 shadow-sm rounded-xs self-start">
+                    Heritage Saving {discount}%
                   </span>
                 )}
               </div>
 
-              {/* View High-res Hint */}
-              <div className="absolute bottom-4 right-4 flex items-center gap-1.5 bg-black/40 backdrop-blur-sm px-3 py-1.5 text-[9px] uppercase tracking-widest font-bold text-white rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                <ZoomIn className="w-3.5 h-3.5 text-brand-gold" />
-                <span>Tap to Expand</span>
+              {/* Visual click prompt */}
+              <div className="absolute bottom-4 right-4 flex items-center gap-1.5 bg-black/45 backdrop-blur-xs px-3 py-1.5 text-[8px] uppercase tracking-[0.2em] font-bold text-white rounded-xs opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                <Compass className="w-3.5 h-3.5 text-[#C5A880] animate-spin-slow" />
+                <span>Cinematic View</span>
               </div>
             </div>
 
-            {/* Micro-indicator Dots (Only for mobile where thumb strips wrap) */}
+            {/* Asymmetrical Masonry Grid of Alternates (Desktop only) */}
             {images.length > 1 && (
-              <div className="flex md:hidden justify-center items-center gap-2 py-1">
+              <div className="hidden md:grid grid-cols-3 gap-4 pt-2">
+                {images.map((imgUrl, index) => (
+                  <div
+                    key={index}
+                    onClick={() => setActiveImageIdx(index)}
+                    className={`group/mosaic cursor-pointer relative aspect-[3/4] overflow-hidden rounded border transition-all duration-500 ${
+                      activeImageIdx === index 
+                        ? "border-[#5B0E2D] ring-1 ring-[#5B0E2D]/40" 
+                        : "border-[#C5A880]/15 opacity-70 hover:opacity-100"
+                    }`}
+                  >
+                    <img src={imgUrl} className="w-full h-full object-cover transition-transform duration-700 group-hover/mosaic:scale-105" alt="" />
+                    <div className="absolute inset-0 bg-black/5 opacity-40 group-hover/mosaic:opacity-0 transition-opacity" />
+                    <span className="absolute bottom-2 left-2 text-[8px] uppercase font-bold tracking-widest text-[#FAF8F5] bg-[#5B0E2D]/70 px-1.5 py-0.5 backdrop-blur-xs">
+                      {IMAGE_LABELS[index] ? IMAGE_LABELS[index].split(" ")[0] : index + 1}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Swiper Indicators for mobile view */}
+            {images.length > 1 && (
+              <div className="flex md:hidden justify-center items-center gap-2 pt-2">
                 {images.map((_, i) => (
                   <button
                     key={i}
                     onClick={() => setActiveImageIdx(i)}
                     className={`transition-all duration-300 rounded-full ${
-                      i === activeImageIdx ? "w-6 h-1.5 bg-brand-maroon" : "w-1.5 h-1.5 bg-brand-gold/30 hover:bg-brand-gold"
+                      i === activeImageIdx ? "w-5 h-1 bg-[#5B0E2D]" : "w-1 h-1 bg-[#C5A880]/30"
                     }`}
                   />
                 ))}
               </div>
             )}
-
-            {/* Aesthetic Horizontal Thumbnail Strip */}
-            {images.length > 1 && (
-              <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin hide-scrollbar snap-x snap-mandatory">
-                {images.map((imgUrl, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setActiveImageIdx(index)}
-                    className={`relative flex-shrink-0 w-24 sm:w-28 aspect-[3/4] overflow-hidden rounded-md transition-all duration-300 snap-start border-2 ${
-                      activeImageIdx === index
-                        ? "border-brand-maroon scale-[0.98] shadow-sm"
-                        : "border-transparent opacity-60 hover:opacity-100"
-                    }`}
-                    id={`thumb-btn-${index}`}
-                  >
-                    <img
-                      src={imgUrl}
-                      alt={IMAGE_LABELS[index] ?? `View ${index + 1}`}
-                      className="w-full h-full object-cover"
-                      referrerPolicy="no-referrer"
-                    />
-                    <div className="absolute inset-x-0 bottom-0 bg-black/50 py-1 text-center text-[8px] font-bold uppercase tracking-wider text-white">
-                      {IMAGE_LABELS[index] ? IMAGE_LABELS[index].split(" ")[0] : index + 1}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
 
-          {/* RIGHT: Product Details & Context (Span 7) ──────────────────────────────── */}
-          <div className="lg:col-span-7 lg:sticky lg:top-24 space-y-6 pt-2 lg:pt-0">
+          {/* RIGHT: Floating Narrative Content (Span 8) ────────────────── */}
+          <div className="lg:col-span-8 lg:sticky lg:top-20 space-y-8">
+            
+            {/* Header info */}
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center gap-2 text-[9px] uppercase tracking-[0.2em] font-extrabold">
+                <span className="text-[#5B0E2D]">{saree.weavingTechnique || "Authentic Handloom"}</span>
+                <span className="text-[#C5A880]/50">•</span>
+                <span className="text-[#A4865E]">{saree.zariType || "Fine Zari Work"}</span>
+              </div>
 
-            {/* Category, Origin & technique tags */}
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[9px] tracking-[0.2em] font-extrabold uppercase text-brand-maroon bg-brand-maroon/5 border border-brand-maroon/10 px-2.5 py-1">
-                {saree.category}
-              </span>
-              {saree.weavingTechnique && (
-                <span className="text-[9px] tracking-[0.15em] font-bold uppercase text-brand-gold bg-brand-sand/50 border border-brand-gold/20 px-2.5 py-1">
-                  {saree.weavingTechnique}
-                </span>
-              )}
-              {saree.specifications.origin && (
-                <span className="text-[9px] tracking-[0.1em] font-medium text-brand-warm-gray flex items-center gap-1">
-                  <Info className="w-3 h-3 text-brand-gold" />
-                  {saree.specifications.origin.split(",")[0]}
-                </span>
-              )}
-            </div>
-
-            {/* Title & Reviews */}
-            <div className="space-y-2">
-              <h1 className="font-serif text-3xl sm:text-4xl text-brand-maroon leading-tight font-medium tracking-tight">
+              <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl text-[#5B0E2D] font-light leading-tight tracking-tight">
                 {saree.name}
               </h1>
-              
-              <div className="flex items-center gap-2.5 pt-1">
-                <div className="flex items-center">
+
+              {/* Minimal Ratings */}
+              <div className="flex items-center gap-2 pt-1">
+                <div className="flex text-[#C5A880]">
                   {Array.from({ length: 5 }).map((_, i) => (
-                    <Star
-                      key={i}
-                      className={`w-3.5 h-3.5 ${i < Math.floor(saree.rating) ? "fill-brand-gold text-brand-gold" : "text-brand-gold/20"}`}
-                    />
+                    <Star key={i} className={`w-3 h-3 ${i < Math.floor(saree.rating) ? "fill-current" : "opacity-20"}`} />
                   ))}
                 </div>
-                <span className="text-xs text-brand-warm-gray font-medium">
-                  {saree.rating?.toFixed(1)} · <span className="underline decoration-brand-gold/40 hover:text-brand-maroon cursor-pointer transition">{saree.reviewsCount} reviews</span>
+                <span className="text-[10px] text-[#7E726B] font-semibold tracking-wider uppercase">
+                  {saree.rating?.toFixed(1)} ({saree.reviewsCount} verified reviews)
                 </span>
               </div>
             </div>
 
-            {/* Pricing Section */}
-            <div className="p-4 bg-brand-sand/20 border-y border-brand-gold/15 flex items-baseline justify-between flex-wrap gap-2">
-              <div className="flex items-baseline gap-3">
-                <span className="text-3xl font-mono font-bold text-brand-maroon tracking-tight">
-                  {priceFormatted}
-                </span>
-                {originalPriceFormatted && (
-                  <span className="text-base font-mono text-brand-warm-gray/50 line-through">
-                    {originalPriceFormatted}
-                  </span>
-                )}
+            {/* Premium Pricing presentation */}
+            <div className="py-5 border-y border-[#C5A880]/20 flex flex-wrap items-baseline justify-between gap-4">
+              <div className="space-y-1">
+                <span className="text-[9px] uppercase tracking-widest font-extrabold text-[#7E726B] block">Atelier Value</span>
+                <div className="flex items-baseline gap-3">
+                  <span className="text-3xl font-serif text-[#5B0E2D] font-medium tracking-tight">{priceFormatted}</span>
+                  {originalPriceFormatted && (
+                    <span className="text-sm font-mono text-[#7E726B]/50 line-through">{originalPriceFormatted}</span>
+                  )}
+                </div>
               </div>
-              {discount && (
-                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-                  Save {discount}%
+
+              <div className="space-y-1 text-right">
+                <span className="text-[8px] uppercase tracking-widest font-bold text-[#A4865E] block">Artisan Guarantee</span>
+                <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider border border-emerald-100 inline-block">
+                  Direct from Varanasi
                 </span>
+              </div>
+            </div>
+
+            {/* Saree Biography */}
+            <div className="space-y-3">
+              <span className="text-[9px] uppercase tracking-widest font-extrabold text-[#A4865E] block">Saree Biography</span>
+              <p className="text-sm text-[#7E726B] leading-relaxed font-light font-serif text-lg italic">
+                "{saree.description}"
+              </p>
+            </div>
+
+            {/* Premium Stitching Customization Studio */}
+            <div className="space-y-4 pt-2">
+              <div className="flex justify-between items-baseline">
+                <span className="text-[9px] uppercase tracking-widest font-extrabold text-[#A4865E] block">Tailoring Atelier</span>
+                <span className="text-[9px] text-[#5B0E2D] font-bold uppercase underline cursor-pointer hover:text-[#C5A880] transition">Size Guide</span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {STITCHING_OPTIONS.map((opt) => (
+                  <div
+                    key={opt.id}
+                    onClick={() => setStitchingChoice(opt.id)}
+                    className={`p-3.5 rounded border-2 cursor-pointer transition-all duration-300 relative flex flex-col justify-between min-h-[90px] ${
+                      stitchingChoice === opt.id
+                        ? "border-[#5B0E2D] bg-[#5B0E2D]/5 shadow-xs"
+                        : "border-[#C5A880]/15 hover:border-[#C5A880]/40 bg-[#FAF8F5]/40"
+                    }`}
+                  >
+                    <div className="space-y-0.5">
+                      <span className="text-xs font-bold text-[#2E2E2E] block">{opt.label}</span>
+                      <span className="text-[9px] text-[#7E726B] block leading-tight">{opt.desc}</span>
+                    </div>
+                    
+                    <div className="flex justify-between items-center pt-2 mt-auto">
+                      <span className="text-[10px] font-mono font-bold text-[#5B0E2D]">
+                        {opt.price === 0 ? "Complimentary" : `+ ₹${opt.price}`}
+                      </span>
+                      {stitchingChoice === opt.id && (
+                        <span className="w-3.5 h-3.5 rounded-full bg-[#5B0E2D] flex items-center justify-center">
+                          <Check className="w-2.5 h-2.5 text-white" />
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Custom Measurements Input Box */}
+              {stitchingChoice !== "unstitched" && (
+                <div className="space-y-2 animate-fade-in">
+                  <label className="text-[10px] font-bold text-[#5B0E2D] uppercase tracking-wider block">Atelier Sizing Specs</label>
+                  <input
+                    type="text"
+                    value={customMeasurements}
+                    onChange={(e) => setCustomMeasurements(e.target.value)}
+                    placeholder="Enter Bust size, Waist & Blouse length (e.g. 36, 30, 14 inches) or leave blank for Standard Medium"
+                    className="w-full bg-[#FAF8F5] border border-[#C5A880]/30 rounded p-3 text-xs focus:border-[#5B0E2D] outline-none transition font-mono placeholder-[#7E726B]/50"
+                  />
+                </div>
               )}
             </div>
 
-            {/* Short narrative description */}
-            <p className="text-sm text-brand-warm-gray leading-relaxed font-light">
-              {saree.description}
-            </p>
-
-            {/* Editorial Heritage Recommendation Box */}
-            {saree.drapeRecommendation && (
-              <div className="flex gap-3 bg-[#FCFAF5] border-l-2 border-brand-gold p-4 shadow-sm rounded-r-md">
-                <Award className="w-5 h-5 text-brand-gold flex-shrink-0 mt-0.5" />
-                <div className="text-[11px] text-brand-gold-dark leading-relaxed italic">
-                  <span className="not-italic font-bold text-brand-maroon uppercase tracking-wider block mb-0.5 text-[9px]">Heritage Drape Instruction</span>
-                  {saree.drapeRecommendation}
-                </div>
-              </div>
-            )}
-
-            {/* Custom Blouse Stitching Panel */}
-            <div
-              onClick={() => setCustomBlouse(!customBlouse)}
-              className={`flex items-center justify-between p-4 rounded-lg border-2 cursor-pointer transition-all duration-300 ${
-                customBlouse
-                  ? "border-brand-maroon bg-brand-maroon/5 shadow-sm"
-                  : "border-brand-gold/15 hover:border-brand-gold/40 hover:bg-brand-sand/10"
-              }`}
-            >
-              <div className="space-y-0.5">
-                <span className="block text-xs font-bold text-brand-maroon uppercase tracking-wider">
-                  Tailored Blouse Stitching
-                </span>
-                <span className="block text-[10px] text-brand-warm-gray">
-                  Custom handcrafting by our Banaras heritage atelier (+ ₹1,800)
-                </span>
-              </div>
-              <div className={`w-11 h-6 rounded-full relative transition-colors duration-300 flex-shrink-0 ${
-                customBlouse ? "bg-brand-maroon" : "bg-brand-gold/20"
-              }`}>
-                <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-all duration-300 ease-out ${
-                  customBlouse ? "left-5.5" : "left-0.5"
-                }`} />
-              </div>
-            </div>
-
-            {/* CTA action cluster */}
-            <div ref={ctaRef} className="space-y-3 pt-2">
-              <div className="flex items-center gap-3">
-                {/* Micro-counter Stepper */}
-                <div className="flex items-center border border-brand-gold/30 rounded-md bg-white shadow-sm overflow-hidden">
+            {/* Stepper and Add to Bag Row */}
+            <div ref={ctaRef} className="pt-4 space-y-4">
+              <div className="flex items-center gap-4">
+                
+                {/* Custom Stepper */}
+                <div className="flex items-center border border-[#C5A880]/35 rounded overflow-hidden bg-white shadow-xs">
                   <button
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="w-10 h-12 flex items-center justify-center text-brand-maroon hover:bg-brand-sand transition font-semibold text-lg"
-                    id="qty-decrease-btn"
+                    className="w-10 h-12 flex items-center justify-center text-[#5B0E2D] hover:bg-[#FAF8F5] transition font-bold"
                   >−</button>
-                  <span className="w-10 h-12 flex items-center justify-center text-sm font-bold text-brand-maroon border-x border-brand-gold/10 select-none">
+                  <span className="w-10 h-12 flex items-center justify-center text-xs font-mono font-bold text-[#5B0E2D] border-x border-[#C5A880]/15">
                     {quantity}
                   </span>
                   <button
                     onClick={() => setQuantity(quantity + 1)}
-                    className="w-10 h-12 flex items-center justify-center text-brand-maroon hover:bg-brand-sand transition font-semibold text-lg"
-                    id="qty-increase-btn"
+                    className="w-10 h-12 flex items-center justify-center text-[#5B0E2D] hover:bg-[#FAF8F5] transition font-bold"
                   >+</button>
                 </div>
 
-                {/* Core Add to Bag Action Button */}
+                {/* Add to Bag CTA */}
                 <button
                   onClick={handleAddToBag}
-                  className={`flex-1 h-12 flex items-center justify-center gap-2 font-bold text-[11px] uppercase tracking-widest transition-all duration-300 rounded-md ${
+                  className={`flex-1 h-12 flex items-center justify-center gap-2 font-bold text-[10px] tracking-widest uppercase rounded transition-all duration-300 ${
                     addedPulse
-                      ? "bg-emerald-600 text-white scale-[0.98]"
-                      : "bg-brand-maroon hover:bg-[#4E0C26] text-brand-ivory hover:shadow-lg hover:shadow-brand-maroon/15 active:scale-98"
+                      ? "bg-emerald-700 text-white scale-[0.98]"
+                      : "bg-[#5B0E2D] hover:bg-[#3E061E] text-[#FDFBF7] shadow-md hover:shadow-lg hover:shadow-[#5B0E2D]/15 active:scale-98"
                   }`}
-                  id="add-to-bag-cta-btn"
                 >
                   {addedPulse ? (
                     <><CheckCircle2 className="w-4 h-4" /> Added to Bag</>
                   ) : (
-                    <><ShoppingBag className="w-4 h-4" /> Add to Bag</>
+                    <><ShoppingBag className="w-4 h-4" /> Add to Atelier Bag</>
                   )}
                 </button>
 
-                {/* Wishlist Icon */}
+                {/* Wishlist button */}
                 <button
                   onClick={() => toggleFavorite(saree)}
-                  className={`w-12 h-12 flex items-center justify-center border rounded-md transition-all duration-300 active:scale-95 ${
+                  className={`w-12 h-12 flex items-center justify-center border rounded transition-all duration-300 active:scale-95 ${
                     isFaved
-                      ? "border-brand-maroon bg-brand-maroon/5 text-brand-maroon"
-                      : "border-brand-gold/30 hover:border-brand-maroon hover:text-brand-maroon bg-transparent"
+                      ? "border-[#5B0E2D] bg-[#5B0E2D]/5 text-[#5B0E2D]"
+                      : "border-[#C5A880]/35 text-[#7E726B] hover:border-[#5B0E2D] hover:text-[#5B0E2D]"
                   }`}
-                  title={isFaved ? "Remove from wishlist" : "Add to wishlist"}
-                  id="wishlist-toggle-heart-btn"
+                  title="Save Saree"
                 >
-                  <Heart className={`w-4 h-4 ${isFaved ? "fill-brand-maroon" : ""}`} />
+                  <Heart className={`w-4 h-4 ${isFaved ? "fill-[#5B0E2D]" : ""}`} />
                 </button>
               </div>
             </div>
 
-            {/* Core Trust / Quality Badges */}
-            <div className="grid grid-cols-3 gap-3 pt-2">
+            {/* Spec / Heritage Accordions */}
+            <div className="border-t border-[#C5A880]/20 pt-4 space-y-3">
               {[
-                { icon: Package, label: "Pure Handloom", sub: "Silk Mark certified" },
-                { icon: Truck, label: "Global Delivery", sub: "Free shipping PAN-India" },
-                { icon: RotateCcw, label: "Secure Care", sub: "7-day return policy" },
-              ].map(({ icon: Icon, label, sub }) => (
-                <div key={label} className="flex flex-col items-center text-center gap-1 p-3 bg-brand-sand/20 rounded-md border border-brand-gold/5 shadow-xs">
-                  <Icon className="w-4 h-4 text-brand-gold" />
-                  <span className="text-[9px] font-bold text-brand-maroon uppercase tracking-wider mt-1">{label}</span>
-                  <span className="text-[8px] text-brand-warm-gray">{sub}</span>
+                {
+                  id: "specs",
+                  title: "Technical Specifications",
+                  content: (
+                    <div className="grid grid-cols-2 gap-4">
+                      {[
+                        { label: "Saree Dimensions", value: `${saree.specifications.length} × ${saree.specifications.width}` },
+                        { label: "Blouse Piece Included", value: saree.specifications.blousePiece },
+                        { label: "Material Composition", value: saree.material || "Pure Silk" },
+                        { label: "Origin of Weave", value: saree.specifications.origin }
+                      ].map(({ label, value }) => (
+                        <div key={label}>
+                          <span className="text-[8px] uppercase tracking-widest text-[#A4865E] block font-extrabold">{label}</span>
+                          <span className="text-[11px] text-[#5B0E2D] font-medium font-mono">{value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )
+                },
+                {
+                  id: "heritage",
+                  title: "Weaving Artistry & Zari",
+                  content: (
+                    <p className="text-[11px] leading-relaxed">
+                      Handcrafted using the traditional <strong className="text-[#5B0E2D]">{saree.weavingTechnique || "Kadhwa"}</strong> technique. Characterized by intricate details, using certified <strong className="text-[#5B0E2D]">{saree.zariType || "Zari threads"}</strong>. Each authentic handloom saree takes master artisans between 15 to 45 days of meticulous work in Varanasi.
+                    </p>
+                  )
+                },
+                {
+                  id: "care",
+                  title: "Heritage Care & Preservation",
+                  content: (
+                    <p className="text-[11px] leading-relaxed">
+                      {saree.specifications.washCare || "Professional dry clean only"}. Wrap in acid-free muslin cloth and store flat inside cotton fabric covers to prevent blackening of metallic zari work. Avoid direct exposure to perfume sprays and humidity.
+                    </p>
+                  )
+                }
+              ].map((acc) => (
+                <div key={acc.id} className="border-b border-[#C5A880]/15 pb-3">
+                  <button
+                    onClick={() => setOpenAccordion(openAccordion === acc.id ? null : (acc.id as any))}
+                    className="w-full flex items-center justify-between py-2 text-left text-xs uppercase tracking-widest font-bold text-[#5B0E2D] hover:text-[#C5A880] transition"
+                  >
+                    <span>{acc.title}</span>
+                    <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-300 ${openAccordion === acc.id ? "rotate-180" : ""}`} />
+                  </button>
+                  {openAccordion === acc.id && (
+                    <div className="pt-2 pb-1 animate-fade-in">
+                      {acc.content}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
 
-            {/* Spec Tabs Card */}
-            <div className="border border-brand-gold/15 overflow-hidden rounded-lg bg-white shadow-xs">
-              <div className="flex border-b border-brand-gold/15">
-                {(["fabric", "weave", "wash"] as const).map((tab) => (
-                  <button
-                    key={tab}
-                    onClick={() => setSelectedTab(tab)}
-                    className={`flex-1 py-3 text-[9px] uppercase tracking-wider font-bold cursor-pointer transition-colors duration-300 ${
-                      selectedTab === tab
-                        ? "bg-brand-maroon text-brand-ivory"
-                        : "text-brand-warm-gray hover:text-brand-maroon hover:bg-brand-sand/20"
-                    }`}
-                    id={`tab-btn-${tab}`}
-                  >
-                    {tab === "fabric" ? "Specifications" : tab === "weave" ? "Weaving Art" : "Care & Dry"}
-                  </button>
-                ))}
-              </div>
-              <div className="p-5 text-xs text-brand-warm-gray leading-relaxed min-h-28 flex flex-col justify-center">
-                {selectedTab === "fabric" && (
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-                    {[
-                      { label: "Saree Length", value: saree.specifications.length },
-                      { label: "Width", value: saree.specifications.width },
-                      { label: "Blouse Piece", value: saree.specifications.blousePiece },
-                      { label: "Zari Type", value: saree.zariType || "Genuine Zari" },
-                    ].map(({ label, value }) => (
-                      <div key={label} className="space-y-0.5">
-                        <span className="block text-[8px] uppercase tracking-widest font-extrabold text-brand-gold">{label}</span>
-                        <span className="block text-[11px] text-brand-maroon font-medium">{value}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {selectedTab === "weave" && (
-                  <p className="text-[11px] leading-relaxed">
-                    Exquisite handloom piece woven with <strong className="text-brand-maroon">{saree.weavingTechnique || "Kadhwa"}</strong> technique using pure mulberry silk. Decorated with luxury <strong className="text-brand-maroon">{saree.zariType || "Gold-tested Zari"}</strong> motifs, reflecting authentic heritage craftsmanship of Banaras weavers.
-                  </p>
-                )}
-                {selectedTab === "wash" && (
-                  <p className="text-[11px] leading-relaxed">
-                    {saree.specifications.washCare || "Professional dry clean only"}. Wrap carefully in pure muslin or soft white cotton fabric to safeguard the delicate metal zari threads. Store in a cool, moisture-free drawer away from direct air exposure.
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {/* Weaver Story Profile (Glass card styled) */}
+            {/* Master Weaver Narrative Integration */}
             {saree.weaverName && (
-              <div className="rounded-lg overflow-hidden border border-brand-gold/15 glass-card shadow-sm">
-                <div className="bg-brand-maroon px-4 py-2.5 flex items-center gap-2">
-                  <Award className="w-4 h-4 text-brand-gold" />
-                  <span className="text-[9px] uppercase font-bold text-brand-ivory tracking-widest">Master Weaver Heritage</span>
+              <div className="p-6 rounded bg-[#F5EFEB]/50 border border-[#C5A880]/20 space-y-4">
+                <div className="flex items-center gap-2 text-[9px] uppercase tracking-[0.25em] font-extrabold text-[#C5A880]">
+                  <BookOpen className="w-3.5 h-3.5" />
+                  <span>The Maker's Story</span>
                 </div>
-                <div className="p-4 space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-serif text-base font-semibold text-brand-maroon">{saree.weaverName}</h4>
-                    {saree.weaverVillage && (
-                      <span className="text-[8px] uppercase tracking-widest text-brand-gold font-bold bg-brand-gold/10 px-2 py-0.5 rounded-full border border-brand-gold/20">
-                        {saree.weaverVillage}
-                      </span>
-                    )}
-                  </div>
-                  {saree.weaverStorySnippet && (
-                    <p className="text-[11px] text-brand-warm-gray italic leading-relaxed border-l border-brand-gold/50 pl-3">
-                      &ldquo;{saree.weaverStorySnippet}&rdquo;
-                    </p>
+
+                <div className="space-y-1">
+                  <h4 className="font-serif text-lg font-medium text-[#5B0E2D]">{saree.weaverName}</h4>
+                  {saree.weaverVillage && (
+                    <span className="text-[8px] uppercase tracking-wider text-[#A4865E] font-bold bg-[#A4865E]/10 px-2 py-0.5 rounded border border-[#A4865E]/20 inline-block">
+                      Atelier {saree.weaverVillage}
+                    </span>
                   )}
                 </div>
+
+                {saree.weaverStorySnippet && (
+                  <p className="text-xs text-[#7E726B] italic leading-relaxed pl-4 border-l border-[#C5A880]/40">
+                    &ldquo;{saree.weaverStorySnippet}&rdquo;
+                  </p>
+                )}
               </div>
             )}
           </div>
         </div>
 
-        {/* ── Related / Recommendation Section ─────────────────────────────────────────── */}
+        {/* ── Related Collection ────────────────────────────────────────── */}
         {relatedProducts.length > 0 && (
-          <div className="mt-24 pt-16 border-t border-brand-gold/15">
-            <div className="flex items-end justify-between mb-10">
+          <div className="mt-24 pt-16 border-t border-[#C5A880]/20">
+            <div className="flex items-end justify-between mb-12">
               <div>
-                <p className="text-[9px] uppercase tracking-[0.25em] font-extrabold text-brand-gold mb-1">Curated Pairs</p>
-                <h3 className="font-serif text-2xl text-brand-maroon font-light">Heritage Recommendations</h3>
+                <p className="text-[9px] uppercase tracking-[0.25em] font-extrabold text-[#A4865E] mb-1">Heritage Companions</p>
+                <h3 className="font-serif text-2xl text-[#5B0E2D] font-light">Atelier curation</h3>
               </div>
               <button
                 onClick={() => setView("shop")}
-                className="text-[10px] uppercase tracking-widest font-bold text-brand-maroon hover:text-brand-gold transition flex items-center gap-1"
+                className="text-[10px] uppercase tracking-widest font-bold text-[#5B0E2D] hover:text-[#C5A880] transition flex items-center gap-1"
               >
-                View All <ChevronRight className="w-3.5 h-3.5" />
+                Explore All <ChevronRight className="w-3.5 h-3.5" />
               </button>
             </div>
 
@@ -596,29 +598,26 @@ export default function ProductDetailView({
                     className="group cursor-pointer space-y-3"
                     onClick={() => handleRelatedClick(rel.id)}
                   >
-                    {/* Related Image frame */}
-                    <div className="aspect-[3/4] overflow-hidden bg-brand-sand relative shadow-xs group-hover:shadow-md transition-shadow duration-300">
+                    <div className="aspect-[3/4] overflow-hidden bg-[#F5EFEB] relative rounded-md border border-[#C5A880]/15">
                       <img
                         src={relImages[0] || ""}
                         alt={rel.name}
-                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
+                        className="w-full h-full object-cover transition-transform duration-750 group-hover:scale-[1.03]"
                         referrerPolicy="no-referrer"
                       />
-                      {/* Action trigger overlay */}
-                      <div className="absolute inset-0 bg-black/10 group-hover:bg-black/25 transition-all duration-300 flex items-end justify-center pb-4 opacity-0 group-hover:opacity-100">
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 flex items-end justify-center pb-4 opacity-0 group-hover:opacity-100">
                         <button
                           onClick={e => { e.stopPropagation(); setQuickViewSaree(rel); }}
-                          className="bg-white hover:bg-brand-maroon hover:text-white text-brand-maroon text-[9px] uppercase tracking-widest font-bold px-4 py-2 shadow-lg translate-y-2 group-hover:translate-y-0 transition-all duration-300"
+                          className="bg-white hover:bg-[#5B0E2D] hover:text-white text-[#5B0E2D] text-[9px] uppercase tracking-widest font-bold px-4 py-2 transition-all"
                         >
                           Quick View
                         </button>
                       </div>
                     </div>
-                    {/* Information cluster */}
                     <div className="space-y-0.5">
-                      <span className="text-[9px] uppercase tracking-widest text-brand-gold font-bold block">{rel.category}</span>
-                      <h4 className="text-sm font-serif text-brand-maroon group-hover:text-brand-gold transition-colors line-clamp-1">{rel.name}</h4>
-                      <p className="text-xs font-mono font-semibold text-brand-maroon/80">{pricing}</p>
+                      <span className="text-[8px] uppercase tracking-widest text-[#C5A880] font-bold block">{rel.category}</span>
+                      <h4 className="text-sm font-serif text-[#5B0E2D] group-hover:text-[#A4865E] transition-colors line-clamp-1">{rel.name}</h4>
+                      <p className="text-xs font-mono font-bold text-[#5B0E2D]/85">{pricing}</p>
                     </div>
                   </div>
                 );
@@ -628,29 +627,30 @@ export default function ProductDetailView({
         )}
       </div>
 
-      {/* ── High-Resolution Lightbox Modal Overlay ─────────────────────────────────────── */}
+      {/* ── High-Resolution Cinematic Lightbox ─────────────────────────── */}
       {showLightbox && (
-        <div className="fixed inset-0 z-50 bg-[#1C050E]/95 backdrop-blur-md flex flex-col justify-center items-center p-4 select-none animate-fade-in">
-          {/* Top Actions Row */}
+        <div className="fixed inset-0 z-50 bg-[#1C050E]/97 backdrop-blur-md flex flex-col justify-center items-center p-4 select-none animate-fade-in">
+          
+          {/* Header */}
           <div className="absolute top-4 right-4 left-4 flex justify-between items-center z-10">
-            <span className="text-brand-gold text-[10px] uppercase tracking-widest font-mono">
-              {IMAGE_LABELS[activeImageIdx] || "Artisan Details"} · {activeImageIdx + 1} of {images.length}
+            <span className="text-[#C5A880] text-[9px] uppercase tracking-widest font-mono">
+              {IMAGE_LABELS[activeImageIdx] || "Atelier Saree Detail"} · {activeImageIdx + 1} / {images.length}
             </span>
             <button
               onClick={() => setShowLightbox(false)}
-              className="p-2 bg-black/30 hover:bg-black/60 rounded-full text-brand-ivory hover:text-brand-gold transition-all duration-200"
+              className="p-2 bg-black/40 hover:bg-black/70 rounded-full text-white hover:text-[#C5A880] transition"
               title="Close Gallery (Esc)"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
 
-          {/* Main Slide Carousel container */}
+          {/* Main Stage */}
           <div className="relative max-w-3xl w-full max-h-[80vh] flex justify-center items-center">
             {images.length > 1 && (
               <button
                 onClick={goPrev}
-                className="absolute left-2 sm:-left-16 p-3 bg-black/20 hover:bg-black/50 hover:scale-110 active:scale-95 rounded-full text-white transition z-10"
+                className="absolute left-2 sm:-left-16 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition z-10"
               >
                 <ChevronLeft className="w-6 h-6" />
               </button>
@@ -658,22 +658,22 @@ export default function ProductDetailView({
 
             <img
               src={images[activeImageIdx] || images[0]}
-              alt={`${saree.name} detailed view`}
-              className="max-w-full max-h-[75vh] object-contain shadow-2xl rounded"
+              alt={saree.name}
+              className="max-w-full max-h-[75vh] object-contain shadow-2xl rounded border border-[#C5A880]/15"
               referrerPolicy="no-referrer"
             />
 
             {images.length > 1 && (
               <button
                 onClick={goNext}
-                className="absolute right-2 sm:-right-16 p-3 bg-black/20 hover:bg-black/50 hover:scale-110 active:scale-95 rounded-full text-white transition z-10"
+                className="absolute right-2 sm:-right-16 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition z-10"
               >
                 <ChevronRight className="w-6 h-6" />
               </button>
             )}
           </div>
 
-          {/* Interactive Thumb Strip inside Lightbox */}
+          {/* Thumbnail indicators */}
           {images.length > 1 && (
             <div className="absolute bottom-6 flex gap-2 max-w-full overflow-x-auto px-4">
               {images.map((imgUrl, index) => (
@@ -681,10 +681,10 @@ export default function ProductDetailView({
                   key={index}
                   onClick={() => setActiveImageIdx(index)}
                   className={`w-12 h-16 rounded overflow-hidden flex-shrink-0 border-2 transition-all ${
-                    activeImageIdx === index ? "border-brand-gold scale-105" : "border-transparent opacity-50"
+                    activeImageIdx === index ? "border-[#C5A880] scale-105" : "border-transparent opacity-40"
                   }`}
                 >
-                  <img src={imgUrl} className="w-full h-full object-cover" alt="thumbnail" />
+                  <img src={imgUrl} className="w-full h-full object-cover" alt="" />
                 </button>
               ))}
             </div>
