@@ -24,6 +24,8 @@ interface ProductDetailViewProps {
   sarees: Saree[];
 }
 
+const IMAGE_LABELS = ["Main Details", "Artisan Weave", "Graceful Drape"];
+
 const STITCHING_OPTIONS = [
   { id: "unstitched", label: "Unstitched Fabric Only", price: 0, desc: "Standard 80cm matching blouse piece included" },
   { id: "classic", label: "Classic Round Neck", price: 1500, desc: "Stitched with cotton lining, classic half-sleeves" },
