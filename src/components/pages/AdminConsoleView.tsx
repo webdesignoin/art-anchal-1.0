@@ -41,6 +41,7 @@ const emptySaree = {
   collection_id: "", artisan_id: "", images: ["", "", ""], description: "",
   drape_recommendation: "", stock_quantity: 1,
   is_bestseller: false, is_featured: false, is_new: false,
+  sell_online: false,
   spec_length: "5.5 Meters", spec_width: "45 Inches",
   spec_blouse: "80 cm unstitched", spec_wash_care: "Dry clean only",
   spec_origin: "Varanasi, Uttar Pradesh, India",
@@ -51,8 +52,12 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState("");
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
-  const [viewState, setViewState] = useState<"list" | "pos" | "history">("list");
-  
+
+  // Scroll to top when activeTab changes
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [activeTab]);
+
   const interactionPanelRef = useRef<HTMLDivElement>(null);
   const customerDropdownRef = useRef<HTMLDivElement>(null);
   const [dbSarees, setDbSarees] = useState<any[]>([]);
@@ -99,7 +104,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
   const [selectedProfileId, setSelectedProfileId] = useState("");
   const [isNewProfileModalOpen, setIsNewProfileModalOpen] = useState(false);
   const [profileForm, setProfileForm] = useState({ ...emptyProfile });
-  const [posCart, setPosCart] = useState<Array<{ saree: any; quantity: number }>>([]);
+  const [posCart, setPosCart] = useState<Array<{ saree: any; quantity: number; customPrice?: number }>>([]);
   const [posDiscount, setPosDiscount] = useState(0);
   const [posPaymentMethod, setPosPaymentMethod] = useState("cash");
   const [activeInvoice, setActiveInvoice] = useState<any | null>(null);
@@ -263,6 +268,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
       is_bestseller: sareeForm.is_bestseller,
       is_featured: sareeForm.is_featured,
       is_new: sareeForm.is_new,
+      sell_online: sareeForm.sell_online,
       is_active: true,
       spec_length: sareeForm.spec_length,
       spec_width: sareeForm.spec_width,
@@ -317,6 +323,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
       is_bestseller: s.is_bestseller || false,
       is_featured: s.is_featured || false,
       is_new: s.is_new || false,
+      sell_online: s.sell_online || false,
       spec_length: s.spec_length || "5.5 Meters",
       spec_width: s.spec_width || "45 Inches",
       spec_blouse: s.spec_blouse || "80 cm unstitched",
@@ -421,7 +428,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
   };
 
   // ── POS ───────────────────────────────────────────────────────────────────
-  const posSubtotal = posCart.reduce((s, i) => s + i.saree.price * i.quantity, 0);
+  const posSubtotal = posCart.reduce((s, i) => s + (i.customPrice ?? i.saree.price) * i.quantity, 0);
   const posDiscountAmt = Math.min(posDiscount, posSubtotal);
   const posAfterDiscount = posSubtotal - posDiscountAmt;
   const posTaxAmt = Math.round(posAfterDiscount * TAX_RATE);
@@ -438,8 +445,9 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
         updated[idx] = { ...updated[idx], quantity: updated[idx].quantity + 1 };
         return updated;
       }
-      return [...prev, { saree, quantity: 1 }];
+      return [...prev, { saree, quantity: 1, customPrice: saree.price }];
     });
+    showFeedback(`Added "${saree.name}" to bill.`);
   };
 
   const handlePOSQty = (sareeId: string, delta: number) => {
@@ -450,6 +458,14 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
       if (newQty > (i.saree.stock_quantity ?? 0)) return i;
       return { ...i, quantity: newQty };
     }).filter(Boolean));
+  };
+
+  const handlePOSPriceChange = (sareeId: string, newPrice: number) => {
+    setPosCart(prev => prev.map(item =>
+      item.saree.id === sareeId
+        ? { ...item, customPrice: Math.max(0, newPrice) }
+        : item
+    ));
   };
 
   const handleAddProfile = async (e: FormEvent) => {
@@ -543,7 +559,8 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
         order_id: orderData.id,
         saree_id: item.saree.id,
         product_name: item.saree.name,
-        unit_price: item.saree.price,
+        unit_price: item.customPrice ?? item.saree.price,
+        original_price: item.saree.price,
         quantity: item.quantity,
       }));
 
@@ -574,7 +591,8 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
         items: posCart.map(item => ({
           saree: item.saree,
           product_name: item.saree.name,
-          unit_price: item.saree.price,
+          unit_price: item.customPrice ?? item.saree.price,
+          original_price: item.saree.price,
           quantity: item.quantity
         })),
         subtotal: posSubtotal,
@@ -668,6 +686,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
   ];
 
   const filteredSarees = dbSarees.filter(s =>
+    s.is_active !== false &&
     s.name?.toLowerCase().includes(posSearch.toLowerCase())
   );
   const filteredLeads = dbLeads.filter(l =>
@@ -729,12 +748,17 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
         {/* Generate Bill (POS) */}
         <button
           onClick={() => { setActiveTab("pos"); setActiveInvoice(null); setIsMoreMenuOpen(false); }}
-          className={`flex flex-col items-center gap-1 py-1 px-3 transition-all ${
+          className={`flex flex-col items-center gap-1 py-1 px-3 relative transition-all ${
             activeTab === "pos" && !isMoreMenuOpen ? "text-brand-gold scale-105 font-bold" : "text-white/50"
           }`}
         >
           <IndianRupee className="w-5 h-5" />
           <span className="text-[8px] uppercase tracking-wider">POS Bill</span>
+          {posCart.length > 0 ? (
+            <span className="absolute top-0.5 right-2 bg-brand-gold text-[#1C050E] text-[7px] font-bold px-1 rounded-full scale-90 min-w-[14px] text-center">
+              {posCart.reduce((sum, item) => sum + item.quantity, 0)}
+            </span>
+          ) : null}
         </button>
 
         {/* Orders */}
@@ -1329,6 +1353,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                       {filteredSarees.map(saree => {
                         const stock = saree.stock_quantity ?? 0;
                         const outOfStockItem = stock <= 0;
+                        const inCartQty = posCart.find(i => i.saree.id === saree.id)?.quantity || 0;
                         return (
                           <button key={saree.id} onClick={() => !outOfStockItem && handlePOSAdd(saree)}
                             disabled={outOfStockItem}
@@ -1344,12 +1369,19 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                               <p className="font-serif font-semibold text-xs text-brand-maroon leading-tight truncate">{saree.name}</p>
                               <p className="text-[9px] text-brand-gold uppercase">{saree.weaving_technique}</p>
                               <p className="text-[10px] font-mono font-bold">₹{Number(saree.price).toLocaleString("en-IN")}</p>
-                              <span className={`text-[8px] font-bold uppercase px-1.5 py-0.5 rounded-full inline-block ${
-                                outOfStockItem ? "bg-red-100 text-red-700" :
-                                stock <= 2 ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"
-                              }`}>
-                                {outOfStockItem ? "Out of Stock" : `${stock} in stock`}
-                              </span>
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                <span className={`text-[8px] font-bold uppercase px-1.5 py-0.5 rounded-full inline-block ${
+                                  outOfStockItem ? "bg-red-100 text-red-700" :
+                                  stock <= 2 ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"
+                                }`}>
+                                  {outOfStockItem ? "Out of Stock" : `${stock} in stock`}
+                                </span>
+                                {inCartQty > 0 && (
+                                  <span className="bg-brand-maroon text-white text-[8px] font-bold uppercase px-1.5 py-0.5 rounded-full inline-block">
+                                    {inCartQty} in cart
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </button>
                         );
@@ -1385,7 +1417,19 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                             <div key={item.saree.id} className="flex gap-3 items-center">
                               <div className="flex-1 min-w-0">
                                 <p className="font-serif font-semibold text-xs text-brand-maroon truncate">{item.saree.name}</p>
-                                <p className="text-[10px] font-mono text-brand-warm-gray">₹{Number(item.saree.price).toLocaleString("en-IN")} each</p>
+                                <div className="flex items-center gap-1 mt-0.5">
+                                  <span className="text-[9px] uppercase text-brand-warm-gray/70 font-semibold">₹</span>
+                                  <input 
+                                    type="number" 
+                                    min="0"
+                                    value={item.customPrice ?? item.saree.price}
+                                    onChange={e => handlePOSPriceChange(item.saree.id, Number(e.target.value))}
+                                    className="w-16 bg-white border border-brand-gold/15 px-1 py-0.5 text-[10px] font-mono text-brand-maroon focus:outline-none focus:border-brand-maroon font-bold rounded"
+                                  />
+                                  {item.customPrice !== undefined && item.customPrice !== item.saree.price && (
+                                    <span className="text-[9px] line-through text-brand-warm-gray/50 font-mono ml-1">₹{item.saree.price}</span>
+                                  )}
+                                </div>
                               </div>
                               <div className="flex items-center gap-1.5 flex-shrink-0">
                                 <button onClick={() => handlePOSQty(item.saree.id, -1)}
@@ -1398,7 +1442,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                                   <Plus className="w-3 h-3" />
                                 </button>
                               </div>
-                              <p className="font-mono font-bold text-xs w-20 text-right">₹{Number(item.saree.price * item.quantity).toLocaleString("en-IN")}</p>
+                              <p className="font-mono font-bold text-xs w-20 text-right">₹{Number((item.customPrice ?? item.saree.price) * item.quantity).toLocaleString("en-IN")}</p>
                               <button onClick={() => setPosCart(c => c.filter(i => i.saree.id !== item.saree.id))}
                                 className="text-red-500 hover:text-red-700 transition">
                                 <X className="w-3.5 h-3.5" />
@@ -1648,6 +1692,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
               dbOrders={dbOrders} 
               dbEmployees={dbEmployees}
               dbDuePayments={dbDuePayments}
+              dbSarees={dbSarees}
               fetchAllData={fetchAllData} 
             />
           )}
@@ -1898,6 +1943,14 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                   className="w-full bg-white border border-brand-gold/20 p-2.5 focus:outline-none resize-none" />
               </div>
 
+              {/* Drape Recommendation */}
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase font-bold block">Drape Recommendation</label>
+                <input type="text" value={sareeForm.drape_recommendation} onChange={e => setSareeForm({ ...sareeForm, drape_recommendation: e.target.value })}
+                  placeholder="E.g. Classic style with gold jewelry"
+                  className="w-full bg-white border border-brand-gold/20 p-2.5 focus:outline-none text-xs" />
+              </div>
+
               {/* Specs */}
               <div className="bg-[#FAF7F2] border border-brand-gold/15 p-4 rounded-lg space-y-3">
                 <h4 className="text-[10px] uppercase tracking-wider font-bold text-brand-maroon">Specifications</h4>
@@ -1907,6 +1960,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                     { key: "spec_width", label: "Width" },
                     { key: "spec_blouse", label: "Blouse" },
                     { key: "spec_wash_care", label: "Wash Care" },
+                    { key: "spec_origin", label: "Origin" },
                   ].map(({ key, label }) => (
                     <div key={key} className="space-y-1">
                       <label className="text-[9px] uppercase font-bold text-brand-warm-gray">{label}</label>
@@ -1919,8 +1973,9 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
               </div>
 
               {/* Badges */}
-              <div className="flex gap-6 py-2 border-y border-brand-gold/15">
+              <div className="flex flex-wrap gap-x-6 gap-y-2 py-2 border-y border-brand-gold/15">
                 {[
+                  { key: "sell_online", label: "Sell Online" },
                   { key: "is_bestseller", label: "Bestseller" },
                   { key: "is_featured", label: "Featured" },
                   { key: "is_new", label: "New Arrival" },

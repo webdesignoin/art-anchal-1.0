@@ -24,6 +24,7 @@ export interface InvoiceData {
     };
     product_name?: string;
     unit_price?: number;
+    original_price?: number;
     quantity: number;
   }>;
 }
@@ -35,7 +36,7 @@ interface InvoiceDocumentProps {
 
 export default function InvoiceDocument({ invoice, onBack }: InvoiceDocumentProps) {
   const getSareeName = (item: any) => item.saree?.name || item.product_name || "Handloom Saree";
-  const getUnitPrice = (item: any) => item.saree?.price || item.unit_price || 0;
+  const getUnitPrice = (item: any) => item.unit_price !== undefined ? item.unit_price : (item.saree?.price || 0);
   
   return (
     <div className="max-w-2xl mx-auto animate-fade-in">

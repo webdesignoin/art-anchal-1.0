@@ -1,8 +1,28 @@
 import React, { useState, FormEvent } from "react";
 import { supabase } from "../../lib/supabase";
-import { CheckCircle, TrendingUp, TrendingDown, DollarSign, Plus, Package, FileText, CreditCard } from "lucide-react";
+import { CheckCircle, TrendingUp, TrendingDown, DollarSign, Plus, Package, FileText, CreditCard, Minus, X } from "lucide-react";
 
-export default function AdminFinanceTab({ dbExpenses, dbPurchases, dbDues, dbOrders, dbEmployees = [], dbDuePayments = [], fetchAllData }: { dbExpenses: any[], dbPurchases: any[], dbDues: any[], dbOrders: any[], dbEmployees: any[], dbDuePayments: any[], fetchAllData: () => void }) {
+interface AdminFinanceTabProps {
+  dbExpenses: any[];
+  dbPurchases: any[];
+  dbDues: any[];
+  dbOrders: any[];
+  dbEmployees?: any[];
+  dbDuePayments?: any[];
+  dbSarees?: any[];
+  fetchAllData: () => void;
+}
+
+export default function AdminFinanceTab({
+  dbExpenses,
+  dbPurchases,
+  dbDues,
+  dbOrders,
+  dbEmployees = [],
+  dbDuePayments = [],
+  dbSarees = [],
+  fetchAllData
+}: AdminFinanceTabProps) {
   const [feedback, setFeedback] = useState("");
   
   // Modals
@@ -13,7 +33,53 @@ export default function AdminFinanceTab({ dbExpenses, dbPurchases, dbDues, dbOrd
 
   // Forms
   const [expenseForm, setExpenseForm] = useState({ category: "Operational", amount: 0, description: "", date: new Date().toISOString().split('T')[0] });
-  const [purchaseForm, setPurchaseForm] = useState({ vendor_name: "", items_description: "", total_amount: 0, amount_paid: 0, quantity: 1, date: new Date().toISOString().split('T')[0] });
+  const [purchaseForm, setPurchaseForm] = useState({ vendor_name: "", amount_paid: 0, date: new Date().toISOString().split('T')[0] });
+
+  interface PurchaseLineItem {
+    saree_id: string;
+    product_name: string;
+    quantity: number;
+    buying_price: number;
+    selling_price: number;
+  }
+
+  const [purchaseLineItems, setPurchaseLineItems] = useState<PurchaseLineItem[]>([
+    { saree_id: "", product_name: "", quantity: 1, buying_price: 0, selling_price: 0 }
+  ]);
+
+  const calculatedTotalAmount = purchaseLineItems.reduce((sum, item) => sum + (Number(item.buying_price || 0) * Number(item.quantity || 0)), 0);
+  const calculatedTotalQuantity = purchaseLineItems.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+
+  const handleAddLineItem = () => {
+    setPurchaseLineItems([
+      ...purchaseLineItems,
+      { saree_id: "", product_name: "", quantity: 1, buying_price: 0, selling_price: 0 }
+    ]);
+  };
+
+  const handleRemoveLineItem = (index: number) => {
+    setPurchaseLineItems(purchaseLineItems.filter((_, idx) => idx !== index));
+  };
+
+  const handleLineItemChange = (index: number, field: string, value: any) => {
+    const updated = [...purchaseLineItems];
+    if (field === "saree_id") {
+      updated[index].saree_id = value;
+      if (value === "new") {
+        updated[index].product_name = "";
+        updated[index].selling_price = 0;
+      } else {
+        const selectedSaree = dbSarees.find(s => s.id === value);
+        if (selectedSaree) {
+          updated[index].product_name = selectedSaree.name;
+          updated[index].selling_price = Number(selectedSaree.price || 0);
+        }
+      }
+    } else {
+      (updated[index] as any)[field] = value;
+    }
+    setPurchaseLineItems(updated);
+  };
   const [dueForm, setDueForm] = useState({ entity_name: "", due_type: "payable", total_amount: 0, amount_paid: 0, due_date: "" });
   
   // Search dropdown states
@@ -63,58 +129,144 @@ export default function AdminFinanceTab({ dbExpenses, dbPurchases, dbDues, dbOrd
 
   const handleAddPurchase = async (e: FormEvent) => {
     e.preventDefault();
-    if (!purchaseForm.total_amount || !purchaseForm.vendor_name) return;
-    
-    const isPartial = purchaseForm.amount_paid < purchaseForm.total_amount;
-    const status = purchaseForm.amount_paid === 0 ? 'unpaid' : isPartial ? 'partially_paid' : 'paid';
-
-    // 1. Insert Purchase
-    const { data: purchaseData, error: purchaseError } = await supabase.from("purchases").insert({
-      vendor_name: purchaseForm.vendor_name,
-      items_description: purchaseForm.items_description,
-      amount: Number(purchaseForm.total_amount),
-      total_amount: purchaseForm.total_amount,
-      amount_paid: purchaseForm.amount_paid,
-      quantity: Number(purchaseForm.quantity || 1),
-      status: status,
-      date: purchaseForm.date
-    }).select().single();
-
-    if (purchaseError) { alert(purchaseError.message); return; }
-
-    // 2. Automatically generate a "Due" ledger record
-    const dueStatus = purchaseForm.amount_paid >= purchaseForm.total_amount ? 'cleared' : 'pending';
-    const { data: dueData, error: dueError } = await supabase.from("dues").insert({
-      entity_name: purchaseForm.vendor_name,
-      due_type: 'payable',
-      amount: Number(purchaseForm.total_amount),
-      total_amount: purchaseForm.total_amount,
-      amount_paid: purchaseForm.amount_paid,
-      status: dueStatus,
-      linked_purchase_id: purchaseData.id
-    }).select().single();
-
-    if (dueError) {
-      alert(`Error auto-creating ledger entry: ${dueError.message}`);
+    if (!purchaseForm.vendor_name) return;
+    if (calculatedTotalAmount <= 0) {
+      alert("Please add at least one line item with a buying price.");
       return;
     }
 
-    // 3. Log initial payment in payment history if amount_paid > 0
-    if (purchaseForm.amount_paid > 0 && dueData) {
-      const { error: paymentError } = await supabase.from("due_payments").insert({
-        due_id: dueData.id,
-        amount_paid: purchaseForm.amount_paid,
-        payment_date: purchaseForm.date
-      });
-      if (paymentError) {
-        console.error("Error logging initial payment:", paymentError.message);
+    // Check that all line items have a name and quantity
+    for (const item of purchaseLineItems) {
+      if (!item.product_name.trim()) {
+        alert("Please ensure all line items have a product name.");
+        return;
+      }
+      if (item.quantity <= 0) {
+        alert("Please ensure all line items have a quantity greater than 0.");
+        return;
       }
     }
 
-    setIsPurchaseModalOpen(false);
-    setPurchaseForm({ vendor_name: "", items_description: "", total_amount: 0, amount_paid: 0, quantity: 1, date: new Date().toISOString().split('T')[0] });
-    fetchAllData();
-    showFeedback("Purchase logged & synced to Ledger.");
+    setFeedback("Logging purchase...");
+    
+    try {
+      const isPartial = purchaseForm.amount_paid < calculatedTotalAmount;
+      const status = purchaseForm.amount_paid === 0 ? 'unpaid' : isPartial ? 'partially_paid' : 'paid';
+      const itemsDescription = purchaseLineItems.map(item => `${item.quantity}x ${item.product_name}`).join(", ");
+
+      // 1. Insert Purchase
+      const { data: purchaseData, error: purchaseError } = await supabase.from("purchases").insert({
+        vendor_name: purchaseForm.vendor_name,
+        items_description: itemsDescription,
+        amount: Number(calculatedTotalAmount),
+        total_amount: calculatedTotalAmount,
+        amount_paid: Number(purchaseForm.amount_paid || 0),
+        quantity: Number(calculatedTotalQuantity),
+        status: status,
+        date: purchaseForm.date
+      }).select().single();
+
+      if (purchaseError) throw purchaseError;
+
+      // 2. Insert Purchase Line Items & update/create Sarees
+      const purchaseItemsToInsert = [];
+      for (const item of purchaseLineItems) {
+        let resolvedSareeId = item.saree_id;
+        if (item.saree_id === 'new' || !item.saree_id) {
+          // Create new saree with placeholder details
+          const { data: newSareeData, error: newSareeError } = await supabase.from("sarees").insert({
+            name: item.product_name,
+            price: Number(item.selling_price || 0),
+            stock_quantity: Number(item.quantity),
+            rating: 5,
+            reviews_count: 0,
+            images: ["https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=800&q=80"],
+            colors: ["Gold"],
+            zari_type: "Tested Zari",
+            weaving_technique: "Tanchoi Weave",
+            material: "Pure Silk",
+            description: "Newly purchased saree batch. Please update specifications.",
+            drape_recommendation: "Perfect for festive wear.",
+            is_bestseller: false,
+            is_featured: false,
+            is_new: true,
+            is_active: true,
+            spec_length: "5.5 meters",
+            spec_width: "45 inches",
+            spec_blouse: "80 cm unstitched running brocade",
+            spec_wash_care: "Dry cleaning only",
+            spec_origin: "Varanasi, India",
+            sell_online: false
+          }).select().single();
+
+          if (newSareeError) {
+            console.error("Error creating new saree:", newSareeError);
+            resolvedSareeId = null;
+          } else {
+            resolvedSareeId = newSareeData.id;
+          }
+        } else {
+          // Update stock of existing saree
+          const existingSaree = dbSarees.find(s => s.id === item.saree_id);
+          const currentStock = Number(existingSaree?.stock_quantity ?? 0);
+          const { error: updateStockErr } = await supabase.from("sarees").update({
+            stock_quantity: currentStock + Number(item.quantity)
+          }).eq("id", item.saree_id);
+          if (updateStockErr) console.error("Error updating stock:", updateStockErr);
+        }
+
+        purchaseItemsToInsert.push({
+          purchase_id: purchaseData.id,
+          saree_id: resolvedSareeId === 'new' ? null : resolvedSareeId || null,
+          product_name: item.product_name,
+          quantity: Number(item.quantity),
+          buying_price: Number(item.buying_price),
+          selling_price: Number(item.selling_price)
+        });
+      }
+
+      // Insert all purchase items
+      const { error: piError } = await supabase.from("purchase_items").insert(purchaseItemsToInsert);
+      if (piError) {
+        console.error("Error inserting purchase items:", piError);
+      }
+
+      // 3. Automatically generate a "Due" ledger record
+      const dueStatus = purchaseForm.amount_paid >= calculatedTotalAmount ? 'cleared' : 'pending';
+      const { data: dueData, error: dueError } = await supabase.from("dues").insert({
+        entity_name: purchaseForm.vendor_name,
+        due_type: 'payable',
+        amount: Number(calculatedTotalAmount),
+        total_amount: calculatedTotalAmount,
+        amount_paid: Number(purchaseForm.amount_paid || 0),
+        status: dueStatus,
+        linked_purchase_id: purchaseData.id
+      }).select().single();
+
+      if (dueError) {
+        console.error(`Error auto-creating ledger entry: ${dueError.message}`);
+      }
+
+      // 4. Log initial payment in payment history if amount_paid > 0
+      if (purchaseForm.amount_paid > 0 && dueData) {
+        const { error: paymentError } = await supabase.from("due_payments").insert({
+          due_id: dueData.id,
+          amount_paid: Number(purchaseForm.amount_paid),
+          payment_date: purchaseForm.date
+        });
+        if (paymentError) {
+          console.error("Error logging initial payment:", paymentError.message);
+        }
+      }
+
+      setIsPurchaseModalOpen(false);
+      setPurchaseForm({ vendor_name: "", amount_paid: 0, date: new Date().toISOString().split('T')[0] });
+      setPurchaseLineItems([{ saree_id: "", product_name: "", quantity: 1, buying_price: 0, selling_price: 0 }]);
+      fetchAllData();
+      showFeedback("Purchase logged & synced to Ledger.");
+    } catch (err: any) {
+      alert(`Error logging purchase: ${err.message}`);
+    }
   };
 
   const handleAddDue = async (e: FormEvent) => {
@@ -432,80 +584,186 @@ export default function AdminFinanceTab({ dbExpenses, dbPurchases, dbDues, dbOrd
 
       {isPurchaseModalOpen && (
         <div className="fixed inset-0 z-[100] bg-[#1C050E]/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setIsPurchaseModalOpen(false)}>
-          <div className="bg-[#FAF7F2] max-w-sm w-full border border-brand-gold/30 rounded-lg p-6" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-[#FAF7F2] max-w-2xl w-full border border-brand-gold/30 rounded-lg p-6 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <h3 className="font-serif text-xl text-brand-maroon mb-4">Log Inventory Purchase</h3>
-            <form onSubmit={handleAddPurchase} className="space-y-3">
-              <input type="date" required value={purchaseForm.date} onChange={e => setPurchaseForm({...purchaseForm, date: e.target.value})} className="w-full bg-white border border-brand-gold/20 p-2 text-xs" />
-              
-              {/* Vendor Searchable Dropdown */}
-              <div className="space-y-1 relative">
-                <label className="text-[10px] uppercase font-bold block text-brand-maroon">Vendor Name *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Type or select vendor..."
-                  value={purchaseForm.vendor_name}
-                  onChange={(e) => {
-                    setPurchaseForm({ ...purchaseForm, vendor_name: e.target.value });
-                    setIsVendorDropdownOpen(true);
-                  }}
-                  onFocus={() => setIsVendorDropdownOpen(true)}
-                  onBlur={() => {
-                    setTimeout(() => setIsVendorDropdownOpen(false), 200);
-                  }}
-                  className="w-full bg-white border border-brand-gold/20 p-2 text-xs focus:outline-none focus:border-brand-maroon"
-                />
-                {isVendorDropdownOpen && (
-                  <div className="absolute left-0 right-0 z-50 bg-white border border-brand-gold/20 shadow-lg max-h-36 overflow-y-auto mt-1 divide-y divide-brand-gold/10 rounded">
-                    {Array.from(new Set([...dbPurchases.map(p => p.vendor_name).filter(Boolean), ...dbDues.filter(d => d.due_type === 'payable').map(d => d.entity_name).filter(Boolean)]))
-                      .filter(v => v.toLowerCase().includes(purchaseForm.vendor_name.toLowerCase()))
-                      .map(vendor => (
-                        <div
-                          key={vendor}
-                          onMouseDown={() => {
-                            setPurchaseForm({ ...purchaseForm, vendor_name: vendor });
-                            setIsVendorDropdownOpen(false);
-                          }}
-                          className="px-3 py-2 text-xs hover:bg-brand-sand/50 cursor-pointer text-brand-maroon font-semibold"
-                        >
-                          {vendor}
+            <form onSubmit={handleAddPurchase} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase font-bold block text-brand-maroon">Purchase Date</label>
+                  <input type="date" required value={purchaseForm.date} onChange={e => setPurchaseForm({...purchaseForm, date: e.target.value})} className="w-full bg-white border border-brand-gold/20 p-2 text-xs" />
+                </div>
+                
+                {/* Vendor Searchable Dropdown */}
+                <div className="space-y-1 relative">
+                  <label className="text-[10px] uppercase font-bold block text-brand-maroon">Vendor Name *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Type or select vendor..."
+                    value={purchaseForm.vendor_name}
+                    onChange={(e) => {
+                      setPurchaseForm({ ...purchaseForm, vendor_name: e.target.value });
+                      setIsVendorDropdownOpen(true);
+                    }}
+                    onFocus={() => setIsVendorDropdownOpen(true)}
+                    onBlur={() => {
+                      setTimeout(() => setIsVendorDropdownOpen(false), 200);
+                    }}
+                    className="w-full bg-white border border-brand-gold/20 p-2 text-xs focus:outline-none focus:border-brand-maroon"
+                  />
+                  {isVendorDropdownOpen && (
+                    <div className="absolute left-0 right-0 z-50 bg-white border border-brand-gold/20 shadow-lg max-h-36 overflow-y-auto mt-1 divide-y divide-brand-gold/10 rounded">
+                      {Array.from(new Set([...dbPurchases.map(p => p.vendor_name).filter(Boolean), ...dbDues.filter(d => d.due_type === 'payable').map(d => d.entity_name).filter(Boolean)]))
+                        .filter(v => v.toLowerCase().includes(purchaseForm.vendor_name.toLowerCase()))
+                        .map(vendor => (
+                          <div
+                            key={vendor}
+                            onMouseDown={() => {
+                              setPurchaseForm({ ...purchaseForm, vendor_name: vendor });
+                              setIsVendorDropdownOpen(false);
+                            }}
+                            className="px-3 py-2 text-xs hover:bg-brand-sand/50 cursor-pointer text-brand-maroon font-semibold"
+                          >
+                            {vendor}
+                          </div>
+                        ))}
+                      {purchaseForm.vendor_name && !Array.from(new Set([...dbPurchases.map(p => p.vendor_name).filter(Boolean), ...dbDues.filter(d => d.due_type === 'payable').map(d => d.entity_name).filter(Boolean)])).some(v => v.toLowerCase() === purchaseForm.vendor_name.toLowerCase()) && (
+                        <div className="px-3 py-2 text-xs text-brand-warm-gray bg-brand-sand/35 font-bold italic">
+                          + Add Vendor: "{purchaseForm.vendor_name}"
                         </div>
-                      ))}
-                    {purchaseForm.vendor_name && !Array.from(new Set([...dbPurchases.map(p => p.vendor_name).filter(Boolean), ...dbDues.filter(d => d.due_type === 'payable').map(d => d.entity_name).filter(Boolean)])).some(v => v.toLowerCase() === purchaseForm.vendor_name.toLowerCase()) && (
-                      <div className="px-3 py-2 text-xs text-brand-warm-gray bg-brand-sand/35 font-bold italic">
-                        + Add Vendor: "{purchaseForm.vendor_name}"
-                      </div>
-                    )}
-                  </div>
-                )}
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
 
-              <input type="text" required placeholder="Items (e.g. 10x Katan Silk)" value={purchaseForm.items_description} onChange={e => setPurchaseForm({...purchaseForm, items_description: e.target.value})} className="w-full bg-white border border-brand-gold/20 p-2 text-xs" />
-              
-              <div className="space-y-1">
-                <label className="text-[10px] uppercase font-bold block text-brand-maroon">Quantity</label>
-                <input type="number" min="1" required value={purchaseForm.quantity} onChange={e => setPurchaseForm({...purchaseForm, quantity: Number(e.target.value)})} className="w-full bg-white border border-brand-gold/20 p-2 text-xs focus:outline-none font-mono" />
+              {/* Purchase Line Items Section */}
+              <div className="space-y-3">
+                <div className="flex justify-between items-center border-b border-brand-gold/20 pb-1">
+                  <h4 className="text-xs uppercase font-bold text-brand-maroon">Purchase Line Items</h4>
+                  <button
+                    type="button"
+                    onClick={handleAddLineItem}
+                    className="text-[10px] uppercase font-bold text-brand-gold-dark hover:text-brand-maroon flex items-center gap-1 transition"
+                  >
+                    <Plus className="w-3 h-3" /> Add Item
+                  </button>
+                </div>
+
+                <div className="space-y-3 max-h-[350px] overflow-y-auto pr-1">
+                  {purchaseLineItems.map((item, idx) => (
+                    <div key={idx} className="border border-brand-gold/15 p-3 rounded bg-white relative space-y-2">
+                      <div className="flex justify-between items-center border-b border-brand-gold/10 pb-1.5">
+                        <span className="text-[10px] uppercase font-bold text-brand-gold-dark">Item #{idx + 1}</span>
+                        {purchaseLineItems.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveLineItem(idx)}
+                            className="text-red-500 hover:text-red-700 transition"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <label className="text-[9px] uppercase font-bold text-brand-warm-gray">Select Item</label>
+                          <select
+                            value={item.saree_id}
+                            onChange={e => handleLineItemChange(idx, "saree_id", e.target.value)}
+                            className="w-full bg-brand-ivory border border-brand-gold/20 p-2 text-xs focus:outline-none focus:border-brand-maroon"
+                          >
+                            <option value="">-- Choose Existing Saree --</option>
+                            <option value="new">➕ Add New Item</option>
+                            {dbSarees.map(s => (
+                              <option key={s.id} value={s.id}>{s.name} (₹{s.price})</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[9px] uppercase font-bold text-brand-warm-gray">Product Name *</label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="E.g. Tanchoi Silk Saree"
+                            value={item.product_name}
+                            onChange={e => handleLineItemChange(idx, "product_name", e.target.value)}
+                            disabled={item.saree_id !== "" && item.saree_id !== "new"}
+                            className="w-full bg-white border border-brand-gold/20 p-2 text-xs focus:outline-none focus:border-brand-maroon disabled:bg-gray-100 disabled:text-gray-500"
+                          />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        <div className="space-y-1">
+                          <label className="text-[9px] uppercase font-bold text-brand-warm-gray">Qty</label>
+                          <input
+                            type="number"
+                            min="1"
+                            required
+                            value={item.quantity}
+                            onChange={e => handleLineItemChange(idx, "quantity", Number(e.target.value))}
+                            className="w-full bg-white border border-brand-gold/20 p-2 text-xs focus:outline-none font-mono"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[9px] uppercase font-bold text-brand-warm-gray">Buying Price (₹)</label>
+                          <input
+                            type="number"
+                            min="0"
+                            required
+                            placeholder="₹0"
+                            value={item.buying_price || ""}
+                            onChange={e => handleLineItemChange(idx, "buying_price", Number(e.target.value))}
+                            className="w-full bg-white border border-brand-gold/20 p-2 text-xs focus:outline-none font-mono"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[9px] uppercase font-bold text-brand-warm-gray">Selling Price (₹)</label>
+                          <input
+                            type="number"
+                            min="0"
+                            required
+                            placeholder="₹0"
+                            value={item.selling_price || ""}
+                            onChange={e => handleLineItemChange(idx, "selling_price", Number(e.target.value))}
+                            className="w-full bg-white border border-brand-gold/20 p-2 text-xs focus:outline-none font-mono"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
               
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-3 border-t border-brand-gold/15 pt-3">
                 <div className="space-y-1">
-                  <label className="text-[9px] uppercase font-bold text-brand-warm-gray">Total Bill</label>
-                  <input type="number" min="0" required placeholder="₹0" value={purchaseForm.total_amount || ""} onChange={e => setPurchaseForm({...purchaseForm, total_amount: Number(e.target.value)})} className="w-full bg-white border border-brand-gold/20 p-2 text-xs" />
+                  <label className="text-[9px] uppercase font-bold text-brand-warm-gray">Total Bill (Calculated)</label>
+                  <div className="w-full bg-gray-100 border border-brand-gold/20 p-2 text-xs font-mono font-bold text-brand-maroon">
+                    ₹{calculatedTotalAmount.toLocaleString("en-IN")}
+                  </div>
                 </div>
                 <div className="space-y-1">
                   <label className="text-[9px] uppercase font-bold text-emerald-700">Paid Today</label>
-                  <input type="number" min="0" placeholder="₹0" value={purchaseForm.amount_paid || ""} onChange={e => setPurchaseForm({...purchaseForm, amount_paid: Number(e.target.value)})} className="w-full bg-white border border-emerald-200 p-2 text-xs text-emerald-800" />
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="₹0"
+                    value={purchaseForm.amount_paid || ""}
+                    onChange={e => setPurchaseForm({...purchaseForm, amount_paid: Number(e.target.value)})}
+                    className="w-full bg-white border border-emerald-200 p-2 text-xs text-emerald-800 focus:outline-none focus:border-emerald-600 font-mono"
+                  />
                 </div>
               </div>
-              {purchaseForm.amount_paid < purchaseForm.total_amount && purchaseForm.total_amount > 0 && (
+
+              {purchaseForm.amount_paid < calculatedTotalAmount && calculatedTotalAmount > 0 && (
                 <p className="text-[10px] text-amber-600 bg-amber-50 p-2 border border-amber-200 rounded italic">
-                  A payable due of ₹{purchaseForm.total_amount - purchaseForm.amount_paid} will be automatically added to the Ledger.
+                  A payable due of ₹{(calculatedTotalAmount - purchaseForm.amount_paid).toLocaleString("en-IN")} will be automatically added to the Ledger.
                 </p>
               )}
               
-              <div className="flex justify-end gap-2 pt-2">
+              <div className="flex justify-end gap-2 pt-2 border-t border-brand-gold/15">
                 <button type="button" onClick={() => setIsPurchaseModalOpen(false)} className="text-xs uppercase font-bold px-3 text-brand-warm-gray hover:text-brand-maroon">Cancel</button>
-                <button type="submit" className="bg-brand-maroon text-white text-xs uppercase font-bold px-4 py-2">Save</button>
+                <button type="submit" className="bg-brand-maroon text-white text-xs uppercase font-bold px-4 py-2 hover:bg-brand-maroon/90 transition shadow">Save Purchase</button>
               </div>
             </form>
           </div>

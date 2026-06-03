@@ -65,6 +65,11 @@ export default function UserProfileView({
   const [orders, setOrders] = useState<DbOrder[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(true);
 
+  // Scroll to top when activeTab changes
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [activeTab]);
+
   useEffect(() => {
     if (!sessionReady) return;
     if (!userSession) {

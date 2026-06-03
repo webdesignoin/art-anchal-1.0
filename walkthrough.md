@@ -70,9 +70,16 @@
 | `handleUpdateOrderStatus` | `AdminConsoleView.tsx` | Function called but never defined |
 | `freshOrder`, `profile` undefined | `AdminConsoleView.tsx` | Stale copy-paste variables |
 | `react-helmet-async` | `AboutView.tsx`, `ArtisanStoriesView.tsx` | Incompatible with React 19 — replaced with `useEffect` + `document.title` |
-| `aspect-3/4` | `UserProfileView.tsx`, `ShopView.tsx` | Non-standard Tailwind class — fixed to `aspect-[3/4]` |
-| `scale-103` | `UserProfileView.tsx` | Non-standard — fixed to `scale-[1.03]` |
-| Dead props | `HomeView.tsx`, `App.tsx` | `toggleFavorite`, `wishlist`, `addToCart` passed to component that didn't accept them |
+| `aspect-3/4` | [UserProfileView.tsx](file:///d:/Projects/art-anchal-1.0/src/components/pages/UserProfileView.tsx), [ShopView.tsx](file:///d:/Projects/art-anchal-1.0/src/components/pages/ShopView.tsx) | Non-standard Tailwind class — fixed to `aspect-[3/4]` |
+| `scale-103` | [UserProfileView.tsx](file:///d:/Projects/art-anchal-1.0/src/components/pages/UserProfileView.tsx) | Non-standard — fixed to `scale-[1.03]` |
+| Dead props | [HomeView.tsx](file:///d:/Projects/art-anchal-1.0/src/components/pages/HomeView.tsx), [App.tsx](file:///d:/Projects/art-anchal-1.0/src/App.tsx) | `toggleFavorite`, `wishlist`, `addToCart` passed to component that didn't accept them |
+
+### 🧭 Navigation & Page Layout
+
+| Fix | File | Detail |
+|-----|------|--------|
+| Automatic Scroll to Top on View Change | [App.tsx](file:///d:/Projects/art-anchal-1.0/src/App.tsx) | Implemented a global `useEffect` hook that automatically scrolls the viewport to the top (`window.scrollTo(0, 0)`) whenever the view state (`currentView`) or target product (`selectedSareeId`) changes, resolving inconsistent page scrolling experiences during client-side navigation. |
+| Automatic Scroll to Top on Tab Transition | [AdminConsoleView.tsx](file:///d:/Projects/art-anchal-1.0/src/components/pages/AdminConsoleView.tsx), [UserProfileView.tsx](file:///d:/Projects/art-anchal-1.0/src/components/pages/UserProfileView.tsx) | Added `useEffect` hooks triggered on `activeTab` changes to automatically scroll to the top of the viewport when switching sub-sections (e.g. Catalog to POS, Profile to Orders), preventing the user from remaining scrolled to the bottom of the page. |
 
 ### ⚡ Performance
 

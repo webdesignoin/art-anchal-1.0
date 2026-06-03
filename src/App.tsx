@@ -66,6 +66,11 @@ export default function App() {
     } catch {}
   }, [currentView, selectedSareeId, selectedCategory]);
 
+  // Scroll to top automatically when navigating to a new view or selecting a different product
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [currentView, selectedSareeId]);
+
   // Parse URL on mount and listen for browser back/forward navigation (popstate)
   useEffect(() => {
     const parseLocation = () => {
@@ -150,8 +155,9 @@ export default function App() {
       const { data: dbCollections } = await supabase.from("collections").select("*");
 
       if (dbSarees && dbSarees.length > 0) {
-        setSarees(dbSarees as any[]);
-        localStorage.setItem("art_anchal_sarees", JSON.stringify(dbSarees));
+        const onlineSarees = dbSarees.filter((s: any) => s.sell_online === true);
+        setSarees(onlineSarees as any[]);
+        localStorage.setItem("art_anchal_sarees", JSON.stringify(onlineSarees));
       }
       if (dbArtisans && dbArtisans.length > 0) {
         const parsedArtisans = dbArtisans.map((a: any) => ({

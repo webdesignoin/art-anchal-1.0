@@ -32,6 +32,8 @@ export interface Saree {
     washCare: string;
     origin: string;
   };
+  is_active?: boolean;
+  sell_online?: boolean;
 }
 
 export interface Artisan {
@@ -180,6 +182,7 @@ export interface DbOrderItem {
   created_at: string;
   // Joined
   saree?: { id: string; name: string; images: string[]; } | null;
+  original_price?: number;
 }
 
 export interface DbInvoice {
@@ -232,6 +235,18 @@ export interface DbExpense {
   created_at: string;
 }
 
+export interface DbPurchaseItem {
+  id: string;
+  purchase_id: string;
+  saree_id: string | null;
+  product_name: string;
+  quantity: number;
+  buying_price: number;
+  selling_price: number;
+  created_at: string;
+  saree?: any;
+}
+
 export interface DbPurchase {
   id: string;
   vendor_name: string;
@@ -242,6 +257,8 @@ export interface DbPurchase {
   status: 'paid' | 'partially_paid' | 'unpaid';
   date: string;
   created_at: string;
+  items?: DbPurchaseItem[];
+  quantity?: number;
 }
 
 export interface DbDue {

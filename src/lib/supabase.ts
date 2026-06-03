@@ -102,6 +102,9 @@ if (isMock) {
       spec_blouse: s.specifications.blousePiece,
       spec_wash_care: s.specifications.washCare,
       spec_origin: s.specifications.origin,
+      stock_quantity: Math.floor(Math.random() * 8) + 1,
+      is_active: true,
+      sell_online: true,
       created_at: new Date().toISOString(),
     }));
     setMockTable("sarees", formattedSarees);
@@ -302,6 +305,33 @@ class MockQueryBuilder {
       });
     }
 
+    if (this.tableName === "purchase_items") {
+      const sarees = getMockTable("sarees");
+      rows = rows.map(pi => ({
+        ...pi,
+        saree: sarees.find(s => s.id === pi.saree_id) || null,
+      }));
+    }
+
+    if (this.tableName === "purchases") {
+      const purchaseItems = getMockTable("purchase_items");
+      const sarees = getMockTable("sarees");
+      rows = rows.map(p => ({
+        ...p,
+        items: purchaseItems
+          .filter(pi => pi.purchase_id === p.id)
+          .map(pi => ({ ...pi, saree: sarees.find(s => s.id === pi.saree_id) || null })),
+      }));
+    }
+
+    if (this.tableName === "attendance") {
+      const employees = getMockTable("employees");
+      rows = rows.map(att => ({
+        ...att,
+        employee: employees.find(e => e.id === att.employee_id) || null,
+      }));
+    }
+
     if (this.isSingle) {
       return { data: rows[0] || null, error: null };
     }
@@ -349,7 +379,7 @@ class MockQueryBuilder {
       newItems.forEach((order) => {
         const invoices = getMockTable("invoices");
         const taxRate = 0.18; // 18% GST
-        const total = Number(order.total_amount);
+        const total = Number(order.total ?? order.total_amount ?? 0);
         const subtotal = total / (1 + taxRate);
         const tax = total - subtotal;
         
