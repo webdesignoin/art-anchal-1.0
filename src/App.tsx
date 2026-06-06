@@ -154,12 +154,12 @@ export default function App() {
       const { data: dbArtisans } = await supabase.from("artisans").select("*");
       const { data: dbCollections } = await supabase.from("collections").select("*");
 
-      if (dbSarees && dbSarees.length > 0) {
-        const onlineSarees = dbSarees.filter((s: any) => s.sell_online === true);
+      if (dbSarees) {
+        const onlineSarees = dbSarees.filter((s: any) => s.is_active !== false && s.sell_online === true);
         setSarees(onlineSarees as any[]);
         localStorage.setItem("art_anchal_sarees", JSON.stringify(onlineSarees));
       }
-      if (dbArtisans && dbArtisans.length > 0) {
+      if (dbArtisans) {
         const parsedArtisans = dbArtisans.map((a: any) => ({
           id: a.id,
           name: a.name,
@@ -175,7 +175,7 @@ export default function App() {
         setArtisans(parsedArtisans);
         localStorage.setItem("art_anchal_artisans", JSON.stringify(parsedArtisans));
       }
-      if (dbCollections && dbCollections.length > 0) {
+      if (dbCollections) {
         const parsedCollections = dbCollections.map((c: any) => ({
           id: c.id,
           name: c.name,
@@ -222,7 +222,7 @@ export default function App() {
       }
 
       // Trigger background catalog sync asynchronously to prevent blocking the loader
-      refreshCatalog().catch(err => console.warn("Catalog refresh failed:", err));
+      refreshCatalog(true).catch(err => console.warn("Catalog refresh failed:", err));
 
       setTimeout(() => { setAppLoading(false); }, 1200);
 

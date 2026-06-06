@@ -1,4 +1,4 @@
-import React, { useState, FormEvent } from "react";
+import React, { useState, useEffect, FormEvent } from "react";
 import { supabase } from "../../lib/supabase";
 import { CheckCircle, TrendingUp, TrendingDown, DollarSign, Plus, Package, FileText, CreditCard, Minus, X } from "lucide-react";
 
@@ -11,6 +11,12 @@ interface AdminFinanceTabProps {
   dbDuePayments?: any[];
   dbSarees?: any[];
   fetchAllData: () => void;
+  openExpenseModalOnLoad?: boolean;
+  openPurchaseModalOnLoad?: boolean;
+  onCloseExpenseModalOnLoad?: () => void;
+  onClosePurchaseModalOnLoad?: () => void;
+  startDate?: string;
+  endDate?: string;
 }
 
 export default function AdminFinanceTab({
@@ -21,7 +27,13 @@ export default function AdminFinanceTab({
   dbEmployees = [],
   dbDuePayments = [],
   dbSarees = [],
-  fetchAllData
+  fetchAllData,
+  openExpenseModalOnLoad = false,
+  openPurchaseModalOnLoad = false,
+  onCloseExpenseModalOnLoad,
+  onClosePurchaseModalOnLoad,
+  startDate = "",
+  endDate = ""
 }: AdminFinanceTabProps) {
   const [feedback, setFeedback] = useState("");
   
@@ -30,6 +42,20 @@ export default function AdminFinanceTab({
   const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
   const [isDueModalOpen, setIsDueModalOpen] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (openExpenseModalOnLoad) {
+      setIsExpenseModalOpen(true);
+      if (onCloseExpenseModalOnLoad) onCloseExpenseModalOnLoad();
+    }
+  }, [openExpenseModalOnLoad, onCloseExpenseModalOnLoad]);
+
+  useEffect(() => {
+    if (openPurchaseModalOnLoad) {
+      setIsPurchaseModalOpen(true);
+      if (onClosePurchaseModalOnLoad) onClosePurchaseModalOnLoad();
+    }
+  }, [openPurchaseModalOnLoad, onClosePurchaseModalOnLoad]);
 
   // Forms
   const [expenseForm, setExpenseForm] = useState({ category: "Operational", amount: 0, description: "", date: new Date().toISOString().split('T')[0] });
@@ -322,16 +348,30 @@ export default function AdminFinanceTab({
     showFeedback(`Payment of ₹${paymentForm.amount_paid} logged.`);
   };
 
+  // Date range filter helpers
+  const isWithinDateRange = (dateString?: string) => {
+    if (!dateString) return true;
+    const itemDate = new Date(dateString).toISOString().split('T')[0];
+    if (startDate && itemDate < startDate) return false;
+    if (endDate && itemDate > endDate) return false;
+    return true;
+  };
+
+  const filteredExpenses = dbExpenses.filter(e => isWithinDateRange(e.date || e.created_at));
+  const filteredPurchases = dbPurchases.filter(p => isWithinDateRange(p.date || p.created_at));
+  const filteredDues = dbDues.filter(d => isWithinDateRange(d.due_date || d.created_at));
+  const filteredOrders = dbOrders.filter(o => isWithinDateRange(o.created_at));
+
   // Calculations (Accrual vs Cash Flow)
-  const totalRevenue = dbOrders.reduce((acc, o) => acc + Number(o.total || 0), 0);
-  const totalExpenses = dbExpenses.reduce((acc, e) => acc + Number(e.amount || 0), 0);
-  const totalPurchasesAccrual = dbPurchases.reduce((acc, p) => acc + Number(p.total_amount || 0), 0);
-  const cashOutflowPurchases = dbPurchases.reduce((acc, p) => acc + Number(p.amount_paid || 0), 0);
+  const totalRevenue = filteredOrders.reduce((acc, o) => acc + Number(o.total || 0), 0);
+  const totalExpenses = filteredExpenses.reduce((acc, e) => acc + Number(e.amount || 0), 0);
+  const totalPurchasesAccrual = filteredPurchases.reduce((acc, p) => acc + Number(p.total_amount || 0), 0);
+  const cashOutflowPurchases = filteredPurchases.reduce((acc, p) => acc + Number(p.amount_paid || 0), 0);
   
   const netProfit = totalRevenue - totalExpenses - totalPurchasesAccrual;
 
   // Breakdown of expenses
-  const expenseBreakdown = dbExpenses.reduce((acc: Record<string, number>, exp) => {
+  const expenseBreakdown = filteredExpenses.reduce((acc: Record<string, number>, exp) => {
     acc[exp.category] = (acc[exp.category] || 0) + Number(exp.amount);
     return acc;
   }, {});
@@ -398,8 +438,8 @@ export default function AdminFinanceTab({
             <button onClick={() => setIsExpenseModalOpen(true)} className="text-brand-gold hover:text-white transition"><Plus className="w-4 h-4"/></button>
           </div>
           <div className="overflow-y-auto p-4 space-y-3 flex-1">
-            {dbExpenses.length === 0 ? <p className="text-center text-xs text-brand-warm-gray italic py-8">No expenses logged.</p> :
-              dbExpenses.map(exp => (
+            {filteredExpenses.length === 0 ? <p className="text-center text-xs text-brand-warm-gray italic py-8">No expenses logged.</p> :
+              filteredExpenses.map(exp => (
                 <div key={exp.id} className="border-b border-brand-gold/10 pb-2 last:border-0 text-xs">
                   <div className="flex justify-between font-bold text-brand-maroon">
                     <span>{exp.category}</span>
@@ -421,8 +461,8 @@ export default function AdminFinanceTab({
             <button onClick={() => setIsPurchaseModalOpen(true)} className="text-brand-gold hover:text-white transition"><Plus className="w-4 h-4"/></button>
           </div>
           <div className="overflow-y-auto p-4 space-y-3 flex-1">
-            {dbPurchases.length === 0 ? <p className="text-center text-xs text-brand-warm-gray italic py-8">No purchases logged.</p> :
-              dbPurchases.map(pur => {
+            {filteredPurchases.length === 0 ? <p className="text-center text-xs text-brand-warm-gray italic py-8">No purchases logged.</p> :
+              filteredPurchases.map(pur => {
                 const bal = pur.total_amount - pur.amount_paid;
                 return (
                   <div key={pur.id} className="border border-brand-gold/10 p-3 rounded-lg text-xs bg-white space-y-2">
@@ -453,8 +493,8 @@ export default function AdminFinanceTab({
             <button onClick={() => setIsDueModalOpen(true)} className="text-brand-gold hover:text-white transition"><Plus className="w-4 h-4"/></button>
           </div>
           <div className="overflow-y-auto p-4 space-y-3 flex-1">
-            {dbDues.length === 0 ? <p className="text-center text-xs text-brand-warm-gray italic py-8">No dues recorded.</p> :
-              dbDues.map(due => {
+            {filteredDues.length === 0 ? <p className="text-center text-xs text-brand-warm-gray italic py-8">No dues recorded.</p> :
+              filteredDues.map(due => {
                 const bal = due.total_amount - due.amount_paid;
                 return (
                   <div key={due.id} className={`border border-brand-gold/20 p-3 rounded-lg text-xs ${due.status === "cleared" ? "opacity-60 bg-gray-50" : "bg-white"}`}>
@@ -693,7 +733,7 @@ export default function AdminFinanceTab({
                           />
                         </div>
                       </div>
-                      <div className="grid grid-cols-3 gap-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                         <div className="space-y-1">
                           <label className="text-[9px] uppercase font-bold text-brand-warm-gray">Qty</label>
                           <input
@@ -735,7 +775,7 @@ export default function AdminFinanceTab({
                 </div>
               </div>
               
-              <div className="grid grid-cols-2 gap-3 border-t border-brand-gold/15 pt-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 border-t border-brand-gold/15 pt-3">
                 <div className="space-y-1">
                   <label className="text-[9px] uppercase font-bold text-brand-warm-gray">Total Bill (Calculated)</label>
                   <div className="w-full bg-gray-100 border border-brand-gold/20 p-2 text-xs font-mono font-bold text-brand-maroon">

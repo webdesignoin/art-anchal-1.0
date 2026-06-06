@@ -12,7 +12,7 @@ import { supabase, isMock } from "../../lib/supabase";
 import {
   Plus, Edit, Trash2, Users, ShoppingBag, FileText, PhoneCall,
   TrendingUp, Printer, ArrowLeft, CheckCircle, RefreshCw, Lock,
-  Sparkles, Package, AlertTriangle, X, Check, ChevronRight,
+  Sparkles, Package, AlertTriangle, X, Check, ChevronRight, ChevronLeft, Menu,
   LayoutDashboard, MessageSquare, Minus, Search, IndianRupee,
   ShieldCheck, Tag, Upload, Edit2, Archive, Phone, Download, UserPlus, Image as ImageIcon, CreditCard, HelpCircle, LogOut, MoreHorizontal
 } from "lucide-react";
@@ -33,6 +33,21 @@ type TabType = "overview" | "catalog" | "crm" | "pos" | "orders" | "hr" | "finan
 
 const TAX_RATE = 0.05; // 5% GST for handloom sarees (CGST 2.5% + SGST 2.5%)
 
+const getFirstDayOfMonth = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  return `${year}-${month}-01`;
+};
+
+const getTodayDateString = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 const emptyLead = { name: "", email: "", phone: "", interest: "", message: "", status: "new", source: "offline" };
 const emptyProfile = { name: "", email: "", phone: "", source: "offline" };
 const emptySaree = {
@@ -52,6 +67,14 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState("");
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [catalogSearch, setCatalogSearch] = useState("");
+  const [catalogStockFilter, setCatalogStockFilter] = useState("all");
+  const [catalogPage, setCatalogPage] = useState(1);
+  const [openFinancePurchaseModal, setOpenFinancePurchaseModal] = useState(false);
+  const [openFinanceExpenseModal, setOpenFinanceExpenseModal] = useState(false);
+  const [startDate, setStartDate] = useState(getFirstDayOfMonth());
+  const [endDate, setEndDate] = useState(getTodayDateString());
 
   // Scroll to top when activeTab changes
   useEffect(() => {
@@ -85,6 +108,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
   const [slotError, setSlotError] = useState(["", "", ""]);
   const [slotPreview, setSlotPreview] = useState(["", "", ""]);
   const [urlInputMode, setUrlInputMode] = useState(false);
+  const [sareeModalTab, setSareeModalTab] = useState<"basic" | "details" | "specs">("basic");
   // Separate hidden file inputs per slot — avoids overflow-hidden clipping bug
   const fileInputRefs = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)];
 
@@ -180,11 +204,83 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // ── Date range filter helpers ──────────────────────────────────────────────
+  const isWithinDateRange = (dateString?: string) => {
+    if (!dateString) return true;
+    const itemDate = new Date(dateString).toISOString().split('T')[0];
+    if (startDate && itemDate < startDate) return false;
+    if (endDate && itemDate > endDate) return false;
+    return true;
+  };
+
+  const filteredDbOrders = dbOrders.filter(o => isWithinDateRange(o.created_at));
+  const filteredDbDues = dbDues.filter(d => isWithinDateRange(d.due_date || d.created_at));
+  const filteredDbExpenses = dbExpenses.filter(e => isWithinDateRange(e.date || e.created_at));
+  const filteredDbPurchases = dbPurchases.filter(p => isWithinDateRange(p.date || p.created_at));
+
   // ── KPI helpers ───────────────────────────────────────────────────────────
-  const totalRevenue = dbOrders.reduce((s, o) => s + Number(o.total ?? 0), 0);
+  const totalRevenue = filteredDbOrders.reduce((s, o) => s + Number(o.total ?? 0), 0);
   const activeLeads = dbLeads.filter(l => l.status !== "won" && l.status !== "lost").length;
-  const lowStockSarees = dbSarees.filter(s => (s.stock_quantity ?? 1) <= 2);
-  const outOfStock = dbSarees.filter(s => (s.stock_quantity ?? 1) <= 0);
+  const lowStockSarees = dbSarees.filter(s => s.is_active !== false && (s.stock_quantity ?? 1) <= 2);
+  const outOfStock = dbSarees.filter(s => s.is_active !== false && (s.stock_quantity ?? 1) <= 0);
+
+  // Vyapar-style calculations
+  const totalReceivables = filteredDbDues
+    .filter(d => d.due_type === "receivable" && d.status === "pending")
+    .reduce((sum, d) => sum + Number((d.total_amount ?? 0) - (d.amount_paid ?? 0)), 0);
+
+  const totalPayables = filteredDbDues
+    .filter(d => d.due_type === "payable" && d.status === "pending")
+    .reduce((sum, d) => sum + Number((d.total_amount ?? 0) - (d.amount_paid ?? 0)), 0);
+
+  const baseCashFloat = 0;
+  const cashInHand = baseCashFloat 
+    + filteredDbOrders.filter(o => o.is_paid && o.payment_mode === "cash").reduce((sum, o) => sum + Number(o.total ?? 0), 0)
+    - filteredDbExpenses.reduce((sum, e) => sum + Number(e.amount ?? 0), 0);
+
+  const baseBankBalance = 0;
+  const bankBalance = baseBankBalance
+    + filteredDbOrders.filter(o => o.is_paid && ["online", "card", "upi", "bank_transfer"].includes(o.payment_mode)).reduce((sum, o) => sum + Number(o.total ?? 0), 0)
+    - filteredDbPurchases.reduce((sum, p) => sum + Number(p.amount_paid ?? 0), 0);
+
+  // Consolidated Daybook transaction feed
+  const daybookTransactions = [
+    ...filteredDbOrders.map(o => ({
+      id: o.id,
+      type: "Sale",
+      number: o.invoice_number || `SAL-${o.id.slice(0, 5).toUpperCase()}`,
+      date: o.created_at,
+      party: o.customer_name,
+      amount: o.total,
+      status: o.is_paid ? "Paid" : "Unpaid",
+      colorClass: o.is_paid ? "bg-emerald-100 text-emerald-800 border-emerald-200" : "bg-red-100 text-red-800 border-red-200",
+      mode: o.payment_mode.toUpperCase(),
+    })),
+    ...filteredDbPurchases.map(p => ({
+      id: p.id,
+      type: "Purchase",
+      number: `PUR-${p.id.slice(0, 5).toUpperCase()}`,
+      date: p.date || p.created_at,
+      party: p.vendor_name,
+      amount: p.total_amount,
+      status: p.status === "paid" ? "Paid" : p.status === "partially_paid" ? "Partial" : "Unpaid",
+      colorClass: p.status === "paid" ? "bg-emerald-100 text-emerald-800 border-emerald-200" : p.status === "partially_paid" ? "bg-amber-100 text-amber-800 border-amber-200" : "bg-red-100 text-red-800 border-red-200",
+      mode: "BANK",
+    })),
+    ...filteredDbExpenses.map(e => ({
+      id: e.id,
+      type: "Expense",
+      number: `EXP-${e.id.slice(0, 5).toUpperCase()}`,
+      date: e.date || e.created_at,
+      party: e.category,
+      amount: e.amount,
+      status: "Paid",
+      colorClass: "bg-emerald-100 text-emerald-800 border-emerald-200",
+      mode: "CASH",
+    }))
+  ]
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .slice(0, 8);
 
   // ── CRM ───────────────────────────────────────────────────────────────────
   const handleSelectLead = async (lead: any) => {
@@ -247,7 +343,11 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
   // ── CMS ───────────────────────────────────────────────────────────────────
   const handleSaveSaree = async (e: FormEvent) => {
     e.preventDefault();
-    if (!sareeForm.name || !sareeForm.price) return;
+    if (!sareeForm.name || !sareeForm.price || !sareeForm.material || !sareeForm.description) {
+      setSareeModalTab("basic");
+      alert("Please fill in all required fields (Name, Material, Price, and Description).");
+      return;
+    }
     const payload = {
       name: sareeForm.name,
       price: Number(sareeForm.price),
@@ -297,11 +397,24 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
   };
 
   const handleDeleteSaree = async (id: string) => {
-    if (!confirm("Retire this saree from the catalog?")) return;
-    await supabase.from("sarees").update({ is_active: false }).eq("id", id);
-    showFeedback("Saree retired.");
-    fetchAllData();
-    await refreshCatalog(true);
+    if (!confirm("Are you sure you want to remove this saree from the catalog?")) return;
+    try {
+      const { error: deleteError } = await supabase.from("sarees").delete().eq("id", id);
+      
+      if (deleteError) {
+        console.warn("Hard delete failed (referenced elsewhere). Falling back to soft-delete.", deleteError);
+        const { error: updateError } = await supabase.from("sarees").update({ is_active: false }).eq("id", id);
+        if (updateError) throw updateError;
+        showFeedback("Saree retired (soft-deleted due to order history references).");
+      } else {
+        showFeedback("Saree deleted successfully from catalog.");
+      }
+      
+      fetchAllData();
+      await refreshCatalog(true);
+    } catch (err: any) {
+      alert(`Delete Error: ${err.message}`);
+    }
   };
 
   const handleOpenEditSaree = (s: any) => {
@@ -335,6 +448,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
     setSlotUploading([false, false, false]);
     setSlotProgress([0, 0, 0]);
     setUrlInputMode(false);
+    setSareeModalTab("basic");
     setIsSareeModalOpen(true);
   };
 
@@ -673,16 +787,41 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
     );
   }
 
-  // ── Nav items ─────────────────────────────────────────────────────────────
-  const navItems: { id: TabType; label: string; icon: any; badge?: number }[] = [
-    { id: "overview", label: "Overview", icon: LayoutDashboard },
-    { id: "catalog", label: "Catalog & Stock", icon: ShoppingBag, badge: outOfStock.length || undefined },
-    { id: "crm", label: "CRM Leads", icon: Users, badge: dbLeads.filter(l => l.status === "new").length || undefined },
-    { id: "pos", label: "Generate Bill", icon: IndianRupee },
-    { id: "orders", label: "Order History", icon: FileText },
-    { id: "hr", label: "HR & Staffing", icon: UserPlus },
-    { id: "finance", label: "Finance & Ledger", icon: TrendingUp },
-    { id: "vendors", label: "Vendors & Suppliers", icon: Package },
+  // ── Nav items (Grouped by section for SaaS-grade UX) ─────────────────────
+  const navSections = [
+    {
+      title: "Dashboard",
+      items: [
+        { id: "overview" as TabType, label: "Overview", icon: LayoutDashboard }
+      ]
+    },
+    {
+      title: "Catalog & Inventory",
+      items: [
+        { id: "catalog" as TabType, label: "Catalog & Stock", icon: ShoppingBag, badge: outOfStock.length || undefined }
+      ]
+    },
+    {
+      title: "Sales",
+      items: [
+        { id: "pos" as TabType, label: "POS Bill", icon: IndianRupee, badge: posCart.length > 0 ? posCart.reduce((sum, item) => sum + item.quantity, 0) : undefined },
+        { id: "orders" as TabType, label: "Order History", icon: FileText }
+      ]
+    },
+    {
+      title: "CRM",
+      items: [
+        { id: "crm" as TabType, label: "CRM Leads", icon: Users, badge: dbLeads.filter(l => l.status === "new").length || undefined }
+      ]
+    },
+    {
+      title: "Operations",
+      items: [
+        { id: "hr" as TabType, label: "HR & Staffing", icon: UserPlus },
+        { id: "finance" as TabType, label: "Finance & Ledger", icon: TrendingUp },
+        { id: "vendors" as TabType, label: "Vendors & Suppliers", icon: Package }
+      ]
+    }
   ];
 
   const filteredSarees = dbSarees.filter(s =>
@@ -693,6 +832,38 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
     l.name?.toLowerCase().includes(leadSearch.toLowerCase()) ||
     l.phone?.includes(leadSearch) || l.email?.toLowerCase().includes(leadSearch.toLowerCase())
   );
+
+  const filteredCatalogSarees = dbSarees.filter(s => {
+    const matchesSearch = s.name?.toLowerCase().includes(catalogSearch.toLowerCase()) || 
+                          s.material?.toLowerCase().includes(catalogSearch.toLowerCase()) ||
+                          s.weaving_technique?.toLowerCase().includes(catalogSearch.toLowerCase());
+    
+    const stock = s.stock_quantity ?? 0;
+    let matchesStock = true;
+    if (catalogStockFilter === "in_stock") matchesStock = stock > 0;
+    else if (catalogStockFilter === "out_of_stock") matchesStock = stock <= 0;
+    else if (catalogStockFilter === "low_stock") matchesStock = stock > 0 && stock <= 2;
+
+    const matchesDate = isWithinDateRange(s.created_at);
+    const isActive = s.is_active !== false;
+
+    return matchesSearch && matchesStock && matchesDate && isActive;
+  });
+
+  const CATALOG_ITEMS_PER_PAGE = 10;
+  const totalCatalogPages = Math.ceil(filteredCatalogSarees.length / CATALOG_ITEMS_PER_PAGE) || 1;
+  const currentCatalogPage = Math.min(catalogPage, totalCatalogPages);
+  const paginatedCatalogSarees = filteredCatalogSarees.slice(
+    (currentCatalogPage - 1) * CATALOG_ITEMS_PER_PAGE,
+    currentCatalogPage * CATALOG_ITEMS_PER_PAGE
+  );
+
+  const filteredOrders = dbOrders.filter(o => {
+    const matchesSearch = o.customer_name?.toLowerCase().includes(orderSearch.toLowerCase()) ||
+                          o.invoice_number?.toLowerCase().includes(orderSearch.toLowerCase());
+    const matchesDate = isWithinDateRange(o.created_at);
+    return matchesSearch && matchesDate;
+  });
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row bg-[#FDFBF7] font-sans text-brand-maroon pb-20 lg:pb-0" id="admin-console-view">
@@ -861,56 +1032,106 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
       )}
 
       {/* ── SIDEBAR (desktop only) ────────────────────────────────────── */}
-      <aside className="hidden lg:flex w-64 flex-shrink-0 bg-[#1C050E] text-[#F9F5F0] flex-col print:hidden sticky top-0 h-screen overflow-y-auto">
-        {/* Brand */}
-        <div className="px-6 py-7 border-b border-white/10">
-          <span className="text-[9px] tracking-[0.3em] uppercase text-brand-gold font-bold block">Art & Anchal</span>
-          <h1 className="font-serif text-lg font-light mt-0.5 text-white">Admin Console</h1>
+      <aside className={`hidden lg:flex flex-shrink-0 bg-[#1C050E] text-[#F9F5F0] flex-col print:hidden sticky top-0 h-screen overflow-y-auto transition-all duration-300 ${isSidebarCollapsed ? "w-20" : "w-64"}`}>
+        {/* Brand & Collapse toggle */}
+        <div className={`px-6 py-7 border-b border-white/10 flex items-center justify-between ${isSidebarCollapsed ? "flex-col gap-4 px-3" : ""}`}>
+          {!isSidebarCollapsed && (
+            <div>
+              <span className="text-[9px] tracking-[0.3em] uppercase text-brand-gold font-bold block">Art & Anchal</span>
+              <h1 className="font-serif text-lg font-light mt-0.5 text-white">Admin Console</h1>
+            </div>
+          )}
+          {isSidebarCollapsed && (
+            <span className="text-[10px] tracking-wider uppercase text-brand-gold font-bold font-serif">A&A</span>
+          )}
+          <button 
+            onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+            className="p-1.5 rounded-lg hover:bg-white/5 text-white/60 hover:text-white transition"
+            title={isSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+          >
+            {isSidebarCollapsed ? <Menu className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
+          </button>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 px-3 py-5 space-y-1">
-          {navItems.map(({ id, label, icon: Icon, badge }) => {
-            const active = activeTab === id;
-            return (
-              <button key={id} onClick={() => { setActiveTab(id); setActiveInvoice(null); }}
-                className={`w-full flex items-center justify-between px-4 py-3 rounded-lg text-left text-sm transition-all ${
-                  active ? "bg-brand-gold/20 text-brand-gold font-semibold" : "text-white/70 hover:bg-white/5 hover:text-white"
-                }`}>
-                <span className="flex items-center gap-3">
-                  <Icon className={`w-4 h-4 flex-shrink-0 ${active ? "text-brand-gold" : ""}`} />
-                  {label}
-                </span>
-                {badge ? (
-                  <span className="bg-brand-gold text-[#1C050E] text-[9px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
-                    {badge}
-                  </span>
-                ) : null}
-              </button>
-            );
-          })}
+        <nav className="flex-1 px-3 py-5 space-y-6">
+          {navSections.map((section) => (
+            <div key={section.title} className="space-y-1">
+              {!isSidebarCollapsed && (
+                <h3 className="px-4 text-[10px] font-bold uppercase tracking-wider text-white/40">
+                  {section.title}
+                </h3>
+              )}
+              <div className="space-y-0.5">
+                {section.items.map(({ id, label, icon: Icon, badge }) => {
+                  const active = activeTab === id;
+                  return (
+                    <button
+                      key={id}
+                      onClick={() => {
+                        setActiveTab(id);
+                        setActiveInvoice(null);
+                      }}
+                      className={`w-full flex items-center rounded-lg text-left text-sm transition-all relative ${
+                        isSidebarCollapsed ? "justify-center px-2 py-3" : "justify-between px-4 py-2.5"
+                      } ${
+                        active
+                          ? "bg-brand-gold/20 text-brand-gold font-semibold"
+                          : "text-white/70 hover:bg-white/5 hover:text-white"
+                      }`}
+                      title={isSidebarCollapsed ? label : undefined}
+                    >
+                      <span className="flex items-center gap-3">
+                        <Icon className={`w-4 h-4 flex-shrink-0 ${active ? "text-brand-gold" : ""}`} />
+                        {!isSidebarCollapsed && <span>{label}</span>}
+                      </span>
+                      {!isSidebarCollapsed && badge ? (
+                        <span className="bg-brand-gold text-[#1C050E] text-[9px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
+                          {badge}
+                        </span>
+                      ) : null}
+                      {isSidebarCollapsed && badge ? (
+                        <span className="absolute top-1.5 right-1.5 bg-brand-gold text-[#1C050E] text-[8px] font-bold px-1 rounded-full scale-90">
+                          {badge}
+                        </span>
+                      ) : null}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
 
         {/* Footer */}
-        <div className="px-4 py-5 border-t border-white/10 space-y-3">
+        <div className={`px-4 py-5 border-t border-white/10 space-y-3 ${isSidebarCollapsed ? "flex flex-col items-center px-2" : ""}`}>
           <button onClick={fetchAllData} disabled={loading}
-            className="w-full flex items-center justify-center gap-2 border border-white/15 text-white/60 hover:text-white text-xs py-2.5 rounded-lg transition">
+            className={`w-full flex items-center justify-center gap-2 border border-white/15 text-white/60 hover:text-white text-xs py-2.5 rounded-lg transition ${
+              isSidebarCollapsed ? "px-0" : ""
+            }`}
+            title="Sync Data"
+          >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
-            Sync Data
+            {!isSidebarCollapsed && <span>Sync Data</span>}
           </button>
           <button onClick={() => setView("home")}
-            className="w-full flex items-center justify-center gap-2 text-white/50 hover:text-white text-xs py-2 transition">
-            <ArrowLeft className="w-3.5 h-3.5" /> Back to Store
+            className="w-full flex items-center justify-center gap-2 text-white/50 hover:text-white text-xs py-2 transition"
+            title="Back to Store"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" /> 
+            {!isSidebarCollapsed && <span>Back to Store</span>}
           </button>
-          <div className="flex items-center gap-2 pt-1">
-            <div className="w-7 h-7 rounded-full bg-brand-gold/20 border border-brand-gold/30 flex items-center justify-center">
+          <div className={`flex items-center gap-2 pt-1 ${isSidebarCollapsed ? "flex-col w-full text-center" : ""}`}>
+            <div className="w-7 h-7 rounded-full bg-brand-gold/20 border border-brand-gold/30 flex items-center justify-center flex-shrink-0">
               <ShieldCheck className="w-3.5 h-3.5 text-brand-gold" />
             </div>
-            <div className="overflow-hidden flex-1">
-              <p className="text-[10px] text-white font-semibold truncate">{userSession.name}</p>
-              <p className="text-[9px] text-white/40 truncate">{userSession.email}</p>
-            </div>
-            <button onClick={handleLogout} className="p-2 text-white/50 hover:text-white transition" title="Log Out">
+            {!isSidebarCollapsed && (
+              <div className="overflow-hidden flex-1 text-left">
+                <p className="text-[10px] text-white font-semibold truncate">{userSession?.name}</p>
+                <p className="text-[9px] text-white/40 truncate">{userSession?.email}</p>
+              </div>
+            )}
+            <button onClick={handleLogout} className={`p-2 text-white/50 hover:text-white transition ${isSidebarCollapsed ? "w-full flex justify-center" : ""}`} title="Log Out">
               <LogOut className="w-4 h-4" />
             </button>
           </div>
@@ -919,6 +1140,44 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
 
       {/* ── MAIN CONTENT ─────────────────────────────────────────────────── */}
       <main className="flex-1 overflow-auto">
+
+        {/* Global Date Filter Bar */}
+        <div className="bg-[#FAF7F2] border-b border-brand-gold/15 px-6 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 print:hidden sticky top-0 z-[30] shadow-sm">
+          <div className="flex items-center gap-2">
+            <span className="text-[9px] font-bold uppercase tracking-wider text-[#FAF7F2] bg-brand-maroon px-2 py-1 rounded">
+              Active Date Range
+            </span>
+            <span className="text-[11px] text-brand-warm-gray hidden sm:inline">
+              Filtering Overview, Catalog, Orders, and Finance & Ledger by date
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <input 
+              type="date" 
+              value={startDate} 
+              onChange={(e) => setStartDate(e.target.value)} 
+              className="bg-white border border-brand-gold/20 px-2.5 py-1.5 text-xs focus:outline-none focus:border-brand-maroon font-mono rounded"
+            />
+            <span className="text-xs text-brand-warm-gray">to</span>
+            <input 
+              type="date" 
+              value={endDate} 
+              onChange={(e) => setEndDate(e.target.value)} 
+              className="bg-white border border-brand-gold/20 px-2.5 py-1.5 text-xs focus:outline-none focus:border-brand-maroon font-mono rounded"
+            />
+            {(startDate !== getFirstDayOfMonth() || endDate !== getTodayDateString()) && (
+              <button 
+                onClick={() => {
+                  setStartDate(getFirstDayOfMonth());
+                  setEndDate(getTodayDateString());
+                }}
+                className="text-[9px] font-bold uppercase tracking-wider text-brand-maroon hover:underline ml-2 bg-brand-gold/15 px-2.5 py-1 rounded transition"
+              >
+                Reset
+              </button>
+            )}
+          </div>
+        </div>
 
         {/* Feedback toast */}
         {feedback && (
@@ -937,94 +1196,344 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
           {/* ══ OVERVIEW TAB ═══════════════════════════════════════════════ */}
           {activeTab === "overview" && (
             <div className="space-y-6 animate-fade-in print:hidden">
-              <div>
-                <h2 className="font-serif text-2xl text-brand-maroon font-light">Dashboard Overview</h2>
-                <p className="text-xs text-brand-warm-gray mt-0.5">Art&Anchal Varanasi Boutique</p>
+              <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-brand-gold/10 pb-4">
+                <div>
+                  <h2 className="font-serif text-3xl text-brand-maroon font-light">Dashboard Overview</h2>
+                  <p className="text-xs text-brand-warm-gray mt-0.5">Art&Anchal Varanasi Boutique Management Console</p>
+                </div>
+                <div className="mt-2 md:mt-0 text-[10px] text-brand-warm-gray font-mono uppercase bg-brand-sand px-3 py-1.5 rounded select-none">
+                  System Live · Year {new Date().getFullYear()}
+                </div>
               </div>
 
-              {/* KPI Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Vyapar Transaction Summary Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
                 {[
-                  { label: "Total Revenue", value: `₹${totalRevenue.toLocaleString("en-IN")}`, icon: IndianRupee, color: "text-emerald-700", bg: "bg-emerald-500/10 border-emerald-500/20" },
-                  { label: "Total Orders", value: dbOrders.length, icon: ShoppingBag, color: "text-[#5B0E2D]", bg: "bg-[#5B0E2D]/10 border-[#5B0E2D]/20" },
-                  { label: "Active Leads", value: activeLeads, icon: Users, color: "text-amber-700", bg: "bg-amber-500/10 border-amber-500/20" },
-                  { label: "Low Stock Items", value: lowStockSarees.length, icon: AlertTriangle, color: "text-red-700", bg: "bg-red-500/10 border-red-500/20" },
-                ].map((kpi) => (
-                  <div key={kpi.label} className="glass-card p-5 hover:shadow-lg transition-all duration-300 flex flex-col justify-between relative overflow-hidden group">
-                    <div className="flex items-center justify-between">
-                      <p className="text-[9px] uppercase tracking-widest text-brand-warm-gray font-bold font-sans">{kpi.label}</p>
-                      <div className={`w-8 h-8 rounded-full ${kpi.bg} border flex items-center justify-center transition-transform group-hover:scale-110`}>
-                        <kpi.icon className={`w-4 h-4 ${kpi.color}`} />
-                      </div>
+                  { label: "To Collect (Receivables)", value: `₹${totalReceivables.toLocaleString("en-IN")}`, subtitle: "Customer unpaid dues", icon: IndianRupee, color: "text-amber-700", bg: "bg-amber-500/10 border-amber-500/15" },
+                  { label: "To Pay (Payables)", value: `₹${totalPayables.toLocaleString("en-IN")}`, subtitle: "Vendor outstanding dues", icon: CreditCard, color: "text-rose-700", bg: "bg-rose-500/10 border-rose-500/15" },
+                  { label: "Cash in Hand", value: `₹${cashInHand.toLocaleString("en-IN")}`, subtitle: "Physical showroom cash float", icon: IndianRupee, color: "text-emerald-700", bg: "bg-emerald-500/10 border-emerald-500/15" },
+                  { label: "Bank Balance", value: `₹${bankBalance.toLocaleString("en-IN")}`, subtitle: "Online/UPI/Ledger balance", icon: TrendingUp, color: "text-sky-700", bg: "bg-sky-500/10 border-sky-500/15" },
+                ].map((card) => (
+                  <div key={card.label} className="bg-[#FAF7F2] border border-brand-gold/15 rounded-xl p-5 shadow-sm hover:shadow-md transition-all duration-300 flex items-center justify-between group">
+                    <div className="space-y-1.5">
+                      <p className="text-[10px] uppercase tracking-wider text-brand-warm-gray font-bold font-sans">{card.label}</p>
+                      <p className={`font-serif text-2xl font-bold ${card.color}`}>{card.value}</p>
+                      <p className="text-[9px] text-brand-warm-gray italic font-sans">{card.subtitle}</p>
                     </div>
-                    <p className={`font-serif text-2xl font-bold mt-2 ${kpi.color}`}>{kpi.value}</p>
+                    <div className={`w-10 h-10 rounded-xl ${card.bg} border flex items-center justify-center transition-all duration-300 group-hover:scale-110`}>
+                      <card.icon className={`w-5 h-5 ${card.color}`} />
+                    </div>
                   </div>
                 ))}
               </div>
 
-              {/* Low stock alerts */}
-              {lowStockSarees.length > 0 && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-5">
-                  <h3 className="text-sm font-bold text-red-800 flex items-center gap-2 mb-3">
-                    <AlertTriangle className="w-4 h-4" /> Stock Alerts
-                  </h3>
-                  <div className="space-y-2">
-                    {lowStockSarees.map(s => (
-                      <div key={s.id} className="flex justify-between items-center text-xs text-red-700">
-                        <span className="font-serif font-semibold">{s.name}</span>
-                        <span className={`font-mono font-bold px-2 py-0.5 rounded ${
-                          s.stock_quantity <= 0 ? "bg-red-200 text-red-900" : "bg-amber-100 text-amber-800"
-                        }`}>
-                          {s.stock_quantity <= 0 ? "OUT OF STOCK" : `${s.stock_quantity} left`}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Recent orders */}
-              <div className="bg-[#FAF7F2] border border-brand-gold/15 rounded-lg overflow-hidden">
-                <div className="px-5 py-4 border-b border-brand-gold/15">
-                  <h3 className="font-serif text-lg text-brand-maroon font-semibold">Recent Orders</h3>
-                </div>
-                <div className="overflow-x-auto">
-                  <div className="divide-y divide-brand-gold/10 min-w-[300px]">
-                  {dbOrders.slice(0, 5).map(o => (
-                    <div key={o.id} className="px-5 py-3.5 flex justify-between items-center text-xs">
-                      <div>
-                        <p className="font-semibold text-brand-maroon">{o.customer_name}</p>
-                        <p className="text-brand-warm-gray font-mono">{o.invoice_number || o.id?.slice(0, 8)}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-mono font-bold text-brand-maroon">₹{Number(o.total ?? 0).toLocaleString("en-IN")}</p>
-                        <span className={`text-[9px] uppercase font-bold px-2 py-0.5 rounded-full ${
-                          o.is_offline ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-blue-700"
-                        }`}>{o.is_offline ? "Showroom" : "Online"}</span>
-                      </div>
+              {/* Quick Transaction Action Bar */}
+              <div className="bg-[#FAF7F2] border border-brand-gold/15 rounded-xl p-5 shadow-sm space-y-4">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-brand-maroon flex items-center gap-2 border-b border-brand-gold/10 pb-3">
+                  <Sparkles className="w-4 h-4 text-brand-gold" /> Quick Transaction Shortcuts
+                </h3>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  <button onClick={() => { setActiveTab("pos"); setActiveInvoice(null); }} className="flex items-center gap-3 p-3.5 border border-emerald-500/20 hover:border-emerald-600/40 bg-emerald-500/5 hover:bg-emerald-500/10 rounded-xl transition-all cursor-pointer active:scale-95 group">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-500/15 flex items-center justify-center text-emerald-700">
+                      <Plus className="w-4 h-4" />
                     </div>
-                  ))}
-                  {dbOrders.length === 0 && (
-                    <p className="px-5 py-8 text-center text-xs text-brand-warm-gray italic">No orders yet.</p>
-                  )}
+                    <div className="text-left">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 block">Add Sale</span>
+                      <span className="text-[9px] text-emerald-600 font-sans block">Generate POS Bill</span>
+                    </div>
+                  </button>
+                  <button onClick={() => { setActiveTab("finance"); setActiveInvoice(null); setOpenFinancePurchaseModal(true); }} className="flex items-center gap-3 p-3.5 border border-rose-500/20 hover:border-rose-600/40 bg-rose-500/5 hover:bg-rose-500/10 rounded-xl transition-all cursor-pointer active:scale-95 group">
+                    <div className="w-8 h-8 rounded-lg bg-rose-500/15 flex items-center justify-center text-rose-700">
+                      <Minus className="w-4 h-4" />
+                    </div>
+                    <div className="text-left">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-rose-800 block">Add Purchase</span>
+                      <span className="text-[9px] text-rose-600 font-sans block">Log vendor stock purchase</span>
+                    </div>
+                  </button>
+                  <button onClick={() => { setActiveTab("finance"); setActiveInvoice(null); setOpenFinanceExpenseModal(true); }} className="flex items-center gap-3 p-3.5 border border-amber-500/20 hover:border-amber-600/40 bg-amber-500/5 hover:bg-amber-500/10 rounded-xl transition-all cursor-pointer active:scale-95 group">
+                    <div className="w-8 h-8 rounded-lg bg-amber-500/15 flex items-center justify-center text-amber-700">
+                      <Tag className="w-4 h-4" />
+                    </div>
+                    <div className="text-left">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800 block">Add Expense</span>
+                      <span className="text-[9px] text-amber-600 font-sans block">Record showroom expense</span>
+                    </div>
+                  </button>
+                  <button onClick={() => { setActiveTab("crm"); setActiveInvoice(null); }} className="flex items-center gap-3 p-3.5 border border-brand-maroon/20 hover:border-brand-maroon/40 bg-brand-maroon/5 hover:bg-brand-maroon/10 rounded-xl transition-all cursor-pointer active:scale-95 group">
+                    <div className="w-8 h-8 rounded-lg bg-brand-maroon/15 flex items-center justify-center text-brand-maroon">
+                      <UserPlus className="w-4 h-4" />
+                    </div>
+                    <div className="text-left">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-brand-maroon block">Add Party</span>
+                      <span className="text-[9px] text-brand-maroon/70 font-sans block">Log lead or customer</span>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              {/* Comparison chart (Sales vs Purchases) */}
+              <div className="bg-[#FAF7F2] border border-brand-gold/15 rounded-xl p-5 shadow-sm space-y-4">
+                <div className="flex items-center justify-between border-b border-brand-gold/10 pb-3">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-brand-maroon flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4 text-brand-gold" /> Sales vs Purchases Comparison
+                  </h3>
+                  <div className="flex items-center gap-4 text-[9px] font-bold uppercase tracking-wider">
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-2.5 h-2.5 bg-brand-maroon rounded-sm" />
+                      <span className="text-brand-maroon">Sales (Inflow)</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-2.5 h-2.5 bg-brand-gold rounded-sm" />
+                      <span className="text-brand-gold">Purchases (Outflow)</span>
+                    </div>
                   </div>
+                </div>
+
+                <div className="h-56 w-full flex items-end justify-between pt-6 px-4 pb-2 border-b border-brand-gold/10 gap-3">
+                  {(() => {
+                    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                    const currentYear = new Date().getFullYear();
+                    const data = months.map((m, index) => {
+                      const sales = dbOrders
+                        .filter(o => {
+                          const d = new Date(o.created_at);
+                          return d.getMonth() === index && d.getFullYear() === currentYear;
+                        })
+                        .reduce((sum, o) => sum + Number(o.total ?? 0), 0);
+                      const purchases = dbPurchases
+                        .filter(p => {
+                          const d = new Date(p.date || p.created_at);
+                          return d.getMonth() === index && d.getFullYear() === currentYear;
+                        })
+                        .reduce((sum, p) => sum + Number(p.total_amount ?? 0), 0);
+                      return { month: m, sales, purchases };
+                    });
+                    const currentMonthIndex = new Date().getMonth();
+                    const startIndex = Math.max(0, currentMonthIndex - 5);
+                    const last6Months = data.slice(startIndex, currentMonthIndex + 1);
+                    const maxVal = Math.max(...last6Months.map(d => Math.max(d.sales, d.purchases)), 10000);
+
+                    return last6Months.map(d => {
+                      const salesPct = (d.sales / maxVal) * 100;
+                      const purchasePct = (d.purchases / maxVal) * 100;
+                      return (
+                        <div key={d.month} className="flex-1 flex flex-col items-center gap-2 h-full justify-end group relative">
+                          {/* Tooltip value */}
+                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-10 text-[8px] font-bold font-mono bg-[#1C050E] text-[#F9F5F0] px-2 py-1 rounded shadow-lg flex flex-col gap-0.5 whitespace-nowrap">
+                            <span className="text-emerald-400">Sales: ₹{d.sales.toLocaleString("en-IN")}</span>
+                            <span className="text-rose-400">Purchases: ₹{d.purchases.toLocaleString("en-IN")}</span>
+                          </div>
+                          {/* Side-by-side bars */}
+                          <div className="flex items-end justify-center gap-1 w-full h-full">
+                            <div 
+                              className="w-1/2 bg-brand-maroon hover:bg-brand-maroon/90 border-t border-brand-maroon transition-all duration-300 rounded-t-sm"
+                              style={{ height: `${Math.max(4, salesPct)}%` }}
+                            />
+                            <div 
+                              className="w-1/2 bg-brand-gold hover:bg-brand-gold/90 border-t border-brand-gold transition-all duration-300 rounded-t-sm"
+                              style={{ height: `${Math.max(4, purchasePct)}%` }}
+                            />
+                          </div>
+                          {/* Month Label */}
+                          <span className="text-[9px] font-bold text-brand-warm-gray uppercase tracking-wider mt-1 select-none">
+                            {d.month}
+                          </span>
+                        </div>
+                      );
+                    });
+                  })()}
+                </div>
+              </div>
+
+              {/* Daybook: Consolidated Transaction Feed */}
+              <div className="bg-[#FAF7F2] border border-brand-gold/15 rounded-xl p-5 shadow-sm space-y-4">
+                <div className="flex items-center justify-between border-b border-brand-gold/10 pb-3">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-brand-maroon flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-brand-gold" /> Consolidated Daybook (Recent Transactions)
+                  </h3>
+                  <span className="text-[8px] font-mono uppercase bg-brand-sand px-2 py-1 rounded">Live Feed</span>
+                </div>
+                <div className="overflow-x-auto border border-brand-gold/10 rounded-lg">
+                  <table className="min-w-full divide-y divide-brand-gold/10 bg-white">
+                    <thead className="bg-[#FAF7F2]">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-[9px] font-bold uppercase tracking-wider text-brand-maroon">Type</th>
+                        <th className="px-4 py-3 text-left text-[9px] font-bold uppercase tracking-wider text-brand-maroon">Ref No.</th>
+                        <th className="px-4 py-3 text-left text-[9px] font-bold uppercase tracking-wider text-brand-maroon">Date</th>
+                        <th className="px-4 py-3 text-left text-[9px] font-bold uppercase tracking-wider text-brand-maroon">Party / Category</th>
+                        <th className="px-4 py-3 text-left text-[9px] font-bold uppercase tracking-wider text-brand-maroon">Payment Mode</th>
+                        <th className="px-4 py-3 text-center text-[9px] font-bold uppercase tracking-wider text-brand-maroon">Status</th>
+                        <th className="px-4 py-3 text-right text-[9px] font-bold uppercase tracking-wider text-brand-maroon">Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-brand-gold/10">
+                      {daybookTransactions.map((tx) => (
+                        <tr key={`${tx.type}-${tx.id}`} className="hover:bg-[#FAF7F2]/40 text-xs">
+                          <td className="px-4 py-3">
+                            <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${
+                              tx.type === "Sale" ? "bg-emerald-100 text-emerald-800" :
+                              tx.type === "Purchase" ? "bg-rose-100 text-rose-800" :
+                              "bg-amber-100 text-amber-800"
+                            }`}>
+                              {tx.type}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 font-mono text-[10px] text-brand-maroon font-semibold">{tx.number}</td>
+                          <td className="px-4 py-3 text-brand-warm-gray font-mono text-[10px]">
+                            {new Date(tx.date).toLocaleDateString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                          </td>
+                          <td className="px-4 py-3 text-brand-maroon font-semibold">{tx.party}</td>
+                          <td className="px-4 py-3 text-brand-warm-gray font-mono text-[10px]">{tx.mode}</td>
+                          <td className="px-4 py-3 text-center">
+                            <span className={`px-2 py-0.5 rounded-full text-[8px] font-bold uppercase border ${tx.colorClass}`}>
+                              {tx.status}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-right font-mono font-bold text-brand-maroon">
+                            ₹{tx.amount.toLocaleString("en-IN")}
+                          </td>
+                        </tr>
+                      ))}
+                      {daybookTransactions.length === 0 && (
+                        <tr>
+                          <td colSpan={7} className="px-4 py-8 text-center text-xs text-brand-warm-gray italic">
+                            No transactions logged in the system yet.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Alerts & Dues Split Layout */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                {/* Low Stock Alerts */}
+                <div className="bg-[#FAF7F2] border border-brand-gold/15 rounded-xl p-5 shadow-sm space-y-4">
+                  <div className="flex items-center justify-between border-b border-brand-gold/10 pb-3">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-brand-maroon flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4 text-red-600" /> Stock Alerts
+                    </h3>
+                    <span className="bg-red-100 text-red-800 text-[9px] font-bold px-2 py-0.5 rounded">
+                      {lowStockSarees.length} Items Low
+                    </span>
+                  </div>
+                  {lowStockSarees.length > 0 ? (
+                    <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
+                      {lowStockSarees.map(s => (
+                        <div key={s.id} className="flex justify-between items-center text-xs border-b border-brand-gold/5 pb-2.5 last:border-0 last:pb-0">
+                          <div>
+                            <span className="font-serif text-brand-maroon font-semibold block">{s.name}</span>
+                            <span className="text-[9px] text-brand-warm-gray">{s.category} · {s.weaving_technique}</span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className={`font-mono font-bold px-2 py-0.5 rounded text-[10px] ${
+                              (s.stock_quantity ?? 0) <= 0 ? "bg-red-100 text-red-800" : "bg-amber-100 text-amber-800"
+                            }`}>
+                              {(s.stock_quantity ?? 0) <= 0 ? "OUT OF STOCK" : `${s.stock_quantity} left`}
+                            </span>
+                            <button onClick={() => { setActiveTab("vendors"); }} className="text-[10px] font-bold text-brand-maroon hover:underline flex items-center gap-0.5">
+                              Buy
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="py-12 text-center text-xs text-brand-warm-gray/60 italic">
+                      All inventory quantities are healthy.
+                    </div>
+                  )}
+                </div>
+
+                {/* Pending Collections / Outstanding Receivables */}
+                <div className="bg-[#FAF7F2] border border-brand-gold/15 rounded-xl p-5 shadow-sm space-y-4">
+                  <div className="flex items-center justify-between border-b border-brand-gold/10 pb-3">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-brand-maroon flex items-center gap-2">
+                      <IndianRupee className="w-4 h-4 text-emerald-600" /> Pending Receivables
+                    </h3>
+                    <span className="bg-emerald-100 text-emerald-800 text-[9px] font-bold px-2 py-0.5 rounded">
+                      Collection Tracker
+                    </span>
+                  </div>
+                  {dbDues.filter(d => d.due_type === "receivable" && d.status === "pending").length > 0 ? (
+                    <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
+                      {dbDues.filter(d => d.due_type === "receivable" && d.status === "pending").map(due => (
+                        <div key={due.id} className="flex justify-between items-center text-xs border-b border-brand-gold/5 pb-2.5 last:border-0 last:pb-0">
+                          <div>
+                            <span className="font-serif text-brand-maroon font-semibold block">{due.entity_name}</span>
+                            {due.due_date && (
+                              <span className="text-[9px] text-brand-warm-gray block font-mono">
+                                Due Date: {new Date(due.due_date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-right flex items-center gap-3">
+                            <div>
+                              <span className="font-mono font-bold text-rose-600 block">₹{Number(due.total_amount - due.amount_paid).toLocaleString("en-IN")}</span>
+                              <span className="text-[9px] text-brand-warm-gray block">of ₹{due.total_amount?.toLocaleString("en-IN")}</span>
+                            </div>
+                            <button onClick={() => setActiveTab("finance")} className="text-[10px] font-bold text-brand-maroon hover:underline">
+                              Pay
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="py-12 text-center text-xs text-brand-warm-gray/60 italic">
+                      No pending customer outstanding receivables.
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
           )}
-
           {/* ══ CATALOG TAB ════════════════════════════════════════════════ */}
           {activeTab === "catalog" && (
             <div className="space-y-5 animate-fade-in print:hidden">
               <div className="flex justify-between items-center">
                 <div>
                   <h2 className="font-serif text-2xl text-brand-maroon font-light">Saree Catalog & Stock</h2>
-                  <p className="text-xs text-brand-warm-gray mt-0.5">{dbSarees.length} items in inventory</p>
+                  <p className="text-xs text-brand-warm-gray mt-0.5">{dbSarees.filter(s => s.is_active !== false).length} items in inventory</p>
                 </div>
-                <button onClick={() => { setEditingSaree(null); setSareeForm({ ...emptySaree }); setSlotPreview(["","",""]); setSlotError(["","",""]); setSlotUploading([false,false,false]); setSlotProgress([0,0,0]); setUrlInputMode(false); setIsSareeModalOpen(true); }}
+                <button onClick={() => { setEditingSaree(null); setSareeForm({ ...emptySaree }); setSlotPreview(["","",""]); setSlotError(["","",""]); setSlotUploading([false,false,false]); setSlotProgress([0,0,0]); setUrlInputMode(false); setSareeModalTab("basic"); setIsSareeModalOpen(true); }}
                   className="bg-brand-maroon text-brand-ivory text-xs uppercase tracking-widest px-5 py-3 font-bold flex items-center gap-2 hover:bg-brand-maroon/90 transition">
                   <Plus className="w-4 h-4" /> Add Saree
                 </button>
+              </div>
+
+              {/* Filters Bar */}
+              <div className="flex flex-col sm:flex-row gap-3 bg-[#FAF7F2] border border-brand-gold/15 p-4 rounded-lg">
+                <div className="relative flex-grow">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-brand-warm-gray" />
+                  <input
+                    type="text"
+                    value={catalogSearch}
+                    onChange={(e) => {
+                      setCatalogSearch(e.target.value);
+                      setCatalogPage(1);
+                    }}
+                    placeholder="Search catalog by name, material, technique..."
+                    className="w-full bg-[#FAF7F2] border border-brand-gold/20 pl-9 pr-4 py-2.5 text-xs focus:outline-none focus:border-brand-maroon"
+                  />
+                </div>
+                <div className="w-full sm:w-48">
+                  <select
+                    value={catalogStockFilter}
+                    onChange={(e) => {
+                      setCatalogStockFilter(e.target.value);
+                      setCatalogPage(1);
+                    }}
+                    className="w-full bg-[#FAF7F2] border border-brand-gold/20 px-3 py-2.5 text-xs focus:outline-none focus:border-brand-maroon"
+                  >
+                    <option value="all">All Stock Status</option>
+                    <option value="in_stock">In Stock</option>
+                    <option value="low_stock">Low Stock (≤ 2)</option>
+                    <option value="out_of_stock">Out of Stock</option>
+                  </select>
+                </div>
               </div>
 
               <div className="bg-[#FAF7F2] border border-brand-gold/15 rounded-lg overflow-hidden">
@@ -1040,7 +1549,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-brand-gold/10">
-                      {dbSarees.map(s => {
+                      {paginatedCatalogSarees.map(s => {
                         const stock = s.stock_quantity ?? 0;
                         const stockColor = stock <= 0 ? "text-red-700 bg-red-50" : stock <= 2 ? "text-amber-700 bg-amber-50" : "text-emerald-700 bg-emerald-50";
                         return (
@@ -1088,7 +1597,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                 </div>
                 {/* Mobile Card Grid */}
                 <div className="grid grid-cols-1 gap-4 p-4 lg:hidden">
-                  {dbSarees.map(s => {
+                  {paginatedCatalogSarees.map(s => {
                     const stock = s.stock_quantity ?? 0;
                     const stockColor = stock <= 0 ? "text-red-700 bg-red-50" : stock <= 2 ? "text-amber-700 bg-amber-50" : "text-emerald-700 bg-emerald-50";
                     return (
@@ -1110,12 +1619,39 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                     );
                   })}
                 </div>
-                {dbSarees.length === 0 && (
+                {paginatedCatalogSarees.length === 0 && (
                   <div className="py-16 text-center text-xs text-brand-warm-gray italic">
-                    No sarees in catalog. Add your first saree above.
+                    No sarees match the current search filters or date range.
                   </div>
                 )}
               </div>
+
+              {/* Pagination Controls */}
+              {totalCatalogPages > 1 && (
+                <div className="flex items-center justify-between bg-[#FAF7F2] border border-brand-gold/15 p-4 rounded-lg">
+                  <span className="text-xs text-brand-warm-gray">
+                    Showing Page <strong className="text-brand-maroon">{currentCatalogPage}</strong> of <strong className="text-brand-maroon">{totalCatalogPages}</strong> ({filteredCatalogSarees.length} items total)
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setCatalogPage((prev) => Math.max(prev - 1, 1))}
+                      disabled={currentCatalogPage === 1}
+                      className="p-1.5 rounded border border-brand-gold/20 text-brand-maroon hover:bg-brand-gold/10 disabled:opacity-30 disabled:hover:bg-transparent transition"
+                      title="Previous Page"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => setCatalogPage((prev) => Math.min(prev + 1, totalCatalogPages))}
+                      disabled={currentCatalogPage === totalCatalogPages}
+                      className="p-1.5 rounded border border-brand-gold/20 text-brand-maroon hover:bg-brand-gold/10 disabled:opacity-30 disabled:hover:bg-transparent transition"
+                      title="Next Page"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -1552,12 +2088,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-brand-gold/10">
-                      {dbOrders
-                        .filter(o =>
-                          o.customer_name?.toLowerCase().includes(orderSearch.toLowerCase()) ||
-                          o.invoice_number?.toLowerCase().includes(orderSearch.toLowerCase())
-                        )
-                        .map(o => (
+                      {filteredOrders.map(o => (
                           <tr key={o.id} className="hover:bg-brand-sand/10 transition">
                             <td className="px-4 py-3.5 font-mono text-[10px] text-brand-gold font-bold">{o.invoice_number || o.id?.slice(0, 8)}</td>
                             <td className="px-4 py-3.5">
@@ -1611,13 +2142,8 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
 
                 {/* ── MOBILE STACKED CARDS ── */}
                 <div className="lg:hidden divide-y divide-brand-gold/10">
-                  {dbOrders
-                    .filter(o =>
-                      o.customer_name?.toLowerCase().includes(orderSearch.toLowerCase()) ||
-                      o.invoice_number?.toLowerCase().includes(orderSearch.toLowerCase())
-                    )
-                    .map(o => (
-                      <div key={o.id} className="p-4 bg-white hover:bg-brand-sand/10 transition">
+                  {filteredOrders.map(o => (
+                      <div key={o.id} className="p-4 bg-white hover:bg-[#FAF7F2] transition">
                         <div className="flex justify-between items-start mb-2">
                           <div>
                             <span className="font-mono text-[10px] text-brand-gold font-bold bg-[#1C050E] px-1.5 py-0.5 rounded">{o.invoice_number || o.id?.slice(0, 8)}</span>
@@ -1694,6 +2220,12 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
               dbDuePayments={dbDuePayments}
               dbSarees={dbSarees}
               fetchAllData={fetchAllData} 
+              openExpenseModalOnLoad={openFinanceExpenseModal}
+              openPurchaseModalOnLoad={openFinancePurchaseModal}
+              onCloseExpenseModalOnLoad={() => setOpenFinanceExpenseModal(false)}
+              onClosePurchaseModalOnLoad={() => setOpenFinancePurchaseModal(false)}
+              startDate={startDate}
+              endDate={endDate}
             />
           )}
 
@@ -1723,274 +2255,317 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
               </button>
             </div>
 
+            {/* Tab navigation headers */}
+            <div className="flex border-b border-brand-gold/15 text-[10px] uppercase font-bold tracking-wider">
+              <button
+                type="button"
+                onClick={() => setSareeModalTab("basic")}
+                className={`flex-1 py-3 text-center border-b-2 transition ${
+                  sareeModalTab === "basic"
+                    ? "border-brand-maroon text-brand-maroon bg-brand-gold/5"
+                    : "border-transparent text-brand-warm-gray hover:text-brand-maroon"
+                }`}
+              >
+                1. Basic Info
+              </button>
+              <button
+                type="button"
+                onClick={() => setSareeModalTab("details")}
+                className={`flex-1 py-3 text-center border-b-2 transition ${
+                  sareeModalTab === "details"
+                    ? "border-brand-maroon text-brand-maroon bg-brand-gold/5"
+                    : "border-transparent text-brand-warm-gray hover:text-brand-maroon"
+                }`}
+              >
+                2. Characteristics
+              </button>
+              <button
+                type="button"
+                onClick={() => setSareeModalTab("specs")}
+                className={`flex-1 py-3 text-center border-b-2 transition ${
+                  sareeModalTab === "specs"
+                    ? "border-brand-maroon text-brand-maroon bg-brand-gold/5"
+                    : "border-transparent text-brand-warm-gray hover:text-brand-maroon"
+                }`}
+              >
+                3. Images & Specs
+              </button>
+            </div>
+
             <form onSubmit={handleSaveSaree} className="space-y-4 text-xs text-brand-maroon">
-              {/* Name + Material */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-[10px] uppercase font-bold block">Saree Name *</label>
-                  <input type="text" required value={sareeForm.name} onChange={e => setSareeForm({ ...sareeForm, name: e.target.value })}
-                    className="w-full bg-white border border-brand-gold/20 p-2.5 focus:outline-none focus:border-brand-maroon" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] uppercase font-bold block">Material *</label>
-                  <input type="text" required value={sareeForm.material} onChange={e => setSareeForm({ ...sareeForm, material: e.target.value })}
-                    placeholder="e.g. 100% Pure Katan Silk" list="material-list"
-                    className="w-full bg-white border border-brand-gold/20 p-2.5 focus:outline-none focus:border-brand-maroon" />
-                  <datalist id="material-list">
-                    {Array.from(new Set(dbSarees.map(s => s.material).filter(Boolean))).map((m: any) => <option key={m} value={m} />)}
-                  </datalist>
-                </div>
-              </div>
-
-              {/* Price + Original Price + Stock */}
-              <div className="grid grid-cols-3 gap-4">
-                <div className="space-y-1">
-                  <label className="text-[10px] uppercase font-bold block">Price (₹) *</label>
-                  <input type="number" min="0" required value={sareeForm.price} onChange={e => setSareeForm({ ...sareeForm, price: Number(e.target.value) })}
-                    className="w-full bg-white border border-brand-gold/20 p-2.5 focus:outline-none" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] uppercase font-bold block">Original Price (₹)</label>
-                  <input type="number" min="0" value={sareeForm.original_price} onChange={e => setSareeForm({ ...sareeForm, original_price: e.target.value })}
-                    placeholder="Optional" className="w-full bg-white border border-brand-gold/20 p-2.5 focus:outline-none" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] uppercase font-bold block flex items-center gap-1">
-                    <Package className="w-3 h-3" /> Stock Qty *
-                  </label>
-                  <input type="number" min={0} required value={sareeForm.stock_quantity} onChange={e => setSareeForm({ ...sareeForm, stock_quantity: Number(e.target.value) })}
-                    className="w-full bg-white border border-brand-gold/20 p-2.5 focus:outline-none focus:border-brand-maroon font-mono" />
-                </div>
-              </div>
-
-              {/* Zari + Technique + Collection */}
-              <div className="grid grid-cols-3 gap-4">
-                <div className="space-y-1">
-                  <label className="text-[10px] uppercase font-bold block">Zari Type</label>
-                  <input type="text" value={sareeForm.zari_type} onChange={e => setSareeForm({ ...sareeForm, zari_type: e.target.value })}
-                    placeholder="e.g. Pure Gold Zari" list="zari-list"
-                    className="w-full bg-white border border-brand-gold/20 p-2.5 focus:outline-none focus:border-brand-maroon" />
-                  <datalist id="zari-list">
-                    {Array.from(new Set(dbSarees.map(s => s.zari_type).filter(Boolean))).map((z: any) => <option key={z} value={z} />)}
-                  </datalist>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] uppercase font-bold block">Technique</label>
-                  <input type="text" value={sareeForm.weaving_technique} onChange={e => setSareeForm({ ...sareeForm, weaving_technique: e.target.value })}
-                    placeholder="e.g. Kadwa Handloom" list="technique-list"
-                    className="w-full bg-white border border-brand-gold/20 p-2.5 focus:outline-none focus:border-brand-maroon" />
-                  <datalist id="technique-list">
-                    {Array.from(new Set(dbSarees.map(s => s.weaving_technique).filter(Boolean))).map((t: any) => <option key={t} value={t} />)}
-                  </datalist>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] uppercase font-bold block">Collection</label>
-                  <select value={sareeForm.collection_id} onChange={e => setSareeForm({ ...sareeForm, collection_id: e.target.value })}
-                    className="w-full bg-white border border-brand-gold/20 p-2.5 focus:outline-none">
-                    <option value="">— None —</option>
-                    {dbCollections.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                  </select>
-                </div>
-              </div>
-
-              {/* Artisan + Color + Image */}
-              <div className="grid grid-cols-3 gap-4">
-                <div className="space-y-1">
-                  <label className="text-[10px] uppercase font-bold block">Artisan</label>
-                  <select value={sareeForm.artisan_id} onChange={e => setSareeForm({ ...sareeForm, artisan_id: e.target.value })}
-                    className="w-full bg-white border border-brand-gold/20 p-2.5 focus:outline-none">
-                    <option value="">— None —</option>
-                    {dbArtisans.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-                  </select>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] uppercase font-bold block">Color</label>
-                  <input type="text" value={sareeForm.colors} onChange={e => setSareeForm({ ...sareeForm, colors: e.target.value })}
-                    placeholder="e.g. Ivory Gold" list="color-list"
-                    className="w-full bg-white border border-brand-gold/20 p-2.5 focus:outline-none focus:border-brand-maroon" />
-                  <datalist id="color-list">
-                    {Array.from(new Set(dbSarees.flatMap(s => s.colors || []).filter(Boolean))).map((c: any) => <option key={c} value={c} />)}
-                  </datalist>
-                </div>
-                <div className="space-y-2 col-span-3">
-                  <div className="flex items-center justify-between">
-                    <label className="text-[10px] uppercase font-bold block">
-                      Product Images <span className="text-brand-gold font-normal">(at least 1 required)</span>
-                    </label>
-                    <span className="text-[9px] text-brand-warm-gray">JPG · PNG · WebP · max 10MB each</span>
+              {/* Tab 1: Basic Info */}
+              {sareeModalTab === "basic" && (
+                <div className="space-y-4">
+                  {/* Name + Material */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-[10px] uppercase font-bold block">Saree Name *</label>
+                      <input type="text" required value={sareeForm.name} onChange={e => setSareeForm({ ...sareeForm, name: e.target.value })}
+                        className="w-full bg-white border border-brand-gold/20 p-2.5 focus:outline-none focus:border-brand-maroon text-xs" />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] uppercase font-bold block">Material *</label>
+                      <input type="text" required value={sareeForm.material} onChange={e => setSareeForm({ ...sareeForm, material: e.target.value })}
+                        placeholder="e.g. 100% Pure Katan Silk" list="material-list"
+                        className="w-full bg-white border border-brand-gold/20 p-2.5 focus:outline-none focus:border-brand-maroon text-xs" />
+                      <datalist id="material-list">
+                        {Array.from(new Set(dbSarees.map(s => s.material).filter(Boolean))).map((m: any) => <option key={m} value={m} />)}
+                      </datalist>
+                    </div>
                   </div>
 
-                  {/* Hidden file inputs — one per slot, triggered by ref */}
-                  {[0, 1, 2].map(idx => (
-                    <input
-                      key={idx}
-                      ref={fileInputRefs[idx]}
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp,image/gif"
-                      className="hidden"
-                      onChange={e => {
-                        const file = e.target.files?.[0];
-                        if (file) handleImageUpload(file, idx);
-                        e.target.value = "";
-                      }}
-                    />
-                  ))}
+                  {/* Price + Original Price + Stock */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-[10px] uppercase font-bold block">Price (₹) *</label>
+                      <input type="number" min="0" required value={sareeForm.price} onChange={e => setSareeForm({ ...sareeForm, price: Number(e.target.value) })}
+                        className="w-full bg-white border border-brand-gold/20 p-2.5 focus:outline-none focus:border-brand-maroon text-xs" />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] uppercase font-bold block">Original Price (₹)</label>
+                      <input type="number" min="0" value={sareeForm.original_price} onChange={e => setSareeForm({ ...sareeForm, original_price: e.target.value })}
+                        placeholder="Optional" className="w-full bg-white border border-brand-gold/20 p-2.5 focus:outline-none focus:border-brand-maroon text-xs" />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] uppercase font-bold block flex items-center gap-1">
+                        <Package className="w-3 h-3" /> Stock Qty *
+                      </label>
+                      <input type="number" min={0} required value={sareeForm.stock_quantity} onChange={e => setSareeForm({ ...sareeForm, stock_quantity: Number(e.target.value) })}
+                        className="w-full bg-white border border-brand-gold/20 p-2.5 focus:outline-none focus:border-brand-maroon font-mono text-xs" />
+                    </div>
+                  </div>
 
-                  {/* 3-slot grid */}
-                  <div className="grid grid-cols-3 gap-3">
-                    {(["Main", "Detail", "Drape"] as const).map((label, idx) => (
-                      <div key={idx} className="space-y-1">
-                        <span className="text-[9px] uppercase font-bold text-brand-warm-gray block text-center">
-                          {label} {idx === 0 && <span className="text-red-500">*</span>}
-                        </span>
+                  {/* Description */}
+                  <div className="space-y-1">
+                    <label className="text-[10px] uppercase font-bold block">Description *</label>
+                    <textarea rows={4} required value={sareeForm.description} onChange={e => setSareeForm({ ...sareeForm, description: e.target.value })}
+                      className="w-full bg-white border border-brand-gold/20 p-2.5 focus:outline-none focus:border-brand-maroon resize-none text-xs" />
+                  </div>
+                </div>
+              )}
 
-                        {/* Slot card — click triggers ref input */}
-                        <div
-                          className={`relative border-2 border-dashed rounded-lg transition group ${
-                            slotUploading[idx]
-                              ? "border-brand-gold/60 cursor-wait"
-                              : "border-brand-gold/30 hover:border-brand-maroon cursor-pointer"
-                          }`}
-                          onClick={() => !slotUploading[idx] && fileInputRefs[idx].current?.click()}
-                          onDragOver={e => { e.preventDefault(); e.currentTarget.classList.add('border-brand-maroon'); }}
-                          onDragLeave={e => { e.currentTarget.classList.remove('border-brand-maroon'); }}
-                          onDrop={e => {
-                            e.preventDefault();
-                            e.currentTarget.classList.remove('border-brand-maroon');
-                            const file = e.dataTransfer.files?.[0];
-                            if (file && !slotUploading[idx]) handleImageUpload(file, idx);
-                          }}
-                        >
-                          {slotPreview[idx] ? (
-                            /* Preview */
-                            <div className="relative rounded-lg overflow-hidden">
-                              <img
-                                src={slotPreview[idx]}
-                                alt={label}
-                                className="w-full h-28 object-cover"
-                              />
-                              {/* Hover overlay */}
-                              {!slotUploading[idx] && (
-                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex flex-col items-center justify-center gap-1 rounded-lg">
-                                  <Upload className="w-4 h-4 text-white" />
-                                  <span className="text-white text-[8px] font-bold uppercase">Replace</span>
-                                </div>
-                              )}
-                              {/* Remove button */}
-                              <button
-                                type="button"
-                                onClick={e => {
-                                  e.stopPropagation();
-                                  setSareeForm(prev => {
-                                    const imgs = [...prev.images] as [string, string, string];
-                                    imgs[idx] = "";
-                                    return { ...prev, images: imgs };
-                                  });
-                                  setSlotPreview(prev => { const n = [...prev]; n[idx] = ""; return n; });
-                                  setSlotError(prev => { const n = [...prev]; n[idx] = ""; return n; });
-                                  setSlotProgress(prev => { const n = [...prev]; n[idx] = 0; return n; });
-                                }}
-                                className="absolute top-1 right-1 bg-red-500/90 hover:bg-red-600 text-white rounded-full p-0.5"
-                              >
-                                <X className="w-3 h-3" />
-                              </button>
-                            </div>
-                          ) : (
-                            /* Empty slot */
-                            <div className="py-6 flex flex-col items-center gap-1.5 text-brand-warm-gray">
-                              <div className="w-8 h-8 rounded-full bg-brand-gold/10 flex items-center justify-center">
-                                <ImageIcon className="w-4 h-4 text-brand-gold" />
-                              </div>
-                              <p className="text-[8px] text-center leading-tight">Click or drop<br/>image here</p>
-                            </div>
-                          )}
+              {/* Tab 2: Characteristics */}
+              {sareeModalTab === "details" && (
+                <div className="space-y-4">
+                  {/* Zari + Technique + Collection */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-[10px] uppercase font-bold block">Zari Type</label>
+                      <input type="text" value={sareeForm.zari_type} onChange={e => setSareeForm({ ...sareeForm, zari_type: e.target.value })}
+                        placeholder="e.g. Pure Gold Zari" list="zari-list"
+                        className="w-full bg-white border border-brand-gold/20 p-2.5 focus:outline-none focus:border-brand-maroon text-xs" />
+                      <datalist id="zari-list">
+                        {Array.from(new Set(dbSarees.map(s => s.zari_type).filter(Boolean))).map((z: any) => <option key={z} value={z} />)}
+                      </datalist>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] uppercase font-bold block">Technique</label>
+                      <input type="text" value={sareeForm.weaving_technique} onChange={e => setSareeForm({ ...sareeForm, weaving_technique: e.target.value })}
+                        placeholder="e.g. Kadwa Handloom" list="technique-list"
+                        className="w-full bg-white border border-brand-gold/20 p-2.5 focus:outline-none focus:border-brand-maroon text-xs" />
+                      <datalist id="technique-list">
+                        {Array.from(new Set(dbSarees.map(s => s.weaving_technique).filter(Boolean))).map((t: any) => <option key={t} value={t} />)}
+                      </datalist>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] uppercase font-bold block">Collection</label>
+                      <select value={sareeForm.collection_id} onChange={e => setSareeForm({ ...sareeForm, collection_id: e.target.value })}
+                        className="w-full bg-white border border-brand-gold/20 p-2.5 focus:outline-none focus:border-brand-maroon text-xs">
+                        <option value="">— None —</option>
+                        {dbCollections.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                      </select>
+                    </div>
+                  </div>
 
-                          {/* Progress bar */}
-                          {slotUploading[idx] && (
-                            <div className="absolute bottom-0 left-0 right-0 bg-black/70 px-2 py-1.5 flex items-center gap-1.5 rounded-b-lg">
-                              <div className="flex-1 bg-white/20 rounded-full h-1 overflow-hidden">
-                                <div
-                                  className="h-full bg-brand-gold transition-all duration-300 rounded-full"
-                                  style={{ width: `${slotProgress[idx]}%` }}
-                                />
-                              </div>
-                              <span className="text-white text-[8px] font-mono">{slotProgress[idx]}%</span>
-                            </div>
-                          )}
-                        </div>
+                  {/* Artisan + Color + Drape Recommendation */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-[10px] uppercase font-bold block">Artisan</label>
+                      <select value={sareeForm.artisan_id} onChange={e => setSareeForm({ ...sareeForm, artisan_id: e.target.value })}
+                        className="w-full bg-white border border-brand-gold/20 p-2.5 focus:outline-none focus:border-brand-maroon text-xs">
+                        <option value="">— None —</option>
+                        {dbArtisans.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] uppercase font-bold block">Color</label>
+                      <input type="text" value={sareeForm.colors} onChange={e => setSareeForm({ ...sareeForm, colors: e.target.value })}
+                        placeholder="e.g. Ivory Gold" list="color-list"
+                        className="w-full bg-white border border-brand-gold/20 p-2.5 focus:outline-none focus:border-brand-maroon text-xs" />
+                      <datalist id="color-list">
+                        {Array.from(new Set(dbSarees.flatMap(s => s.colors || []).filter(Boolean))).map((c: any) => <option key={c} value={c} />)}
+                      </datalist>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] uppercase font-bold block">Drape Recommendation</label>
+                      <input type="text" value={sareeForm.drape_recommendation} onChange={e => setSareeForm({ ...sareeForm, drape_recommendation: e.target.value })}
+                        placeholder="E.g. Classic style with gold jewelry"
+                        className="w-full bg-white border border-brand-gold/20 p-2.5 focus:outline-none focus:border-brand-maroon text-xs" />
+                    </div>
+                  </div>
 
-                        {/* Per-slot messages */}
-                        {slotError[idx] ? (
-                          <p className="text-[9px] text-red-500 flex items-start gap-1 leading-tight">
-                            <AlertTriangle className="w-2.5 h-2.5 mt-0.5 flex-shrink-0" />
-                            {slotError[idx]}
-                          </p>
-                        ) : !slotUploading[idx] && slotProgress[idx] === 100 && slotPreview[idx] ? (
-                          <p className="text-[9px] text-emerald-600 flex items-center gap-1">
-                            <CheckCircle className="w-2.5 h-2.5" /> Uploaded
-                          </p>
-                        ) : null}
-                      </div>
+                  {/* Badges */}
+                  <div className="flex flex-wrap gap-x-6 gap-y-3 py-3 border-y border-brand-gold/15">
+                    {[
+                      { key: "sell_online", label: "Sell Online" },
+                      { key: "is_bestseller", label: "Bestseller" },
+                      { key: "is_featured", label: "Featured" },
+                      { key: "is_new", label: "New Arrival" },
+                    ].map(({ key, label }) => (
+                      <label key={key} className="flex items-center gap-2 cursor-pointer select-none">
+                        <input type="checkbox" checked={(sareeForm as any)[key]}
+                          onChange={e => setSareeForm({ ...sareeForm, [key]: e.target.checked })}
+                          className="accent-brand-maroon h-4 w-4 cursor-pointer" />
+                        <span className="text-xs font-bold">{label}</span>
+                      </label>
                     ))}
                   </div>
                 </div>
-              </div>
+              )}
 
-              {/* Description */}
-              <div className="space-y-1">
-                <label className="text-[10px] uppercase font-bold block">Description *</label>
-                <textarea rows={3} required value={sareeForm.description} onChange={e => setSareeForm({ ...sareeForm, description: e.target.value })}
-                  className="w-full bg-white border border-brand-gold/20 p-2.5 focus:outline-none resize-none" />
-              </div>
-
-              {/* Drape Recommendation */}
-              <div className="space-y-1">
-                <label className="text-[10px] uppercase font-bold block">Drape Recommendation</label>
-                <input type="text" value={sareeForm.drape_recommendation} onChange={e => setSareeForm({ ...sareeForm, drape_recommendation: e.target.value })}
-                  placeholder="E.g. Classic style with gold jewelry"
-                  className="w-full bg-white border border-brand-gold/20 p-2.5 focus:outline-none text-xs" />
-              </div>
-
-              {/* Specs */}
-              <div className="bg-[#FAF7F2] border border-brand-gold/15 p-4 rounded-lg space-y-3">
-                <h4 className="text-[10px] uppercase tracking-wider font-bold text-brand-maroon">Specifications</h4>
-                <div className="grid grid-cols-2 gap-3">
-                  {[
-                    { key: "spec_length", label: "Length" },
-                    { key: "spec_width", label: "Width" },
-                    { key: "spec_blouse", label: "Blouse" },
-                    { key: "spec_wash_care", label: "Wash Care" },
-                    { key: "spec_origin", label: "Origin" },
-                  ].map(({ key, label }) => (
-                    <div key={key} className="space-y-1">
-                      <label className="text-[9px] uppercase font-bold text-brand-warm-gray">{label}</label>
-                      <input type="text" value={(sareeForm as any)[key]}
-                        onChange={e => setSareeForm({ ...sareeForm, [key]: e.target.value })}
-                        className="w-full bg-white border border-brand-gold/15 p-2 text-xs focus:outline-none" />
+              {/* Tab 3: Images & Specs */}
+              {sareeModalTab === "specs" && (
+                <div className="space-y-4">
+                  {/* Images */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] uppercase font-bold block">
+                        Product Images <span className="text-brand-gold font-normal">(at least 1 required)</span>
+                      </label>
+                      <span className="text-[9px] text-brand-warm-gray">JPG · PNG · WebP · max 10MB each</span>
                     </div>
-                  ))}
+
+                    {/* Hidden file inputs */}
+                    {[0, 1, 2].map(idx => (
+                      <input
+                        key={idx}
+                        ref={fileInputRefs[idx]}
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp,image/gif"
+                        className="hidden"
+                        onChange={e => {
+                          const file = e.target.files?.[0];
+                          if (file) handleImageUpload(file, idx);
+                          e.target.value = "";
+                        }}
+                      />
+                    ))}
+
+                    {/* 3-slot grid */}
+                    <div className="grid grid-cols-3 gap-3">
+                      {(["Main", "Detail", "Drape"] as const).map((label, idx) => (
+                        <div key={idx} className="space-y-1">
+                          <span className="text-[9px] uppercase font-bold text-brand-warm-gray block text-center">
+                            {label} {idx === 0 && <span className="text-red-500">*</span>}
+                          </span>
+
+                          <div
+                            className={`relative border-2 border-dashed rounded-lg transition group ${
+                              slotUploading[idx]
+                                ? "border-brand-gold/60 cursor-wait"
+                                : "border-brand-gold/30 hover:border-brand-maroon cursor-pointer"
+                            }`}
+                            onClick={() => !slotUploading[idx] && fileInputRefs[idx].current?.click()}
+                            onDragOver={e => { e.preventDefault(); e.currentTarget.classList.add('border-brand-maroon'); }}
+                            onDragLeave={e => { e.currentTarget.classList.remove('border-brand-maroon'); }}
+                            onDrop={e => {
+                              e.preventDefault();
+                              e.currentTarget.classList.remove('border-brand-maroon');
+                              const file = e.dataTransfer.files?.[0];
+                              if (file && !slotUploading[idx]) handleImageUpload(file, idx);
+                            }}
+                          >
+                            {slotPreview[idx] ? (
+                              <div className="relative rounded-lg overflow-hidden">
+                                <img
+                                  src={slotPreview[idx]}
+                                  alt={label}
+                                  className="w-full h-24 object-cover"
+                                />
+                                {!slotUploading[idx] && (
+                                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex flex-col items-center justify-center gap-1 rounded-lg">
+                                    <Upload className="w-4 h-4 text-white" />
+                                    <span className="text-white text-[8px] font-bold uppercase">Replace</span>
+                                  </div>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={e => {
+                                    e.stopPropagation();
+                                    setSareeForm(prev => {
+                                      const imgs = [...prev.images] as [string, string, string];
+                                      imgs[idx] = "";
+                                      return { ...prev, images: imgs };
+                                    });
+                                    setSlotPreview(prev => { const n = [...prev]; n[idx] = ""; return n; });
+                                    setSlotError(prev => { const n = [...prev]; n[idx] = ""; return n; });
+                                    setSlotProgress(prev => { const n = [...prev]; n[idx] = 0; return n; });
+                                  }}
+                                  className="absolute top-1 right-1 bg-red-500/90 hover:bg-red-600 text-white rounded-full p-0.5"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="py-5 flex flex-col items-center gap-1 text-brand-warm-gray">
+                                <ImageIcon className="w-4 h-4 text-brand-gold" />
+                                <p className="text-[7.5px] text-center leading-tight">Click/Drop<br/>image</p>
+                              </div>
+                            )}
+
+                            {slotUploading[idx] && (
+                              <div className="absolute bottom-0 left-0 right-0 bg-black/70 px-1 py-1 flex items-center gap-1 rounded-b-lg">
+                                <div className="flex-1 bg-white/20 rounded-full h-0.5 overflow-hidden">
+                                  <div
+                                    className="h-full bg-brand-gold transition-all duration-300 rounded-full"
+                                    style={{ width: `${slotProgress[idx]}%` }}
+                                  />
+                                </div>
+                                <span className="text-white text-[7px] font-mono">{slotProgress[idx]}%</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {slotError[idx] ? (
+                            <p className="text-[8px] text-red-500 flex items-start gap-0.5 leading-tight">
+                              <AlertTriangle className="w-2 h-2 mt-0.5 flex-shrink-0" />
+                              {slotError[idx]}
+                            </p>
+                          ) : !slotUploading[idx] && slotProgress[idx] === 100 && slotPreview[idx] ? (
+                            <p className="text-[8px] text-emerald-600 flex items-center gap-0.5 justify-center">
+                              <CheckCircle className="w-2 h-2" /> Uploaded
+                            </p>
+                          ) : null}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Specs */}
+                  <div className="bg-[#FAF7F2] border border-brand-gold/15 p-4 rounded-lg space-y-3">
+                    <h4 className="text-[10px] uppercase tracking-wider font-bold text-brand-maroon">Specifications</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {[
+                        { key: "spec_length", label: "Length" },
+                        { key: "spec_width", label: "Width" },
+                        { key: "spec_blouse", label: "Blouse" },
+                        { key: "spec_wash_care", label: "Wash Care" },
+                        { key: "spec_origin", label: "Origin" },
+                      ].map(({ key, label }) => (
+                        <div key={key} className="space-y-1">
+                          <label className="text-[9px] uppercase font-bold text-brand-warm-gray">{label}</label>
+                          <input type="text" value={(sareeForm as any)[key]}
+                            onChange={e => setSareeForm({ ...sareeForm, [key]: e.target.value })}
+                            className="w-full bg-white border border-brand-gold/15 p-2 text-xs focus:outline-none focus:border-brand-maroon" />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
 
-              {/* Badges */}
-              <div className="flex flex-wrap gap-x-6 gap-y-2 py-2 border-y border-brand-gold/15">
-                {[
-                  { key: "sell_online", label: "Sell Online" },
-                  { key: "is_bestseller", label: "Bestseller" },
-                  { key: "is_featured", label: "Featured" },
-                  { key: "is_new", label: "New Arrival" },
-                ].map(({ key, label }) => (
-                  <label key={key} className="flex items-center gap-2 cursor-pointer select-none">
-                    <input type="checkbox" checked={(sareeForm as any)[key]}
-                      onChange={e => setSareeForm({ ...sareeForm, [key]: e.target.checked })}
-                      className="accent-brand-maroon h-4 w-4 cursor-pointer" />
-                    <span className="text-xs font-bold">{label}</span>
-                  </label>
-                ))}
-              </div>
-
-              {/* Actions */}
-              <div className="flex justify-end gap-3 pt-2">
+              {/* Actions (Always Visible at Bottom) */}
+              <div className="flex justify-end gap-3 pt-3 border-t border-brand-gold/15">
                 <button type="button" onClick={() => setIsSareeModalOpen(false)}
                   className="text-brand-warm-gray uppercase tracking-wider text-[10px] font-bold px-4 py-2 hover:text-brand-maroon transition">
                   Cancel
@@ -2023,7 +2598,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                 <input type="text" required value={leadForm.name} onChange={e => setLeadForm({ ...leadForm, name: e.target.value })}
                   className="w-full bg-white border border-brand-gold/20 p-2.5 focus:outline-none focus:border-brand-maroon" />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <label className="text-[10px] uppercase font-bold block">Phone</label>
                   <input type="tel" value={leadForm.phone} onChange={e => setLeadForm({ ...leadForm, phone: e.target.value })}
