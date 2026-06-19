@@ -16,7 +16,7 @@ Art & Anchal is a premium e-commerce platform dedicated to showcasing authentic,
 - **Frontend**: React 18, TypeScript, Tailwind CSS
 - **Routing**: Client-side state-based routing
 - **Icons**: Lucide React
-- **Backend/Database**: Supabase (PostgreSQL)
+- **Backend/Database**: Supabase (PostgreSQL) in webdesignomozial
 
 ## Getting Started
 
