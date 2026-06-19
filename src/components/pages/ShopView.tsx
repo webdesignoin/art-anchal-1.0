@@ -19,6 +19,8 @@ interface ShopViewProps {
   selectedCategory: string | null;
   setSelectedCategory: (cat: string | null) => void;
   sarees: Saree[];
+  userSession: { id?: string; name: string; email: string; is_admin?: boolean; phone?: string } | null;
+  setUserSession: (session: { id?: string; name: string; email: string; is_admin?: boolean; phone?: string } | null) => void;
 }
 
 const CATEGORIES = ["All", "Katan Silk", "Shikargah", "Tanchoi", "Organza / Kora", "Tissue"];
@@ -37,6 +39,8 @@ export default function ShopView({
   selectedCategory,
   setSelectedCategory,
   sarees,
+  userSession,
+  setUserSession,
 }: ShopViewProps) {
   // Filters state
   const [activeCategory, setActiveCategory] = useState<string>(selectedCategory || "All");
@@ -48,12 +52,20 @@ export default function ShopView({
   const [showMobileFilters, setShowMobileFilters] = useState(false);
 
   // Video consultation form state
-  const [bookingName, setBookingName] = useState("");
-  const [bookingPhone, setBookingPhone] = useState("");
+  const [bookingName, setBookingName] = useState(userSession?.name || "");
+  const [bookingPhone, setBookingPhone] = useState(userSession?.phone || "");
   const [bookingNote, setBookingNote] = useState("");
   const [bookingSubmitted, setBookingSubmitted] = useState(false);
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingError, setBookingError] = useState("");
+
+  // Auto-fill form fields when userSession loads or updates
+  useEffect(() => {
+    if (userSession) {
+      setBookingName((prev) => prev || userSession.name || "");
+      setBookingPhone((prev) => prev || userSession.phone || "");
+    }
+  }, [userSession]);
 
   const handleBookVideoSitting = async (e: FormEvent) => {
     e.preventDefault();
@@ -65,8 +77,10 @@ export default function ShopView({
     setBookingError("");
     try {
       const { error } = await supabase.from("leads").insert({
+        profile_id: userSession?.id || null,
         name: bookingName.trim(),
         phone: bookingPhone.trim(),
+        email: userSession?.email || null,
         sitting_type: "whatsapp_video",
         interest: "WhatsApp Video Shopping",
         note: bookingNote.trim() || "Requested video shopping slot from Shop Page empty state.",
@@ -80,9 +94,35 @@ export default function ShopView({
         return;
       }
 
+      let currentName = bookingName.trim();
+      let currentPhone = bookingPhone.trim();
+
+      // Vice versa: Update database profile and local session state if logged in
+      if (userSession?.id) {
+        try {
+          await supabase
+            .from("profiles")
+            .update({
+              name: currentName,
+              phone: currentPhone,
+            })
+            .eq("id", userSession.id);
+
+          const updatedSession = {
+            ...userSession,
+            name: currentName,
+            phone: currentPhone,
+          };
+          setUserSession(updatedSession);
+          localStorage.setItem("art_anchal_user", JSON.stringify(updatedSession));
+        } catch (profileErr) {
+          console.error("Failed to update profile (non-fatal):", profileErr);
+        }
+      }
+
       setBookingSubmitted(true);
-      setBookingName("");
-      setBookingPhone("");
+      setBookingName(userSession ? currentName : "");
+      setBookingPhone(userSession ? currentPhone : "");
       setBookingNote("");
       // Clear success message after 8 seconds
       setTimeout(() => setBookingSubmitted(false), 8000);

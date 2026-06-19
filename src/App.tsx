@@ -543,6 +543,8 @@ export default function App() {
             selectedCategory={selectedCategory}
             setSelectedCategory={setSelectedCategory}
             sarees={sarees}
+            userSession={userSession}
+            setUserSession={setUserSession}
           />
         )}
 
