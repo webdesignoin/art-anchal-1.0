@@ -114,7 +114,7 @@ export interface DbLead {
   name: string;
   email?: string | null;
   phone?: string | null;
-  sitting_type: 'bridal' | 'heritage' | 'standard' | 'general';
+  sitting_type: 'bridal' | 'heritage' | 'standard' | 'general' | 'whatsapp_video';
   note?: string | null;
   source: 'online' | 'offline';
   status: 'new' | 'contacted' | 'scheduled' | 'won' | 'lost';

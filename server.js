@@ -21,7 +21,6 @@ const allowedOrigins = [
   'http://localhost:5173',
   'https://artandanchal.com',
   'https://www.artandanchal.com',
-  'https://art-anchal-1-0.onrender.com',
 ];
 
 app.use(cors({
@@ -29,11 +28,12 @@ app.use(cors({
     // Allow requests with no origin (mobile apps, Postman, same-origin server calls)
     if (!origin || isDev) return callback(null, true);
     
-    // Check if origin matches allowed list or any Render subdomain
+    // Check if origin matches allowed list or any Netlify subdomain
     if (
       allowedOrigins.includes(origin) || 
-      origin.endsWith('.onrender.com') || 
-      origin.includes('art-anchal')
+      origin.endsWith('.netlify.app') || 
+      origin.includes('art-anchal') ||
+      origin.includes('netlify')
     ) {
       return callback(null, true);
     }
@@ -116,6 +116,10 @@ app.get('*', (req, res) => {
 });
 
 // ── Start server ───────────────────────────────────────────────────────────────
-app.listen(PORT, () => {
-  console.log(`[Art&Anchal] Server running on port ${PORT} (${isDev ? 'development' : 'production'})`);
-});
+if (!process.env.NETLIFY && !process.env.LAMBDA_TASK_ROOT) {
+  app.listen(PORT, () => {
+    console.log(`[Art&Anchal] Server running on port ${PORT} (${isDev ? 'development' : 'production'})`);
+  });
+}
+
+export default app;

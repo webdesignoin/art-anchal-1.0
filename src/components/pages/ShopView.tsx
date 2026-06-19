@@ -3,9 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, FormEvent } from "react";
 import { ViewState, Saree, FilterState } from "../../types";
-import { Filter, SlidersHorizontal, Heart, Grid, List, RefreshCw, Star, ArrowRight } from "lucide-react";
+import { Filter, SlidersHorizontal, Heart, Grid, List, RefreshCw, Star, ArrowRight, Video, CheckCircle2, MessageSquare } from "lucide-react";
+import { supabase } from "../../lib/supabase";
 
 interface ShopViewProps {
   setView: (view: ViewState) => void;
@@ -45,6 +46,52 @@ export default function ShopView({
   const [maxPrice, setMaxPrice] = useState<number>(250000);
   const [sortBy, setSortBy] = useState<string>("featured");
   const [showMobileFilters, setShowMobileFilters] = useState(false);
+
+  // Video consultation form state
+  const [bookingName, setBookingName] = useState("");
+  const [bookingPhone, setBookingPhone] = useState("");
+  const [bookingNote, setBookingNote] = useState("");
+  const [bookingSubmitted, setBookingSubmitted] = useState(false);
+  const [bookingLoading, setBookingLoading] = useState(false);
+  const [bookingError, setBookingError] = useState("");
+
+  const handleBookVideoSitting = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!bookingName.trim() || !bookingPhone.trim()) {
+      setBookingError("Please provide your name and WhatsApp number.");
+      return;
+    }
+    setBookingLoading(true);
+    setBookingError("");
+    try {
+      const { error } = await supabase.from("leads").insert({
+        name: bookingName.trim(),
+        phone: bookingPhone.trim(),
+        sitting_type: "whatsapp_video",
+        interest: "WhatsApp Video Shopping",
+        note: bookingNote.trim() || "Requested video shopping slot from Shop Page empty state.",
+        message: bookingNote.trim() || "Requested video shopping slot from Shop Page empty state.",
+        source: "online",
+        status: "new"
+      });
+
+      if (error) {
+        setBookingError(`Failed to request sitting: ${error.message}`);
+        return;
+      }
+
+      setBookingSubmitted(true);
+      setBookingName("");
+      setBookingPhone("");
+      setBookingNote("");
+      // Clear success message after 8 seconds
+      setTimeout(() => setBookingSubmitted(false), 8000);
+    } catch (err: any) {
+      setBookingError(err.message || "Failed to book consultation.");
+    } finally {
+      setBookingLoading(false);
+    }
+  };
 
   // Sync state if selectedCategory prop changes from external sources
   useEffect(() => {
@@ -298,18 +345,120 @@ export default function ShopView({
 
             {/* Zero results feedback */}
             {filteredSarees.length === 0 ? (
-              <div className="py-24 text-center border border-dashed border-brand-gold/30 space-y-4">
-                <p className="font-serif text-lg text-brand-maroon">No matching heritage drapes discovered</p>
-                <p className="text-xs text-brand-warm-gray max-w-sm mx-auto">
-                  Adjust your filters or price boundaries, or search for a different weaving technique.
-                </p>
-                <button
-                  onClick={handleResetFilters}
-                  className="bg-brand-maroon text-brand-ivory text-xs uppercase tracking-widest px-6 py-3 cursor-pointer hover:bg-brand-maroon/90 font-sans shadow-md"
-                  id="reset-saree-grid-btn"
-                >
-                  Reset Refinements
-                </button>
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                
+                {/* Left Side: Standard Empty Warning */}
+                <div className="lg:col-span-5 py-12 px-6 text-center border border-dashed border-brand-gold/30 space-y-4 bg-[#FAF7F2]/30">
+                  <p className="font-serif text-lg text-brand-maroon font-light">No matching heritage drapes discovered</p>
+                  <p className="text-xs text-brand-warm-gray max-w-xs mx-auto leading-relaxed">
+                    We curate our collection carefully, weaving only in small heritage batches. Try adjusting your filters or price boundaries.
+                  </p>
+                  <button
+                    onClick={handleResetFilters}
+                    className="bg-brand-maroon text-brand-ivory text-xs uppercase tracking-widest px-6 py-3 cursor-pointer hover:bg-brand-maroon/90 font-sans shadow-md transition duration-300"
+                    id="reset-saree-grid-btn"
+                  >
+                    Reset Refinements
+                  </button>
+                </div>
+
+                {/* Right Side: Luxury Video Booking Card */}
+                <div className="lg:col-span-7 bg-[#FAF7F2] border border-brand-gold/25 p-6 sm:p-8 space-y-6 text-left">
+                  <div className="flex items-start gap-4">
+                    <div className="p-3 bg-brand-maroon text-brand-ivory rounded-none">
+                      <Video className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-sans tracking-[0.2em] uppercase text-brand-gold font-bold">Personalized Service</span>
+                      <h2 className="serif-heading text-xl sm:text-2xl font-serif text-brand-maroon tracking-wide">
+                        Book a Live WhatsApp Video Sitting
+                      </h2>
+                      <p className="text-xs text-brand-warm-gray mt-1 leading-relaxed">
+                        Can't find your perfect weave in stock? Schedule a high-definition private video consultation. Zoom in on zari metal threads, inspect the drape live on our showroom mannequin, or request custom loom bookings directly from Varanasi.
+                      </p>
+                    </div>
+                  </div>
+
+                  {bookingSubmitted ? (
+                    <div className="bg-[#E7F3EC] border border-[#2E7D32]/20 p-5 text-center space-y-2 animate-fade-in">
+                      <CheckCircle2 className="w-8 h-8 text-[#2E7D32] mx-auto animate-bounce" />
+                      <span className="text-[#2E7D32] block font-semibold text-sm">Consultation Requested Successfully!</span>
+                      <p className="text-brand-warm-gray text-xs max-w-md mx-auto leading-relaxed">
+                        Our textile curator will contact you on WhatsApp at your phone number shortly to schedule your personalized live showcase.
+                      </p>
+                    </div>
+                  ) : (
+                    <form onSubmit={handleBookVideoSitting} className="space-y-4 text-xs">
+                      {bookingError && (
+                        <div className="bg-[#FBEBEB] border border-[#B64545]/20 p-3 text-[#B64545] font-semibold text-center">
+                          {bookingError}
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <label htmlFor="video-booking-name" className="text-[10px] text-brand-maroon font-bold uppercase tracking-wider block">Your Name</label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="e.g. Priyadarshini Sen"
+                            value={bookingName}
+                            onChange={(e) => setBookingName(e.target.value)}
+                            className="w-full bg-brand-ivory border border-brand-gold/30 rounded-none px-4 py-3 text-brand-maroon focus:outline-none focus:border-brand-maroon text-xs"
+                            id="video-booking-name"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label htmlFor="video-booking-phone" className="text-[10px] text-brand-maroon font-bold uppercase tracking-wider block">WhatsApp Phone Number</label>
+                          <input
+                            type="tel"
+                            required
+                            placeholder="e.g. +91 98765 43210"
+                            value={bookingPhone}
+                            onChange={(e) => setBookingPhone(e.target.value)}
+                            className="w-full bg-brand-ivory border border-brand-gold/30 rounded-none px-4 py-3 text-brand-maroon focus:outline-none focus:border-brand-maroon text-xs"
+                            id="video-booking-phone"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label htmlFor="video-booking-note" className="text-[10px] text-brand-maroon font-bold uppercase tracking-wider block">Preferred Occasion, Motifs or Time (Optional)</label>
+                        <textarea
+                          rows={2}
+                          placeholder="e.g. Looking for a Maroon Katan Silk saree for wedding; free this Saturday evening."
+                          value={bookingNote}
+                          onChange={(e) => setBookingNote(e.target.value)}
+                          className="w-full bg-brand-ivory border border-brand-gold/30 rounded-none px-4 py-3 text-brand-maroon focus:outline-none focus:border-brand-maroon resize-none text-xs"
+                          id="video-booking-note"
+                        ></textarea>
+                      </div>
+
+                      <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                        <button
+                          type="submit"
+                          disabled={bookingLoading}
+                          className="flex-grow bg-brand-maroon hover:bg-brand-maroon/95 disabled:bg-brand-maroon/50 text-brand-ivory text-xs uppercase tracking-widest font-sans font-bold py-3.5 px-6 transition duration-300 shadow-md cursor-pointer text-center"
+                          id="video-booking-submit-btn"
+                        >
+                          {bookingLoading ? "Submitting Request..." : "Request Video Sitting"}
+                        </button>
+                        
+                        <a
+                          href={`https://wa.me/917525051124?text=${encodeURIComponent("Hello Art & Anchal, I'm browsing your online collection but couldn't find exactly what I was looking for. I'd love to request a live WhatsApp video shopping call to see your latest heritage Banarasi sarees.")}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex-grow border border-brand-gold/50 hover:bg-brand-sand/10 text-brand-maroon text-xs uppercase tracking-widest font-sans font-bold py-3.5 px-6 transition duration-300 cursor-pointer text-center flex items-center justify-center gap-2"
+                          id="video-booking-whatsapp-direct-btn"
+                        >
+                          <MessageSquare className="w-4 h-4 text-brand-gold" />
+                          <span>Chat Directly on WhatsApp</span>
+                        </a>
+                      </div>
+                    </form>
+                  )}
+                </div>
+
               </div>
             ) : (
               /* Core Saree grid */

@@ -3,7 +3,7 @@
 **Status:** ✅ Complete  
 **TypeScript:** 0 errors  
 **Production Build:** ✅ Success (11.46s)  
-**Deployment:** Render (via GitHub)
+**Deployment:** Netlify (via Serverless Functions)
 
 ---
 
@@ -55,7 +55,7 @@
 | Fix | File | What Was Wrong |
 |-----|------|---------------|
 | Schema mismatch — shipping fields | `CheckoutView.tsx` | Sending wrong column names vs DB schema |
-| Order status enum values | `CheckoutView.tsx` | Sending `"canceled"` (1 l) but enum has `"cancelled"` (2 l) |
+| Order status enum values | `CheckoutView.tsx` | Sending `"cancelled"` (1 l) but enum has `"cancelled"` (2 l) |
 | Payment fields | `CheckoutView.tsx`, `verify-payment.js`, `webhook-rzp.js` | Not updating `is_paid` / `payment_ref` (original schema fields) |
 | `total` vs `total_amount` | `AdminConsoleView.tsx`, `UserProfileView.tsx` | Reading wrong column name |
 | `customer_email` vs `shipping_email` | `UserProfileView.tsx` | Wrong column used in order lookup query |
@@ -101,9 +101,9 @@
 
 ---
 
-## 🚀 Render Deployment Checklist
+## 🚀 Netlify Deployment Checklist
 
-### Required Environment Variables (set in Render Dashboard)
+### Required Environment Variables (set in Netlify Site Settings → Environment Variables)
 
 ```
 SUPABASE_URL=https://kozqszupqkueqagptwbr.supabase.co
@@ -115,14 +115,34 @@ RAZORPAY_KEY_SECRET=...
 RAZORPAY_WEBHOOK_SECRET=...                  ← set in Razorpay Dashboard → Webhooks
 VITE_RAZORPAY_KEY_ID=rzp_live_...
 NODE_ENV=production
-PORT=3001                                    ← Render sets this automatically
 ```
 
-### Render Build & Start Commands
-```
-Build Command:  npm install && npm run build
-Start Command:  node server.js
-```
+### Netlify Build Settings
+The settings are automatically configured in `netlify.toml` at the project root:
+- **Build Command**: `npm run build`
+- **Publish Directory**: `dist`
+- **Functions Directory**: `netlify/functions`
+- **API Redirects**: Trailing `/api/*` traffic automatically rewrites to the `netlify/functions/api` serverless handler.
+
+---
+
+## 🗄️ IMPORTANT: Run Database Migration
+
+The application code expects columns that were added after the original `schema.sql`. Run **`migration.sql`** in your Supabase SQL Editor:
+
+👉 [Supabase SQL Editor](https://supabase.com/dashboard/project/kozqszupqkueqagptwbr/sql)
+
+**What the migration does:**
+1. Adds `whatsapp`, `instagram`, `saved_addresses` to `profiles` table
+2. Adds flat shipping columns (`shipping_name`, `shipping_email`, etc.) to `orders` table
+3. Adds `payment_status`, `tracking_number` to `orders` table
+4. Adds `confirmed` and `completed` to the `order_status` enum
+5. Updates the orders RLS policy to match the new column names
+6. Creates `lead_interactions` table for the CRM feature
+7. Adds performance indexes
+
+> [!CAUTION]
+> Run `migration.sql` **before** deploying the new code to Netlify, or checkout orders will fail with a DB column not found error.
 
 ---
 
