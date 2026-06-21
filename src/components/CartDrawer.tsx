@@ -5,6 +5,7 @@
 
 import { X, Trash2, ShoppingBag, ArrowRight, ShieldCheck } from "lucide-react";
 import { CartItem, Saree, ViewState } from "../types";
+import { useLanguage } from "../context/LanguageContext";
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -31,6 +32,7 @@ export default function CartDrawer({
   setPostLoginRedirect,
   triggerToast,
 }: CartDrawerProps) {
+  const { language, t } = useLanguage();
   if (!isOpen) return null;
 
   const totalAmount = cart.reduce((sum, item) => sum + item.saree.price * item.quantity, 0);
@@ -80,7 +82,7 @@ export default function CartDrawer({
             <div className="px-6 py-6 border-b border-brand-gold/15 bg-brand-sand/50 flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <ShoppingBag className="w-5 h-5 text-brand-maroon" />
-                <h2 className="serif-heading text-xl text-brand-maroon tracking-wider font-medium">Your Shopping Bag</h2>
+                <h2 className="serif-heading text-xl text-brand-maroon tracking-wider font-medium">{t("cart_title")}</h2>
                 <span className="text-xs bg-brand-maroon/10 text-brand-maroon px-2 py-0.5 rounded-full font-sans font-medium">
                   {cart.length}
                 </span>
@@ -102,9 +104,13 @@ export default function CartDrawer({
                   <div className="w-16 h-16 rounded-full bg-brand-sand/70 flex items-center justify-center text-brand-maroon/60 mb-5">
                     <ShoppingBag className="w-8 h-8 stroke-[1.2]" />
                   </div>
-                  <h3 className="serif-heading text-lg text-brand-maroon font-light mb-2">Your bespoke bag is empty</h3>
+                  <h3 className="serif-heading text-lg text-brand-maroon font-light mb-2">
+                    {language === "hi" ? "आपका शॉपिंग बैग खाली है" : "Your bespoke bag is empty"}
+                  </h3>
                   <p className="text-xs text-brand-warm-gray leading-relaxed max-w-xs mb-8">
-                    Each Art&Anchal Banarasi saree is an archival heritage treasure. Explore our collections to start your story.
+                    {language === "hi" 
+                      ? "आर्ट एंड आंचल बनारसी साड़ी विरासत की धरोहर है। अपनी कहानी शुरू करने के लिए हमारे संग्रह देखें।" 
+                      : "Each Art&Anchal Banarasi saree is an archival heritage treasure. Explore our collections to start your story."}
                   </p>
                   <button
                     onClick={() => {
@@ -114,7 +120,7 @@ export default function CartDrawer({
                     className="border border-brand-maroon px-6 py-3 text-xs tracking-widest uppercase text-brand-maroon hover:bg-brand-maroon hover:text-brand-ivory transition duration-300 font-sans cursor-pointer"
                     id="cart-explore-btn"
                   >
-                    Browse Core Saree Shop
+                    {language === "hi" ? "साड़ी संग्रह देखें" : "Browse Core Saree Shop"}
                   </button>
                 </div>
               ) : (
@@ -151,10 +157,12 @@ export default function CartDrawer({
                               </p>
                             </div>
                             <p className="text-[11px] text-brand-gold tracking-wide uppercase mt-1">
-                              {item.saree.category} • {item.saree.weavingTechnique}
+                              {t("cat_" + item.saree.category, item.saree.category)} • {t("weave_" + item.saree.weavingTechnique, item.saree.weavingTechnique)}
                             </p>
                             <span className="text-[10px] text-brand-warm-gray mt-1 block">
-                              By {item.saree.weaverName || "Master Weaver"}{item.saree.weaverVillage ? ` (${item.saree.weaverVillage.split(",")[0]})` : ""}
+                              {language === "hi" ? "द्वारा: " : "By "}
+                              {item.saree.weaverName || (language === "hi" ? "मास्टर बुनकर" : "Master Weaver")}
+                              {item.saree.weaverVillage ? ` (${item.saree.weaverVillage.split(",")[0]})` : ""}
                             </span>
                           </div>
 
@@ -202,11 +210,13 @@ export default function CartDrawer({
             {cart.length > 0 && (
               <div className="border-t border-brand-gold/15 bg-brand-sand/50 px-6 py-6 space-y-4">
                 <div className="flex justify-between text-base font-serif font-medium text-brand-maroon">
-                  <span className="tracking-wide">Bespoke Order Value:</span>
+                  <span className="tracking-wide">{language === "hi" ? "कुल ऑर्डर मूल्य:" : "Bespoke Order Value:"}</span>
                   <span className="font-mono font-semibold">{formattedAmount}</span>
                 </div>
                 <p className="text-[10px] text-brand-warm-gray leading-relaxed text-center sm:text-left">
-                  Authentic certified gold/silver zari catalog item. Orders ship fully insured globally via premium courier caskets.
+                  {language === "hi" 
+                    ? "प्रामाणिक प्रमाणित ज़री साड़ी। ऑर्डर प्रीमियम कूरियर के माध्यम से सुरक्षित रूप से डिलीवर किए जाते हैं।" 
+                    : "Authentic certified gold/silver zari catalog item. Orders ship fully insured globally via premium courier caskets."}
                 </p>
 
                 <div className="space-y-2 mt-4">
@@ -215,7 +225,7 @@ export default function CartDrawer({
                     className="w-full bg-[#5B0E2D] hover:bg-[#420A20] text-brand-ivory text-xs tracking-widest uppercase py-4 transition duration-300 font-semibold font-sans shadow-md flex items-center justify-center space-x-2 cursor-pointer"
                     id="cart-checkout-btn"
                   >
-                    <span>Proceed To Secure Checkout</span>
+                    <span>{language === "hi" ? "सुरक्षित चेकआउट के लिए आगे बढ़ें" : "Proceed To Secure Checkout"}</span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
                   <button
@@ -223,13 +233,13 @@ export default function CartDrawer({
                     className="w-full text-center text-[11px] text-brand-warm-gray hover:text-brand-maroon underline tracking-wider cursor-pointer"
                     id="cart-clear-btn"
                   >
-                    Clear Entire Shopping Bag
+                    {language === "hi" ? "पूरा शॉपिंग बैग खाली करें" : "Clear Entire Shopping Bag"}
                   </button>
                 </div>
 
                 <div className="flex items-center justify-center space-x-2 text-[10px] text-brand-gold-dark font-sans pt-2">
                   <ShieldCheck className="w-3.5 h-3.5" />
-                  <span>Authorized Varanasi Craft Trust Handloom Portal</span>
+                  <span>{language === "hi" ? "प्राधिकृत वाराणसी क्राफ्ट ट्रस्ट हथकरघा पोर्टल" : "Authorized Varanasi Craft Trust Handloom Portal"}</span>
                 </div>
               </div>
             )}

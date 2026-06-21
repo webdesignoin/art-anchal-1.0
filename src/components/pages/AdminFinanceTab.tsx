@@ -1,6 +1,7 @@
 import React, { useState, useEffect, FormEvent } from "react";
 import { supabase } from "../../lib/supabase";
 import { CheckCircle, TrendingUp, TrendingDown, DollarSign, Plus, Package, FileText, CreditCard, Minus, X } from "lucide-react";
+import { useLanguage } from "../../context/LanguageContext";
 
 interface AdminFinanceTabProps {
   dbExpenses: any[];
@@ -35,6 +36,7 @@ export default function AdminFinanceTab({
   startDate = "",
   endDate = ""
 }: AdminFinanceTabProps) {
+  const { t, language } = useLanguage();
   const [feedback, setFeedback] = useState("");
   
   // Modals
@@ -75,6 +77,82 @@ export default function AdminFinanceTab({
 
   const calculatedTotalAmount = purchaseLineItems.reduce((sum, item) => sum + (Number(item.buying_price || 0) * Number(item.quantity || 0)), 0);
   const calculatedTotalQuantity = purchaseLineItems.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+
+  const tFinance = (key: string): string => {
+    if (language === "hi") {
+      const trans: Record<string, string> = {
+        "Categorized Spending": "श्रेणीबद्ध खर्च (Categorized Spending)",
+        "Inventory Paid": "स्टॉक भुगतान (Inventory)",
+        "Expenses": "खर्चे (Expenses)",
+        "Purchases": "खरीद (Purchases)",
+        "Ledger (Installments)": "खाता-बही (किस्तें)",
+        "No expenses logged.": "कोई खर्च दर्ज नहीं है।",
+        "No purchases logged.": "कोई खरीद दर्ज नहीं है।",
+        "No dues recorded.": "कोई बकाया दर्ज नहीं है।",
+        "Owe: ": "देना है: ",
+        "Owed: ": "लेना है: ",
+        "Paid: ": "भुगतान किया: ",
+        "Total: ": "कुल: ",
+        "Bal: ": "बकाया: ",
+        "Due: ": "तारीख: ",
+        "Pay Part": "भुगतान करें",
+        "Cleared ✓": "चुकता ✓",
+        "Log General Expense": "सामान्य खर्च दर्ज करें",
+        "Expense Category *": "खर्च श्रेणी *",
+        "Type or select category...": "श्रेणी दर्ज करें या चुनें...",
+        "Operational": "परिचालन खर्च",
+        "Salary": "वेतन (Salary)",
+        "Marketing": "मार्केटिंग खर्च",
+        "Rent/Utilities": "किराया / बिजली आदि",
+        "Other": "अन्य",
+        "+ Create Category:": "+ नई श्रेणी बनाएं:",
+        "Select Staff Member *": "कर्मचारी चुनें *",
+        "-- Select Employee --": "-- कर्मचारी चुनें --",
+        "Amount (₹)": "रकम (₹)",
+        "Description": "विवरण / विवरणिका",
+        "Cancel": "रद्द करें",
+        "Save": "सुरक्षित करें",
+        "Log Inventory Purchase": "स्टॉक खरीद दर्ज करें",
+        "Purchase Date": "खरीद की तारीख",
+        "Vendor Name *": "व्यापारी (Vendor) का नाम *",
+        "Type or select vendor...": "सप्लायर का नाम दर्ज करें या चुनें...",
+        "+ Add Vendor:": "+ नया सप्लायर जोड़ें:",
+        "Purchase Line Items": "खरीदी गई साड़ी की सूची",
+        "Add Item": "नया आइटम जोड़ें",
+        "Item #": "आइटम #",
+        "Select Item": "साड़ी चुनें (Saree)",
+        "-- Choose Existing Saree --": "-- स्टॉक में से चुनें --",
+        "➕ Add New Item": "➕ नया आइटम जोड़ें",
+        "Product Name *": "आइटम का नाम *",
+        "E.g. Tanchoi Silk Saree": "जैसे: तनचोई सिल्क साड़ी",
+        "Qty": "मात्रा",
+        "Buying Price (₹)": "खरीद मूल्य (₹)",
+        "Selling Price (₹)": "बिक्री मूल्य (₹)",
+        "Total Bill (Calculated)": "कुल बिल (गणना की गई)",
+        "Paid Today": "आज किया गया भुगतान",
+        "Save Purchase": "खरीद सुरक्षित करें",
+        "Manual Ledger Entry": "मैनुअल बही-खाता प्रविष्टि",
+        "PAYABLE (Money you owe)": "देय (वह पैसा जो आपको देना है)",
+        "RECEIVABLE (Money owed to you)": "प्राप्य (वह पैसा जो आपको मिलना है)",
+        "Entity / Person Name": "व्यक्ति या व्यापारी का नाम",
+        "Total Amount (₹)": "कुल राशि (₹)",
+        "Amount Already Paid (₹)": "पहले से भुगतान की गई राशि (₹)",
+        "Log Payment": "भुगतान दर्ज करें",
+        "Confirm Payment": "भुगतान की पुष्टि करें",
+        "Amount to Pay (₹)": "भुगतान की जाने वाली राशि (₹)",
+        "Remaining:": "शेष बकाया:",
+        "Total due:": "कुल बकाया:",
+        "Paid so far:": "अब तक भुगतान:",
+        "paid": "पूर्ण भुगतान",
+        "partially_paid": "आंशिक भुगतान",
+        "unpaid": "अवैतनिक/बकाया",
+        "payable": "देय (Payable)",
+        "receivable": "प्राप्य (Receivable)"
+      };
+      return trans[key] || key;
+    }
+    return key;
+  };
 
   const handleAddLineItem = () => {
     setPurchaseLineItems([
@@ -150,30 +228,30 @@ export default function AdminFinanceTab({
     setExpenseForm({ category: "Operational", amount: 0, description: "", date: new Date().toISOString().split('T')[0] });
     setSelectedEmployeeId("");
     fetchAllData();
-    showFeedback("Expense logged successfully.");
+    showFeedback(language === "hi" ? "खर्च सफलतापूर्वक दर्ज हो गया।" : "Expense logged successfully.");
   };
 
   const handleAddPurchase = async (e: FormEvent) => {
     e.preventDefault();
     if (!purchaseForm.vendor_name) return;
     if (calculatedTotalAmount <= 0) {
-      alert("Please add at least one line item with a buying price.");
+      alert(language === "hi" ? "कृपया कम से कम एक आइटम जोड़ें जिसका खरीद मूल्य हो।" : "Please add at least one line item with a buying price.");
       return;
     }
 
     // Check that all line items have a name and quantity
     for (const item of purchaseLineItems) {
       if (!item.product_name.trim()) {
-        alert("Please ensure all line items have a product name.");
+        alert(language === "hi" ? "कृपया सुनिश्चित करें कि सभी आइटमों का नाम हो।" : "Please ensure all line items have a product name.");
         return;
       }
       if (item.quantity <= 0) {
-        alert("Please ensure all line items have a quantity greater than 0.");
+        alert(language === "hi" ? "कृपया सुनिश्चित करें कि सभी आइटमों की मात्रा 0 से अधिक हो।" : "Please ensure all line items have a quantity greater than 0.");
         return;
       }
     }
 
-    setFeedback("Logging purchase...");
+    setFeedback(language === "hi" ? "खरीद दर्ज की जा रही है..." : "Logging purchase...");
     
     try {
       const isPartial = purchaseForm.amount_paid < calculatedTotalAmount;
@@ -289,7 +367,7 @@ export default function AdminFinanceTab({
       setPurchaseForm({ vendor_name: "", amount_paid: 0, date: new Date().toISOString().split('T')[0] });
       setPurchaseLineItems([{ saree_id: "", product_name: "", quantity: 1, buying_price: 0, selling_price: 0 }]);
       fetchAllData();
-      showFeedback("Purchase logged & synced to Ledger.");
+      showFeedback(language === "hi" ? "खरीद सफलतापूर्वक दर्ज और लेजर में सिंक की गई।" : "Purchase logged & synced to Ledger.");
     } catch (err: any) {
       alert(`Error logging purchase: ${err.message}`);
     }
@@ -309,7 +387,7 @@ export default function AdminFinanceTab({
     setIsDueModalOpen(false);
     setDueForm({ entity_name: "", due_type: "payable", total_amount: 0, amount_paid: 0, due_date: "" });
     fetchAllData();
-    showFeedback("Due entry added.");
+    showFeedback(language === "hi" ? "बकाया प्रविष्टि जोड़ी गई।" : "Due entry added.");
   };
 
   const handleMakePayment = async (e: FormEvent) => {
@@ -345,7 +423,7 @@ export default function AdminFinanceTab({
     setSelectedDue(null);
     setPaymentForm({ amount_paid: 0, payment_date: new Date().toISOString().split('T')[0] });
     fetchAllData();
-    showFeedback(`Payment of ₹${paymentForm.amount_paid} logged.`);
+    showFeedback(language === "hi" ? `₹${paymentForm.amount_paid} का भुगतान दर्ज किया गया।` : `Payment of ₹${paymentForm.amount_paid} logged.`);
   };
 
   // Date range filter helpers
@@ -362,13 +440,17 @@ export default function AdminFinanceTab({
   const filteredDues = dbDues.filter(d => isWithinDateRange(d.due_date || d.created_at));
   const filteredOrders = dbOrders.filter(o => isWithinDateRange(o.created_at));
 
-  // Calculations (Accrual vs Cash Flow)
+  // Calculations — Cash-basis P&L (more accurate for a small retail business)
   const totalRevenue = filteredOrders.reduce((acc, o) => acc + Number(o.total || 0), 0);
   const totalExpenses = filteredExpenses.reduce((acc, e) => acc + Number(e.amount || 0), 0);
+  // Total billed from vendors (accrual — includes unpaid portions, shown in breakdown)
   const totalPurchasesAccrual = filteredPurchases.reduce((acc, p) => acc + Number(p.total_amount || 0), 0);
+  // Actual cash paid to vendors (used for P&L — only money that left the account)
   const cashOutflowPurchases = filteredPurchases.reduce((acc, p) => acc + Number(p.amount_paid || 0), 0);
   
-  const netProfit = totalRevenue - totalExpenses - totalPurchasesAccrual;
+  // Net Profit = Revenue − Expenses − Cash paid to vendors
+  // (unpaid vendor dues are tracked in the Ledger section, not deducted from profit yet)
+  const netProfit = totalRevenue - totalExpenses - cashOutflowPurchases;
 
   // Breakdown of expenses
   const expenseBreakdown = filteredExpenses.reduce((acc: Record<string, number>, exp) => {
@@ -386,17 +468,17 @@ export default function AdminFinanceTab({
       )}
 
       <div>
-        <h2 className="font-serif text-2xl text-brand-maroon font-light">Finance & Ledger</h2>
-        <p className="text-xs text-brand-warm-gray mt-0.5">Track profitability, part-payments, and categorized spending</p>
+        <h2 className="font-serif text-2xl text-brand-maroon font-light">{t("admin_finance_title")}</h2>
+        <p className="text-xs text-brand-warm-gray mt-0.5">{t("admin_finance_desc")}</p>
       </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: "Total Revenue", value: totalRevenue, icon: TrendingUp, color: "text-emerald-700", bg: "bg-emerald-500/10 border-emerald-500/20" },
-          { label: "Purchases (Asset Val)", value: totalPurchasesAccrual, icon: Package, color: "text-amber-700", bg: "bg-amber-500/10 border-amber-500/20" },
-          { label: "Other Expenses", value: totalExpenses, icon: TrendingDown, color: "text-red-700", bg: "bg-red-500/10 border-red-500/20" },
-          { label: "Net Profit (Accrual)", value: netProfit, icon: DollarSign, color: netProfit >= 0 ? "text-emerald-700" : "text-red-700", bg: netProfit >= 0 ? "bg-emerald-500/10 border-emerald-500/20" : "bg-red-500/10 border-red-500/20" },
+          { label: t("admin_kpi_revenue"), value: totalRevenue, icon: TrendingUp, color: "text-emerald-700", bg: "bg-emerald-500/10 border-emerald-500/20" },
+          { label: t("admin_kpi_purchases"), value: totalPurchasesAccrual, icon: Package, color: "text-amber-700", bg: "bg-amber-500/10 border-amber-500/20" },
+          { label: t("admin_kpi_expenses"), value: totalExpenses, icon: TrendingDown, color: "text-red-700", bg: "bg-red-500/10 border-red-500/20" },
+          { label: t("admin_kpi_profit"), value: netProfit, icon: DollarSign, color: netProfit >= 0 ? "text-emerald-700" : "text-red-700", bg: netProfit >= 0 ? "bg-emerald-500/10 border-emerald-500/20" : "bg-red-500/10 border-red-500/20" },
         ].map((kpi) => (
           <div key={kpi.label} className="glass-card p-5 hover:shadow-lg transition-all duration-300 flex flex-col justify-between relative overflow-hidden group">
             <div className="flex items-center justify-between">
@@ -414,15 +496,15 @@ export default function AdminFinanceTab({
 
       {/* Expense Categories Breakdown */}
       <div className="bg-[#FAF7F2] border border-brand-gold/15 rounded-lg p-5">
-        <h3 className="font-serif text-sm font-semibold mb-3">Categorized Spending</h3>
+        <h3 className="font-serif text-sm font-semibold mb-3">{tFinance("Categorized Spending")}</h3>
         <div className="flex flex-wrap gap-4">
           <div className="border-l-2 border-brand-maroon pl-3">
-            <p className="text-[9px] uppercase text-brand-warm-gray font-bold">Inventory Paid</p>
+            <p className="text-[9px] uppercase text-brand-warm-gray font-bold">{tFinance("Inventory Paid")}</p>
             <p className="font-mono text-sm text-brand-maroon font-bold">₹{cashOutflowPurchases.toLocaleString("en-IN")}</p>
           </div>
           {Object.entries(expenseBreakdown).map(([cat, amt]) => (
             <div key={cat} className="border-l-2 border-brand-gold pl-3">
-              <p className="text-[9px] uppercase text-brand-warm-gray font-bold">{cat}</p>
+              <p className="text-[9px] uppercase text-brand-warm-gray font-bold">{tFinance(cat)}</p>
               <p className="font-mono text-sm text-brand-maroon font-bold">₹{Number(amt).toLocaleString("en-IN")}</p>
             </div>
           ))}
@@ -434,15 +516,15 @@ export default function AdminFinanceTab({
         {/* Expenses List */}
         <div className="bg-[#FAF7F2] border border-brand-gold/15 rounded-lg overflow-hidden flex flex-col h-[500px]">
           <div className="px-5 py-3 border-b border-brand-gold/15 flex justify-between items-center bg-[#1C050E] text-[#F9F5F0]">
-            <h3 className="font-serif text-base font-semibold">Expenses</h3>
+            <h3 className="font-serif text-base font-semibold">{tFinance("Expenses")}</h3>
             <button onClick={() => setIsExpenseModalOpen(true)} className="text-brand-gold hover:text-white transition"><Plus className="w-4 h-4"/></button>
           </div>
           <div className="overflow-y-auto p-4 space-y-3 flex-1">
-            {filteredExpenses.length === 0 ? <p className="text-center text-xs text-brand-warm-gray italic py-8">No expenses logged.</p> :
+            {filteredExpenses.length === 0 ? <p className="text-center text-xs text-brand-warm-gray italic py-8">{tFinance("No expenses logged.")}</p> :
               filteredExpenses.map(exp => (
                 <div key={exp.id} className="border-b border-brand-gold/10 pb-2 last:border-0 text-xs">
                   <div className="flex justify-between font-bold text-brand-maroon">
-                    <span>{exp.category}</span>
+                    <span>{tFinance(exp.category)}</span>
                     <span className="font-mono text-red-600">₹{Number(exp.amount).toLocaleString("en-IN")}</span>
                   </div>
                   <div className="flex justify-between text-[10px] text-brand-warm-gray mt-1">
@@ -457,28 +539,28 @@ export default function AdminFinanceTab({
         {/* Purchases List */}
         <div className="bg-[#FAF7F2] border border-brand-gold/15 rounded-lg overflow-hidden flex flex-col h-[500px]">
           <div className="px-5 py-3 border-b border-brand-gold/15 flex justify-between items-center bg-[#1C050E] text-[#F9F5F0]">
-            <h3 className="font-serif text-base font-semibold">Purchases</h3>
+            <h3 className="font-serif text-base font-semibold">{tFinance("Purchases")}</h3>
             <button onClick={() => setIsPurchaseModalOpen(true)} className="text-brand-gold hover:text-white transition"><Plus className="w-4 h-4"/></button>
           </div>
           <div className="overflow-y-auto p-4 space-y-3 flex-1">
-            {filteredPurchases.length === 0 ? <p className="text-center text-xs text-brand-warm-gray italic py-8">No purchases logged.</p> :
+            {filteredPurchases.length === 0 ? <p className="text-center text-xs text-brand-warm-gray italic py-8">{tFinance("No purchases logged.")}</p> :
               filteredPurchases.map(pur => {
                 const bal = pur.total_amount - pur.amount_paid;
                 return (
                   <div key={pur.id} className="border border-brand-gold/10 p-3 rounded-lg text-xs bg-white space-y-2">
                     <div className="flex justify-between font-bold text-brand-maroon">
                       <span className="truncate pr-2">{pur.vendor_name}</span>
-                      <span className="font-mono">Total: ₹{Number(pur.total_amount).toLocaleString("en-IN")}</span>
+                      <span className="font-mono">{tFinance("Total: ")}₹{Number(pur.total_amount).toLocaleString("en-IN")}</span>
                     </div>
                     <div className="text-[10px] text-brand-warm-gray border-b border-brand-gold/10 pb-2 flex justify-between items-center">
                       <span>{pur.items_description}</span>
-                      {pur.quantity && <span className="font-mono bg-brand-gold/10 text-brand-gold-dark px-1.5 py-0.5 rounded text-[9px] font-bold">Qty: {pur.quantity}</span>}
+                      {pur.quantity && <span className="font-mono bg-brand-gold/10 text-brand-gold-dark px-1.5 py-0.5 rounded text-[9px] font-bold">{tFinance("Qty")}: {pur.quantity}</span>}
                     </div>
                     <div className="flex justify-between items-center pt-1">
                       <span className={`text-[9px] uppercase font-bold px-2 py-0.5 rounded ${pur.status === 'paid' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
-                        {pur.status.replace('_', ' ')}
+                        {tFinance(pur.status)}
                       </span>
-                      <span className="font-mono font-bold text-[10px] text-red-600">Bal: ₹{bal.toLocaleString("en-IN")}</span>
+                      <span className="font-mono font-bold text-[10px] text-red-600">{tFinance("Bal: ")}₹{bal.toLocaleString("en-IN")}</span>
                     </div>
                   </div>
                 )
@@ -489,11 +571,11 @@ export default function AdminFinanceTab({
         {/* Dues List */}
         <div className="bg-[#FAF7F2] border border-brand-gold/15 rounded-lg overflow-hidden flex flex-col h-[500px]">
           <div className="px-5 py-3 border-b border-brand-gold/15 flex justify-between items-center bg-[#1C050E] text-[#F9F5F0]">
-            <h3 className="font-serif text-base font-semibold">Ledger (Installments)</h3>
+            <h3 className="font-serif text-base font-semibold">{tFinance("Ledger (Installments)")}</h3>
             <button onClick={() => setIsDueModalOpen(true)} className="text-brand-gold hover:text-white transition"><Plus className="w-4 h-4"/></button>
           </div>
           <div className="overflow-y-auto p-4 space-y-3 flex-1">
-            {filteredDues.length === 0 ? <p className="text-center text-xs text-brand-warm-gray italic py-8">No dues recorded.</p> :
+            {filteredDues.length === 0 ? <p className="text-center text-xs text-brand-warm-gray italic py-8">{tFinance("No dues recorded.")}</p> :
               filteredDues.map(due => {
                 const bal = due.total_amount - due.amount_paid;
                 return (
@@ -501,21 +583,21 @@ export default function AdminFinanceTab({
                     <div className="flex justify-between font-bold">
                       <span className="text-brand-maroon truncate max-w-[120px]">{due.entity_name}</span>
                       <span className={`font-mono ${due.due_type === "payable" ? "text-red-600" : "text-emerald-600"}`}>
-                        {due.due_type === "payable" ? "Owe: " : "Owed: "}₹{Number(bal).toLocaleString("en-IN")}
+                        {due.due_type === "payable" ? tFinance("Owe: ") : tFinance("Owed: ")}₹{Number(bal).toLocaleString("en-IN")}
                       </span>
                     </div>
                     <div className="text-[9px] text-brand-warm-gray mt-1 flex justify-between">
-                      <span>Total: ₹{Number(due.total_amount).toLocaleString("en-IN")}</span>
-                      <span>Paid: ₹{Number(due.amount_paid).toLocaleString("en-IN")}</span>
+                      <span>{tFinance("Total: ")}₹{Number(due.total_amount).toLocaleString("en-IN")}</span>
+                      <span>{tFinance("Paid: ")}₹{Number(due.amount_paid).toLocaleString("en-IN")}</span>
                     </div>
                     <div className="flex justify-between items-center mt-3 pt-2 border-t border-brand-gold/10">
-                      <span className="text-[9px] uppercase font-bold text-brand-warm-gray">{due.due_date ? `Due: ${due.due_date}` : ""}</span>
+                      <span className="text-[9px] uppercase font-bold text-brand-warm-gray">{due.due_date ? `${tFinance("Due: ")}${due.due_date}` : ""}</span>
                       {due.status === "pending" ? (
                         <button onClick={() => { setSelectedDue(due); setIsPaymentModalOpen(true); }} className="flex items-center gap-1 text-[9px] uppercase font-bold bg-brand-gold/20 text-brand-gold-dark px-2 py-1 rounded hover:bg-brand-gold hover:text-[#1C050E] transition">
-                          <CreditCard className="w-3 h-3" /> Pay Part
+                          <CreditCard className="w-3 h-3" /> {tFinance("Pay Part")}
                         </button>
                       ) : (
-                        <span className="text-[9px] uppercase font-bold text-emerald-600 border border-emerald-200 px-2 py-1 rounded">Cleared ✓</span>
+                        <span className="text-[9px] uppercase font-bold text-emerald-600 border border-emerald-200 px-2 py-1 rounded">{tFinance("Cleared ✓")}</span>
                       )}
                     </div>
                   </div>
@@ -528,19 +610,20 @@ export default function AdminFinanceTab({
 
       {/* --- MODALS --- */}
       {isExpenseModalOpen && (
-        <div className="fixed inset-0 z-[100] bg-[#1C050E]/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setIsExpenseModalOpen(false)}>
-          <div className="bg-[#FAF7F2] max-w-sm w-full border border-brand-gold/30 rounded-lg p-6" onClick={(e) => e.stopPropagation()}>
-            <h3 className="font-serif text-xl text-brand-maroon mb-4">Log General Expense</h3>
+        <div className="fixed inset-0 z-[100] bg-[#1C050E]/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={() => setIsExpenseModalOpen(false)}>
+          <div className="bg-[#FAF7F2] max-w-sm w-full border-t sm:border border-brand-gold/30 rounded-t-3xl sm:rounded-lg p-5 sm:p-6 max-h-[92vh] sm:max-h-[90vh] overflow-y-auto animate-slide-up" onClick={(e) => e.stopPropagation()}>
+            <div className="w-12 h-1.5 bg-brand-gold/20 rounded-full mx-auto sm:hidden mb-1"></div>
+            <h3 className="font-serif text-xl text-brand-maroon mb-4">{tFinance("Log General Expense")}</h3>
             <form onSubmit={handleAddExpense} className="space-y-3">
               <input type="date" required value={expenseForm.date} onChange={e => setExpenseForm({...expenseForm, date: e.target.value})} className="w-full bg-white border border-brand-gold/20 p-2 text-xs" />
               
               {/* Category Searchable Dropdown */}
               <div className="space-y-1 relative">
-                <label className="text-[10px] uppercase font-bold block text-brand-maroon">Expense Category *</label>
+                <label className="text-[10px] uppercase font-bold block text-brand-maroon">{tFinance("Expense Category *")}</label>
                 <input
                   type="text"
                   required
-                  placeholder="Type or select category..."
+                  placeholder={tFinance("Type or select category...")}
                   value={expenseForm.category}
                   onChange={(e) => {
                     const cat = e.target.value;
@@ -574,12 +657,12 @@ export default function AdminFinanceTab({
                           }}
                           className="px-3 py-2 text-xs hover:bg-brand-sand/50 cursor-pointer text-brand-maroon font-semibold"
                         >
-                          {cat}
+                          {tFinance(cat)}
                         </div>
                       ))}
                     {expenseForm.category && !["Operational", "Salary", "Marketing", "Rent/Utilities", "Other", ...dbExpenses.map(e => e.category).filter(Boolean)].some(c => c.toLowerCase() === expenseForm.category.toLowerCase()) && (
                       <div className="px-3 py-2 text-xs text-brand-warm-gray bg-brand-sand/35 font-bold italic">
-                        + Create Category: "{expenseForm.category}"
+                        {tFinance("+ Create Category:")} "{expenseForm.category}"
                       </div>
                     )}
                   </div>
@@ -588,34 +671,34 @@ export default function AdminFinanceTab({
 
               {expenseForm.category === "Salary" && (
                 <div className="space-y-1">
-                  <label className="text-[10px] uppercase font-bold block text-brand-maroon">Select Staff Member *</label>
+                  <label className="text-[10px] uppercase font-bold block text-brand-maroon">{tFinance("Select Staff Member *")}</label>
                   <select
                     required
                     value={selectedEmployeeId}
                     onChange={e => handleEmployeeChange(e.target.value)}
                     className="w-full bg-white border border-brand-gold/20 p-2 text-xs focus:outline-none"
                   >
-                    <option value="" disabled>-- Select Employee --</option>
+                    <option value="" disabled>{tFinance("-- Select Employee --")}</option>
                     {dbEmployees.map(emp => (
-                      <option key={emp.id} value={emp.id}>{emp.name} ({emp.role})</option>
+                      <option key={emp.id} value={emp.id}>{emp.name} ({tFinance(emp.role)})</option>
                     ))}
                   </select>
                 </div>
               )}
 
               <div className="space-y-1">
-                <label className="text-[10px] uppercase font-bold block text-brand-maroon">Amount (₹)</label>
-                <input type="number" min="1" required placeholder="Amount (₹)" value={expenseForm.amount || ""} onChange={e => setExpenseForm({...expenseForm, amount: Number(e.target.value)})} className="w-full bg-white border border-brand-gold/20 p-2 text-xs focus:outline-none font-mono" />
+                <label className="text-[10px] uppercase font-bold block text-brand-maroon">{tFinance("Amount (₹)")}</label>
+                <input type="number" min="1" required placeholder={tFinance("Amount (₹)")} value={expenseForm.amount || ""} onChange={e => setExpenseForm({...expenseForm, amount: Number(e.target.value)})} className="w-full bg-white border border-brand-gold/20 p-2 text-xs focus:outline-none font-mono" />
               </div>
 
               <div className="space-y-1">
-                <label className="text-[10px] uppercase font-bold block text-brand-maroon">Description</label>
-                <input type="text" required placeholder="Description" value={expenseForm.description} onChange={e => setExpenseForm({...expenseForm, description: e.target.value})} className="w-full bg-white border border-brand-gold/20 p-2 text-xs focus:outline-none" />
+                <label className="text-[10px] uppercase font-bold block text-brand-maroon">{tFinance("Description")}</label>
+                <input type="text" required placeholder={tFinance("Description")} value={expenseForm.description} onChange={e => setExpenseForm({...expenseForm, description: e.target.value})} className="w-full bg-white border border-brand-gold/20 p-2 text-xs focus:outline-none" />
               </div>
 
               <div className="flex justify-end gap-2 pt-2">
-                <button type="button" onClick={() => setIsExpenseModalOpen(false)} className="text-xs uppercase font-bold px-3 text-brand-warm-gray hover:text-brand-maroon">Cancel</button>
-                <button type="submit" className="bg-brand-maroon text-white text-xs uppercase font-bold px-4 py-2">Save</button>
+                <button type="button" onClick={() => setIsExpenseModalOpen(false)} className="text-xs uppercase font-bold px-3 text-brand-warm-gray hover:text-brand-maroon">{tFinance("Cancel")}</button>
+                <button type="submit" className="bg-brand-maroon text-white text-xs uppercase font-bold px-4 py-2">{tFinance("Save")}</button>
               </div>
             </form>
           </div>
@@ -623,23 +706,24 @@ export default function AdminFinanceTab({
       )}
 
       {isPurchaseModalOpen && (
-        <div className="fixed inset-0 z-[100] bg-[#1C050E]/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setIsPurchaseModalOpen(false)}>
-          <div className="bg-[#FAF7F2] max-w-2xl w-full border border-brand-gold/30 rounded-lg p-6 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <h3 className="font-serif text-xl text-brand-maroon mb-4">Log Inventory Purchase</h3>
+        <div className="fixed inset-0 z-[100] bg-[#1C050E]/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={() => setIsPurchaseModalOpen(false)}>
+          <div className="bg-[#FAF7F2] max-w-2xl w-full border-t sm:border border-brand-gold/30 rounded-t-3xl sm:rounded-lg p-5 sm:p-6 max-h-[92vh] sm:max-h-[90vh] overflow-y-auto animate-slide-up" onClick={(e) => e.stopPropagation()}>
+            <div className="w-12 h-1.5 bg-brand-gold/20 rounded-full mx-auto sm:hidden mb-1"></div>
+            <h3 className="font-serif text-xl text-brand-maroon mb-4">{tFinance("Log Inventory Purchase")}</h3>
             <form onSubmit={handleAddPurchase} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-[10px] uppercase font-bold block text-brand-maroon">Purchase Date</label>
+                  <label className="text-[10px] uppercase font-bold block text-brand-maroon">{tFinance("Purchase Date")}</label>
                   <input type="date" required value={purchaseForm.date} onChange={e => setPurchaseForm({...purchaseForm, date: e.target.value})} className="w-full bg-white border border-brand-gold/20 p-2 text-xs" />
                 </div>
                 
                 {/* Vendor Searchable Dropdown */}
                 <div className="space-y-1 relative">
-                  <label className="text-[10px] uppercase font-bold block text-brand-maroon">Vendor Name *</label>
+                  <label className="text-[10px] uppercase font-bold block text-brand-maroon">{tFinance("Vendor Name *")}</label>
                   <input
                     type="text"
                     required
-                    placeholder="Type or select vendor..."
+                    placeholder={tFinance("Type or select vendor...")}
                     value={purchaseForm.vendor_name}
                     onChange={(e) => {
                       setPurchaseForm({ ...purchaseForm, vendor_name: e.target.value });
@@ -669,7 +753,7 @@ export default function AdminFinanceTab({
                         ))}
                       {purchaseForm.vendor_name && !Array.from(new Set([...dbPurchases.map(p => p.vendor_name).filter(Boolean), ...dbDues.filter(d => d.due_type === 'payable').map(d => d.entity_name).filter(Boolean)])).some(v => v.toLowerCase() === purchaseForm.vendor_name.toLowerCase()) && (
                         <div className="px-3 py-2 text-xs text-brand-warm-gray bg-brand-sand/35 font-bold italic">
-                          + Add Vendor: "{purchaseForm.vendor_name}"
+                          {tFinance("+ Add Vendor:")} "{purchaseForm.vendor_name}"
                         </div>
                       )}
                     </div>
@@ -680,13 +764,13 @@ export default function AdminFinanceTab({
               {/* Purchase Line Items Section */}
               <div className="space-y-3">
                 <div className="flex justify-between items-center border-b border-brand-gold/20 pb-1">
-                  <h4 className="text-xs uppercase font-bold text-brand-maroon">Purchase Line Items</h4>
+                  <h4 className="text-xs uppercase font-bold text-brand-maroon">{tFinance("Purchase Line Items")}</h4>
                   <button
                     type="button"
                     onClick={handleAddLineItem}
                     className="text-[10px] uppercase font-bold text-brand-gold-dark hover:text-brand-maroon flex items-center gap-1 transition"
                   >
-                    <Plus className="w-3 h-3" /> Add Item
+                    <Plus className="w-3 h-3" /> {tFinance("Add Item")}
                   </button>
                 </div>
 
@@ -694,7 +778,7 @@ export default function AdminFinanceTab({
                   {purchaseLineItems.map((item, idx) => (
                     <div key={idx} className="border border-brand-gold/15 p-3 rounded bg-white relative space-y-2">
                       <div className="flex justify-between items-center border-b border-brand-gold/10 pb-1.5">
-                        <span className="text-[10px] uppercase font-bold text-brand-gold-dark">Item #{idx + 1}</span>
+                        <span className="text-[10px] uppercase font-bold text-brand-gold-dark">{tFinance("Item #")}{idx + 1}</span>
                         {purchaseLineItems.length > 1 && (
                           <button
                             type="button"
@@ -707,25 +791,25 @@ export default function AdminFinanceTab({
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         <div className="space-y-1">
-                          <label className="text-[9px] uppercase font-bold text-brand-warm-gray">Select Item</label>
+                          <label className="text-[9px] uppercase font-bold text-brand-warm-gray">{tFinance("Select Item")}</label>
                           <select
                             value={item.saree_id}
                             onChange={e => handleLineItemChange(idx, "saree_id", e.target.value)}
                             className="w-full bg-brand-ivory border border-brand-gold/20 p-2 text-xs focus:outline-none focus:border-brand-maroon"
                           >
-                            <option value="">-- Choose Existing Saree --</option>
-                            <option value="new">➕ Add New Item</option>
+                            <option value="">{tFinance("-- Choose Existing Saree --")}</option>
+                            <option value="new">{tFinance("➕ Add New Item")}</option>
                             {dbSarees.map(s => (
                               <option key={s.id} value={s.id}>{s.name} (₹{s.price})</option>
                             ))}
                           </select>
                         </div>
                         <div className="space-y-1">
-                          <label className="text-[9px] uppercase font-bold text-brand-warm-gray">Product Name *</label>
+                          <label className="text-[9px] uppercase font-bold text-brand-warm-gray">{tFinance("Product Name *")}</label>
                           <input
                             type="text"
                             required
-                            placeholder="E.g. Tanchoi Silk Saree"
+                            placeholder={tFinance("E.g. Tanchoi Silk Saree")}
                             value={item.product_name}
                             onChange={e => handleLineItemChange(idx, "product_name", e.target.value)}
                             disabled={item.saree_id !== "" && item.saree_id !== "new"}
@@ -735,7 +819,7 @@ export default function AdminFinanceTab({
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                         <div className="space-y-1">
-                          <label className="text-[9px] uppercase font-bold text-brand-warm-gray">Qty</label>
+                          <label className="text-[9px] uppercase font-bold text-brand-warm-gray">{tFinance("Qty")}</label>
                           <input
                             type="number"
                             min="1"
@@ -746,7 +830,7 @@ export default function AdminFinanceTab({
                           />
                         </div>
                         <div className="space-y-1">
-                          <label className="text-[9px] uppercase font-bold text-brand-warm-gray">Buying Price (₹)</label>
+                          <label className="text-[9px] uppercase font-bold text-brand-warm-gray">{tFinance("Buying Price (₹)")}</label>
                           <input
                             type="number"
                             min="0"
@@ -758,7 +842,7 @@ export default function AdminFinanceTab({
                           />
                         </div>
                         <div className="space-y-1">
-                          <label className="text-[9px] uppercase font-bold text-brand-warm-gray">Selling Price (₹)</label>
+                          <label className="text-[9px] uppercase font-bold text-brand-warm-gray">{tFinance("Selling Price (₹)")}</label>
                           <input
                             type="number"
                             min="0"
@@ -777,13 +861,13 @@ export default function AdminFinanceTab({
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 border-t border-brand-gold/15 pt-3">
                 <div className="space-y-1">
-                  <label className="text-[9px] uppercase font-bold text-brand-warm-gray">Total Bill (Calculated)</label>
+                  <label className="text-[9px] uppercase font-bold text-brand-warm-gray">{tFinance("Total Bill (Calculated)")}</label>
                   <div className="w-full bg-gray-100 border border-brand-gold/20 p-2 text-xs font-mono font-bold text-brand-maroon">
                     ₹{calculatedTotalAmount.toLocaleString("en-IN")}
                   </div>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[9px] uppercase font-bold text-emerald-700">Paid Today</label>
+                  <label className="text-[9px] uppercase font-bold text-emerald-700">{tFinance("Paid Today")}</label>
                   <input
                     type="number"
                     min="0"
@@ -796,14 +880,20 @@ export default function AdminFinanceTab({
               </div>
 
               {purchaseForm.amount_paid < calculatedTotalAmount && calculatedTotalAmount > 0 && (
-                <p className="text-[10px] text-amber-600 bg-amber-50 p-2 border border-amber-200 rounded italic">
-                  A payable due of ₹{(calculatedTotalAmount - purchaseForm.amount_paid).toLocaleString("en-IN")} will be automatically added to the Ledger.
-                </p>
+                language === "hi" ? (
+                  <p className="text-[10px] text-amber-600 bg-amber-50 p-2 border border-amber-200 rounded italic">
+                    ₹{(calculatedTotalAmount - purchaseForm.amount_paid).toLocaleString("en-IN")} का देय बकाया बही-खाते में स्वचालित रूप से जोड़ दिया जाएगा।
+                  </p>
+                ) : (
+                  <p className="text-[10px] text-amber-600 bg-amber-50 p-2 border border-amber-200 rounded italic">
+                    A payable due of ₹{(calculatedTotalAmount - purchaseForm.amount_paid).toLocaleString("en-IN")} will be automatically added to the Ledger.
+                  </p>
+                )
               )}
               
               <div className="flex justify-end gap-2 pt-2 border-t border-brand-gold/15">
-                <button type="button" onClick={() => setIsPurchaseModalOpen(false)} className="text-xs uppercase font-bold px-3 text-brand-warm-gray hover:text-brand-maroon">Cancel</button>
-                <button type="submit" className="bg-brand-maroon text-white text-xs uppercase font-bold px-4 py-2 hover:bg-brand-maroon/90 transition shadow">Save Purchase</button>
+                <button type="button" onClick={() => setIsPurchaseModalOpen(false)} className="text-xs uppercase font-bold px-3 text-brand-warm-gray hover:text-brand-maroon">{tFinance("Cancel")}</button>
+                <button type="submit" className="bg-brand-maroon text-white text-xs uppercase font-bold px-4 py-2 hover:bg-brand-maroon/90 transition shadow">{tFinance("Save Purchase")}</button>
               </div>
             </form>
           </div>
@@ -811,21 +901,22 @@ export default function AdminFinanceTab({
       )}
 
       {isDueModalOpen && (
-        <div className="fixed inset-0 z-[100] bg-[#1C050E]/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setIsDueModalOpen(false)}>
-          <div className="bg-[#FAF7F2] max-w-sm w-full border border-brand-gold/30 rounded-lg p-6" onClick={(e) => e.stopPropagation()}>
-            <h3 className="font-serif text-xl text-brand-maroon mb-4">Manual Ledger Entry</h3>
+        <div className="fixed inset-0 z-[100] bg-[#1C050E]/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={() => setIsDueModalOpen(false)}>
+          <div className="bg-[#FAF7F2] max-w-sm w-full border-t sm:border border-brand-gold/30 rounded-t-3xl sm:rounded-lg p-5 sm:p-6 max-h-[92vh] sm:max-h-[90vh] overflow-y-auto animate-slide-up" onClick={(e) => e.stopPropagation()}>
+            <div className="w-12 h-1.5 bg-brand-gold/20 rounded-full mx-auto sm:hidden mb-1"></div>
+            <h3 className="font-serif text-xl text-brand-maroon mb-4">{tFinance("Manual Ledger Entry")}</h3>
             <form onSubmit={handleAddDue} className="space-y-3">
               <select value={dueForm.due_type} onChange={e => setDueForm({...dueForm, due_type: e.target.value})} className="w-full bg-white border border-brand-gold/20 p-2 text-xs font-bold text-brand-maroon">
-                <option value="payable">PAYABLE (Money you owe)</option>
-                <option value="receivable">RECEIVABLE (Money owed to you)</option>
+                <option value="payable">{tFinance("PAYABLE (Money you owe)")}</option>
+                <option value="receivable">{tFinance("RECEIVABLE (Money owed to you)")}</option>
               </select>
-              <input type="text" required placeholder="Entity / Person Name" value={dueForm.entity_name} onChange={e => setDueForm({...dueForm, entity_name: e.target.value})} className="w-full bg-white border border-brand-gold/20 p-2 text-xs" />
-              <input type="number" min="0" required placeholder="Total Amount (₹)" value={dueForm.total_amount || ""} onChange={e => setDueForm({...dueForm, total_amount: Number(e.target.value)})} className="w-full bg-white border border-brand-gold/20 p-2 text-xs" />
-              <input type="number" min="0" placeholder="Amount Already Paid (₹)" value={dueForm.amount_paid || ""} onChange={e => setDueForm({...dueForm, amount_paid: Number(e.target.value)})} className="w-full bg-white border border-brand-gold/20 p-2 text-xs" />
+              <input type="text" required placeholder={tFinance("Entity / Person Name")} value={dueForm.entity_name} onChange={e => setDueForm({...dueForm, entity_name: e.target.value})} className="w-full bg-white border border-brand-gold/20 p-2 text-xs" />
+              <input type="number" min="0" required placeholder={tFinance("Total Amount (₹)")} value={dueForm.total_amount || ""} onChange={e => setDueForm({...dueForm, total_amount: Number(e.target.value)})} className="w-full bg-white border border-brand-gold/20 p-2 text-xs" />
+              <input type="number" min="0" placeholder={tFinance("Amount Already Paid (₹)")} value={dueForm.amount_paid || ""} onChange={e => setDueForm({...dueForm, amount_paid: Number(e.target.value)})} className="w-full bg-white border border-brand-gold/20 p-2 text-xs" />
               <input type="date" value={dueForm.due_date} onChange={e => setDueForm({...dueForm, due_date: e.target.value})} className="w-full bg-white border border-brand-gold/20 p-2 text-xs" />
               <div className="flex justify-end gap-2 pt-2">
-                <button type="button" onClick={() => setIsDueModalOpen(false)} className="text-xs uppercase font-bold px-3 text-brand-warm-gray hover:text-brand-maroon">Cancel</button>
-                <button type="submit" className="bg-brand-maroon text-white text-xs uppercase font-bold px-4 py-2">Save</button>
+                <button type="button" onClick={() => setIsDueModalOpen(false)} className="text-xs uppercase font-bold px-3 text-brand-warm-gray hover:text-brand-maroon">{tFinance("Cancel")}</button>
+                <button type="submit" className="bg-brand-maroon text-white text-xs uppercase font-bold px-4 py-2">{tFinance("Save")}</button>
               </div>
             </form>
           </div>
@@ -833,24 +924,29 @@ export default function AdminFinanceTab({
       )}
 
       {isPaymentModalOpen && selectedDue && (
-        <div className="fixed inset-0 z-[100] bg-[#1C050E]/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#FAF7F2] max-w-sm w-full border border-brand-gold/30 rounded-lg p-6 shadow-2xl">
-            <h3 className="font-serif text-xl text-brand-maroon mb-2">Log Payment</h3>
+        <div className="fixed inset-0 z-[100] bg-[#1C050E]/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="bg-[#FAF7F2] max-w-sm w-full border-t sm:border border-brand-gold/30 rounded-t-3xl sm:rounded-lg p-5 sm:p-6 shadow-2xl max-h-[92vh] sm:max-h-[90vh] overflow-y-auto animate-slide-up">
+            <div className="w-12 h-1.5 bg-brand-gold/20 rounded-full mx-auto sm:hidden mb-1"></div>
+            <h3 className="font-serif text-xl text-brand-maroon mb-2">{tFinance("Log Payment")}</h3>
             <p className="text-xs text-brand-warm-gray mb-4">
-              {selectedDue.due_type === 'payable' ? `Paying ${selectedDue.entity_name}` : `Receiving from ${selectedDue.entity_name}`}
+              {language === "hi" ? (
+                selectedDue.due_type === 'payable' ? `${selectedDue.entity_name} को भुगतान किया जा रहा है` : `${selectedDue.entity_name} से प्राप्त किया जा रहा है`
+              ) : (
+                selectedDue.due_type === 'payable' ? `Paying ${selectedDue.entity_name}` : `Receiving from ${selectedDue.entity_name}`
+              )}
             </p>
             <div className="bg-white border border-brand-gold/15 p-3 rounded mb-4 text-xs font-mono">
-              <div className="flex justify-between"><span>Total:</span> <span>₹{selectedDue.total_amount}</span></div>
-              <div className="flex justify-between"><span>Paid:</span> <span>₹{selectedDue.amount_paid}</span></div>
-              <div className="flex justify-between font-bold text-red-600 border-t pt-1 mt-1"><span>Bal:</span> <span>₹{selectedDue.total_amount - selectedDue.amount_paid}</span></div>
+              <div className="flex justify-between"><span>{tFinance("Total due:")}</span> <span>₹{selectedDue.total_amount}</span></div>
+              <div className="flex justify-between"><span>{tFinance("Paid so far:")}</span> <span>₹{selectedDue.amount_paid}</span></div>
+              <div className="flex justify-between font-bold text-red-600 border-t pt-1 mt-1"><span>{tFinance("Remaining:")}</span> <span>₹{selectedDue.total_amount - selectedDue.amount_paid}</span></div>
             </div>
             
             <form onSubmit={handleMakePayment} className="space-y-3">
               <input type="date" required value={paymentForm.payment_date} onChange={e => setPaymentForm({...paymentForm, payment_date: e.target.value})} className="w-full bg-white border border-brand-gold/20 p-2 text-xs" />
-              <input type="number" min="0" max={selectedDue.total_amount - selectedDue.amount_paid} required placeholder="Amount to Pay (₹)" value={paymentForm.amount_paid || ""} onChange={e => setPaymentForm({...paymentForm, amount_paid: Number(e.target.value)})} className="w-full bg-white border border-brand-gold/20 p-2 text-xs" />
+              <input type="number" min="0" max={selectedDue.total_amount - selectedDue.amount_paid} required placeholder={tFinance("Amount to Pay (₹)")} value={paymentForm.amount_paid || ""} onChange={e => setPaymentForm({...paymentForm, amount_paid: Number(e.target.value)})} className="w-full bg-white border border-brand-gold/20 p-2 text-xs" />
               <div className="flex justify-end gap-2 pt-2">
-                <button type="button" onClick={() => { setIsPaymentModalOpen(false); setSelectedDue(null); }} className="text-xs uppercase font-bold px-3 text-brand-warm-gray hover:text-brand-maroon">Cancel</button>
-                <button type="submit" className="bg-emerald-600 text-white text-xs uppercase font-bold px-4 py-2 hover:bg-emerald-700">Confirm Payment</button>
+                <button type="button" onClick={() => { setIsPaymentModalOpen(false); setSelectedDue(null); }} className="text-xs uppercase font-bold px-3 text-brand-warm-gray hover:text-brand-maroon">{tFinance("Cancel")}</button>
+                <button type="submit" className="bg-emerald-600 text-white text-xs uppercase font-bold px-4 py-2 hover:bg-emerald-700">{tFinance("Confirm Payment")}</button>
               </div>
             </form>
           </div>

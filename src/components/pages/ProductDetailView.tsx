@@ -11,6 +11,7 @@ import {
   Package, Truck, RotateCcw, X, Share2, Compass,
   Sparkles, Check, ChevronDown, BookOpen
 } from "lucide-react";
+import { useLanguage } from "../../context/LanguageContext";
 
 interface ProductDetailViewProps {
   sareeId: string | null;
@@ -43,6 +44,7 @@ export default function ProductDetailView({
   setQuickViewSaree,
   sarees,
 }: ProductDetailViewProps) {
+  const { language, t } = useLanguage();
   const [activeImageIdx, setActiveImageIdx] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [stitchingChoice, setStitchingChoice] = useState("unstitched");
@@ -174,6 +176,15 @@ export default function ProductDetailView({
     }
   };
 
+  const translatedStitchingOptions = useMemo(() => [
+    { id: "unstitched", label: language === "hi" ? "केवल बिना सिला कपड़ा" : "Unstitched Fabric Only", price: 0, desc: language === "hi" ? "मानक 80 सेमी मिलान ब्लाउज टुकड़ा शामिल" : "Standard 80cm matching blouse piece included" },
+    { id: "classic", label: language === "hi" ? "क्लासिक गोल गला" : "Classic Round Neck", price: 1500, desc: language === "hi" ? "सूती अस्तर के साथ सिला हुआ, क्लासिक आधी आस्तीन" : "Stitched with cotton lining, classic half-sleeves" },
+    { id: "sleeveless", label: language === "hi" ? "आधुनिक बिना आस्तीन" : "Modern Sleeveless", price: 1800, desc: language === "hi" ? "समकालीन बिना आस्तीन का डिज़ाइन, वी-नेक शैली" : "Contemporary sleeveless design, V-neck style" },
+    { id: "elbow", label: language === "hi" ? "सिग्नेचर कोहनी तक आस्तीन" : "Signature Elbow Sleeves", price: 2200, desc: language === "hi" ? "शानदार कोहनी-लंबाई आस्तीन, डिजाइनर बैक नेक" : "Elegant elbow-length sleeves, designer back neck" }
+  ], [language]);
+
+  const translatedImageLabels = useMemo(() => language === "hi" ? ["मुख्य विवरण", "कारीगर बुनाई", "सुंदर ड्रेप"] : IMAGE_LABELS, [language]);
+
   return (
     <div className="bg-[#FAF8F5] min-h-screen font-sans antialiased text-[#2E2E2E]" id="product-detail-view-container">
 
@@ -198,7 +209,7 @@ export default function ProductDetailView({
             className="bg-[#5B0E2D] hover:bg-[#3E061E] active:scale-95 text-[#FDFBF7] text-[10px] tracking-widest uppercase font-bold py-2 px-6 transition-all duration-300 flex-shrink-0 flex items-center gap-2"
           >
             <ShoppingBag className="w-3.5 h-3.5" />
-            Add to Bag
+            {t("prod_add_cart")}
           </button>
         </div>
       </div>
@@ -211,13 +222,13 @@ export default function ProductDetailView({
           id="detail-back-to-shop-btn"
         >
           <ArrowLeft className="w-4 h-4 text-[#C5A880] transition group-hover:-translate-x-1" />
-          Back to Atelier
+          {language === "hi" ? "दुकान पर वापस जाएं" : "Back to Atelier"}
         </button>
 
         <button
           onClick={handleShare}
           className="p-2 text-[#7E726B] hover:text-[#5B0E2D] transition rounded-full hover:bg-[#F5EFEB]"
-          title="Share Saree"
+          title={language === "hi" ? "साड़ी साझा करें" : "Share Saree"}
         >
           <Share2 className="w-4 h-4" />
         </button>
@@ -272,11 +283,11 @@ export default function ProductDetailView({
               {/* Status and discount tags */}
               <div className="absolute top-4 left-4 flex flex-col gap-2 z-10">
                 <span className="bg-[#5B0E2D] text-[#FDFBF7] text-[8px] uppercase tracking-[0.25em] font-extrabold px-3 py-1.5 shadow-sm rounded-xs">
-                  {saree.category} Handloom
+                  {t("cat_" + saree.category, saree.category)} {language === "hi" ? "हथकरघा" : "Handloom"}
                 </span>
                 {discount && (
                   <span className="bg-emerald-600 text-white text-[8px] uppercase tracking-[0.20em] font-bold px-3 py-1.5 shadow-sm rounded-xs self-start">
-                    Heritage Saving {discount}%
+                    {language === "hi" ? "विरासत बचत" : "Heritage Saving"} {discount}%
                   </span>
                 )}
               </div>
@@ -284,7 +295,7 @@ export default function ProductDetailView({
               {/* Visual click prompt */}
               <div className="absolute bottom-4 right-4 flex items-center gap-1.5 bg-black/45 backdrop-blur-xs px-3 py-1.5 text-[8px] uppercase tracking-[0.2em] font-bold text-white rounded-xs opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                 <Compass className="w-3.5 h-3.5 text-[#C5A880] animate-spin-slow" />
-                <span>Cinematic View</span>
+                <span>{language === "hi" ? "सिनेमैटिक दृश्य" : "Cinematic View"}</span>
               </div>
             </div>
 
@@ -304,7 +315,7 @@ export default function ProductDetailView({
                     <img src={imgUrl} className="w-full h-full object-cover transition-transform duration-700 group-hover/mosaic:scale-105" alt="" />
                     <div className="absolute inset-0 bg-black/5 opacity-40 group-hover/mosaic:opacity-0 transition-opacity" />
                     <span className="absolute bottom-2 left-2 text-[8px] uppercase font-bold tracking-widest text-[#FAF8F5] bg-[#5B0E2D]/70 px-1.5 py-0.5 backdrop-blur-xs">
-                      {IMAGE_LABELS[index] ? IMAGE_LABELS[index].split(" ")[0] : index + 1}
+                      {translatedImageLabels[index] ? translatedImageLabels[index].split(" ")[0] : index + 1}
                     </span>
                   </div>
                 ))}
@@ -333,9 +344,9 @@ export default function ProductDetailView({
             {/* Header info */}
             <div className="space-y-3">
               <div className="flex flex-wrap items-center gap-2 text-[9px] uppercase tracking-[0.2em] font-extrabold">
-                <span className="text-[#5B0E2D]">{saree.weavingTechnique || "Authentic Handloom"}</span>
+                <span className="text-[#5B0E2D]">{t("weave_" + saree.weavingTechnique, saree.weavingTechnique || "Authentic Handloom")}</span>
                 <span className="text-[#C5A880]/50">•</span>
-                <span className="text-[#A4865E]">{saree.zariType || "Fine Zari Work"}</span>
+                <span className="text-[#A4865E]">{t("zari_" + saree.zariType, saree.zariType || "Fine Zari Work")}</span>
               </div>
 
               <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl text-[#5B0E2D] font-light leading-tight tracking-tight">
@@ -350,7 +361,7 @@ export default function ProductDetailView({
                   ))}
                 </div>
                 <span className="text-[10px] text-[#7E726B] font-semibold tracking-wider uppercase">
-                  {saree.rating?.toFixed(1)} ({saree.reviewsCount} verified reviews)
+                  {saree.rating?.toFixed(1)} ({saree.reviewsCount} {language === "hi" ? "सत्यापित समीक्षाएं" : "verified reviews"})
                 </span>
               </div>
             </div>
@@ -358,7 +369,7 @@ export default function ProductDetailView({
             {/* Premium Pricing presentation */}
             <div className="py-5 border-y border-[#C5A880]/20 flex flex-wrap items-baseline justify-between gap-4">
               <div className="space-y-1">
-                <span className="text-[9px] uppercase tracking-widest font-extrabold text-[#7E726B] block">Atelier Value</span>
+                <span className="text-[9px] uppercase tracking-widest font-extrabold text-[#7E726B] block">{language === "hi" ? "दुकान का मूल्य" : "Atelier Value"}</span>
                 <div className="flex items-baseline gap-3">
                   <span className="text-3xl font-serif text-[#5B0E2D] font-medium tracking-tight">{priceFormatted}</span>
                   {originalPriceFormatted && (
@@ -368,16 +379,16 @@ export default function ProductDetailView({
               </div>
 
               <div className="space-y-1 text-right">
-                <span className="text-[8px] uppercase tracking-widest font-bold text-[#A4865E] block">Artisan Guarantee</span>
+                <span className="text-[8px] uppercase tracking-widest font-bold text-[#A4865E] block">{language === "hi" ? "कारीगर गारंटी" : "Artisan Guarantee"}</span>
                 <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider border border-emerald-100 inline-block">
-                  Direct from Varanasi
+                  {language === "hi" ? "सीधे वाराणसी से" : "Direct from Varanasi"}
                 </span>
               </div>
             </div>
 
             {/* Saree Biography */}
             <div className="space-y-3">
-              <span className="text-[9px] uppercase tracking-widest font-extrabold text-[#A4865E] block">Saree Biography</span>
+              <span className="text-[9px] uppercase tracking-widest font-extrabold text-[#A4865E] block">{language === "hi" ? "साड़ी का विवरण" : "Saree Biography"}</span>
               <p className="text-sm text-[#7E726B] leading-relaxed font-light font-serif text-lg italic">
                 "{saree.description}"
               </p>
@@ -386,12 +397,12 @@ export default function ProductDetailView({
             {/* Premium Stitching Customization Studio */}
             <div className="space-y-4 pt-2">
               <div className="flex justify-between items-baseline">
-                <span className="text-[9px] uppercase tracking-widest font-extrabold text-[#A4865E] block">Tailoring Atelier</span>
-                <span className="text-[9px] text-[#5B0E2D] font-bold uppercase underline cursor-pointer hover:text-[#C5A880] transition">Size Guide</span>
+                <span className="text-[9px] uppercase tracking-widest font-extrabold text-[#A4865E] block">{language === "hi" ? "सिलाई कार्यशाला" : "Tailoring Atelier"}</span>
+                <span className="text-[9px] text-[#5B0E2D] font-bold uppercase underline cursor-pointer hover:text-[#C5A880] transition">{language === "hi" ? "माप गाइड" : "Size Guide"}</span>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {STITCHING_OPTIONS.map((opt) => (
+                {translatedStitchingOptions.map((opt) => (
                   <div
                     key={opt.id}
                     onClick={() => setStitchingChoice(opt.id)}
@@ -408,7 +419,7 @@ export default function ProductDetailView({
                     
                     <div className="flex justify-between items-center pt-2 mt-auto">
                       <span className="text-[10px] font-mono font-bold text-[#5B0E2D]">
-                        {opt.price === 0 ? "Complimentary" : `+ ₹${opt.price}`}
+                        {opt.price === 0 ? (language === "hi" ? "निःशुल्क" : "Complimentary") : `+ ₹${opt.price}`}
                       </span>
                       {stitchingChoice === opt.id && (
                         <span className="w-3.5 h-3.5 rounded-full bg-[#5B0E2D] flex items-center justify-center">
@@ -423,12 +434,12 @@ export default function ProductDetailView({
               {/* Custom Measurements Input Box */}
               {stitchingChoice !== "unstitched" && (
                 <div className="space-y-2 animate-fade-in">
-                  <label className="text-[10px] font-bold text-[#5B0E2D] uppercase tracking-wider block">Atelier Sizing Specs</label>
+                  <label className="text-[10px] font-bold text-[#5B0E2D] uppercase tracking-wider block">{language === "hi" ? "माप का विवरण" : "Atelier Sizing Specs"}</label>
                   <input
                     type="text"
                     value={customMeasurements}
                     onChange={(e) => setCustomMeasurements(e.target.value)}
-                    placeholder="Enter Bust size, Waist & Blouse length (e.g. 36, 30, 14 inches) or leave blank for Standard Medium"
+                    placeholder={language === "hi" ? "बस्ट साइज, कमर और ब्लाउज की लंबाई दर्ज करें (जैसे: 36, 30, 14 इंच) या मानक मध्यम के लिए खाली छोड़ दें" : "Enter Bust size, Waist & Blouse length (e.g. 36, 30, 14 inches) or leave blank for Standard Medium"}
                     className="w-full bg-[#FAF8F5] border border-[#C5A880]/30 rounded p-3 text-xs focus:border-[#5B0E2D] outline-none transition font-mono placeholder-[#7E726B]/50"
                   />
                 </div>
@@ -464,9 +475,9 @@ export default function ProductDetailView({
                   }`}
                 >
                   {addedPulse ? (
-                    <><CheckCircle2 className="w-4 h-4" /> Added to Bag</>
+                    <><CheckCircle2 className="w-4 h-4" /> {language === "hi" ? "बैग में जोड़ा गया" : "Added to Bag"}</>
                   ) : (
-                    <><ShoppingBag className="w-4 h-4" /> Add to Atelier Bag</>
+                    <><ShoppingBag className="w-4 h-4" /> {language === "hi" ? "शॉपिंग बैग में जोड़ें" : "Add to Atelier Bag"}</>
                   )}
                 </button>
 
@@ -478,7 +489,7 @@ export default function ProductDetailView({
                       ? "border-[#5B0E2D] bg-[#5B0E2D]/5 text-[#5B0E2D]"
                       : "border-[#C5A880]/35 text-[#7E726B] hover:border-[#5B0E2D] hover:text-[#5B0E2D]"
                   }`}
-                  title="Save Saree"
+                  title={language === "hi" ? "साड़ी सहेजें" : "Save Saree"}
                 >
                   <Heart className={`w-4 h-4 ${isFaved ? "fill-[#5B0E2D]" : ""}`} />
                 </button>
@@ -490,14 +501,14 @@ export default function ProductDetailView({
               {[
                 {
                   id: "specs",
-                  title: "Technical Specifications",
+                  title: language === "hi" ? "तकनीकी विनिर्देश" : "Technical Specifications",
                   content: (
                     <div className="grid grid-cols-2 gap-4">
                       {[
-                        { label: "Saree Dimensions", value: `${saree.specifications.length} × ${saree.specifications.width}` },
-                        { label: "Blouse Piece Included", value: saree.specifications.blousePiece },
-                        { label: "Material Composition", value: saree.material || "Pure Silk" },
-                        { label: "Origin of Weave", value: saree.specifications.origin }
+                        { label: language === "hi" ? "साड़ी का आकार" : "Saree Dimensions", value: `${saree.specifications.length} × ${saree.specifications.width}` },
+                        { label: language === "hi" ? "ब्लाउज पीस शामिल" : "Blouse Piece Included", value: language === "hi" && saree.specifications.blousePiece === "80 cm unstitched" ? "80 सेमी बिना सिला" : saree.specifications.blousePiece },
+                        { label: language === "hi" ? "सामग्री संरचना" : "Material Composition", value: language === "hi" && saree.material === "Pure Silk" ? "शुद्ध रेशम" : (saree.material || "Pure Silk") },
+                        { label: language === "hi" ? "बुनाई की उत्पत्ति" : "Origin of Weave", value: language === "hi" && saree.specifications.origin.includes("Varanasi") ? "वाराणसी, उत्तर प्रदेश, भारत" : saree.specifications.origin }
                       ].map(({ label, value }) => (
                         <div key={label}>
                           <span className="text-[8px] uppercase tracking-widest text-[#A4865E] block font-extrabold">{label}</span>
@@ -509,8 +520,12 @@ export default function ProductDetailView({
                 },
                 {
                   id: "heritage",
-                  title: "Weaving Artistry & Zari",
-                  content: (
+                  title: language === "hi" ? "बुनाई कला और ज़री" : "Weaving Artistry & Zari",
+                  content: language === "hi" ? (
+                    <p className="text-[11px] leading-relaxed">
+                      पारंपरिक <strong className="text-[#5B0E2D]">{t(`weave_${saree.weavingTechnique}`, saree.weavingTechnique)}</strong> तकनीक का उपयोग करके हस्तनिर्मित। प्रमाणित <strong className="text-[#5B0E2D]">{t(`zari_${saree.zariType}`, saree.zariType)}</strong> का उपयोग करके बारीक विवरणों की विशेषता। प्रत्येक प्रामाणिक हथकरघा साड़ी को वाराणसी में मास्टर कारीगरों द्वारा तैयार करने में 15 से 45 दिनों की कड़ी मेहनत लगती है।
+                    </p>
+                  ) : (
                     <p className="text-[11px] leading-relaxed">
                       Handcrafted using the traditional <strong className="text-[#5B0E2D]">{saree.weavingTechnique || "Kadhwa"}</strong> technique. Characterized by intricate details, using certified <strong className="text-[#5B0E2D]">{saree.zariType || "Zari threads"}</strong>. Each authentic handloom saree takes master artisans between 15 to 45 days of meticulous work in Varanasi.
                     </p>
@@ -518,8 +533,12 @@ export default function ProductDetailView({
                 },
                 {
                   id: "care",
-                  title: "Heritage Care & Preservation",
-                  content: (
+                  title: language === "hi" ? "विरासत देखभाल और संरक्षण" : "Heritage Care & Preservation",
+                  content: language === "hi" ? (
+                    <p className="text-[11px] leading-relaxed">
+                      {saree.specifications.washCare === "Dry clean only" ? "केवल ड्राई क्लीन करें" : saree.specifications.washCare}. धात्विक ज़री के काम को काला पड़ने से बचाने के लिए एसिड-मुक्त मलमल के कपड़े में लपेटकर सूती कपड़े के कवर के अंदर सपाट रखें। इत्र और नमी के सीधे संपर्क से बचें।
+                    </p>
+                  ) : (
                     <p className="text-[11px] leading-relaxed">
                       {saree.specifications.washCare || "Professional dry clean only"}. Wrap in acid-free muslin cloth and store flat inside cotton fabric covers to prevent blackening of metallic zari work. Avoid direct exposure to perfume sprays and humidity.
                     </p>
@@ -548,14 +567,14 @@ export default function ProductDetailView({
               <div className="p-6 rounded bg-[#F5EFEB]/50 border border-[#C5A880]/20 space-y-4">
                 <div className="flex items-center gap-2 text-[9px] uppercase tracking-[0.25em] font-extrabold text-[#C5A880]">
                   <BookOpen className="w-3.5 h-3.5" />
-                  <span>The Maker's Story</span>
+                  <span>{language === "hi" ? "निर्माता की कहानी" : "The Maker's Story"}</span>
                 </div>
 
                 <div className="space-y-1">
                   <h4 className="font-serif text-lg font-medium text-[#5B0E2D]">{saree.weaverName}</h4>
                   {saree.weaverVillage && (
                     <span className="text-[8px] uppercase tracking-wider text-[#A4865E] font-bold bg-[#A4865E]/10 px-2 py-0.5 rounded border border-[#A4865E]/20 inline-block">
-                      Atelier {saree.weaverVillage}
+                      {language === "hi" ? "कार्यशाला" : "Atelier"} {saree.weaverVillage}
                     </span>
                   )}
                 </div>
@@ -575,14 +594,14 @@ export default function ProductDetailView({
           <div className="mt-24 pt-16 border-t border-[#C5A880]/20">
             <div className="flex items-end justify-between mb-12">
               <div>
-                <p className="text-[9px] uppercase tracking-[0.25em] font-extrabold text-[#A4865E] mb-1">Heritage Companions</p>
-                <h3 className="font-serif text-2xl text-[#5B0E2D] font-light">Atelier curation</h3>
+                <p className="text-[9px] uppercase tracking-[0.25em] font-extrabold text-[#A4865E] mb-1">{language === "hi" ? "विरासत साथी" : "Heritage Companions"}</p>
+                <h3 className="font-serif text-2xl text-[#5B0E2D] font-light">{language === "hi" ? "विशेष चयन" : "Atelier curation"}</h3>
               </div>
               <button
                 onClick={() => setView("shop")}
                 className="text-[10px] uppercase tracking-widest font-bold text-[#5B0E2D] hover:text-[#C5A880] transition flex items-center gap-1"
               >
-                Explore All <ChevronRight className="w-3.5 h-3.5" />
+                {language === "hi" ? "सभी देखें" : "Explore All"} <ChevronRight className="w-3.5 h-3.5" />
               </button>
             </div>
 
@@ -612,12 +631,12 @@ export default function ProductDetailView({
                           onClick={e => { e.stopPropagation(); setQuickViewSaree(rel); }}
                           className="bg-white hover:bg-[#5B0E2D] hover:text-white text-[#5B0E2D] text-[9px] uppercase tracking-widest font-bold px-4 py-2 transition-all"
                         >
-                          Quick View
+                          {t("shop_quickview")}
                         </button>
                       </div>
                     </div>
                     <div className="space-y-0.5">
-                      <span className="text-[8px] uppercase tracking-widest text-[#C5A880] font-bold block">{rel.category}</span>
+                      <span className="text-[8px] uppercase tracking-widest text-[#C5A880] font-bold block">{t("cat_" + rel.category, rel.category)}</span>
                       <h4 className="text-sm font-serif text-[#5B0E2D] group-hover:text-[#A4865E] transition-colors line-clamp-1">{rel.name}</h4>
                       <p className="text-xs font-mono font-bold text-[#5B0E2D]/85">{pricing}</p>
                     </div>
@@ -636,7 +655,7 @@ export default function ProductDetailView({
           {/* Header */}
           <div className="absolute top-4 right-4 left-4 flex justify-between items-center z-10">
             <span className="text-[#C5A880] text-[9px] uppercase tracking-widest font-mono">
-              {IMAGE_LABELS[activeImageIdx] || "Atelier Saree Detail"} · {activeImageIdx + 1} / {images.length}
+              {translatedImageLabels[activeImageIdx] || "Atelier Saree Detail"} · {activeImageIdx + 1} / {images.length}
             </span>
             <button
               onClick={() => setShowLightbox(false)}

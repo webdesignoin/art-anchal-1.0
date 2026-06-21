@@ -14,13 +14,14 @@ import {
   TrendingUp, Printer, ArrowLeft, CheckCircle, RefreshCw, Lock,
   Sparkles, Package, AlertTriangle, X, Check, ChevronRight, ChevronLeft, Menu,
   LayoutDashboard, MessageSquare, Minus, Search, IndianRupee,
-  ShieldCheck, Tag, Upload, Edit2, Archive, Phone, Download, UserPlus, Image as ImageIcon, CreditCard, HelpCircle, LogOut, MoreHorizontal
+  ShieldCheck, Tag, Upload, Edit2, Archive, Phone, Download, UserPlus, Image as ImageIcon, CreditCard, HelpCircle, LogOut, MoreHorizontal, Globe
 } from "lucide-react";
 
 import AdminHRTab from "./AdminHRTab";
 import AdminFinanceTab from "./AdminFinanceTab";
 import AdminVendorsTab from "./AdminVendorsTab";
 import InvoiceDocument, { InvoiceData } from "../InvoiceDocument";
+import { useLanguage } from "../../context/LanguageContext";
 
 interface AdminConsoleViewProps {
   userSession: { id?: string; name: string; email: string; is_admin?: boolean } | null;
@@ -63,6 +64,262 @@ const emptySaree = {
 };
 
 export default function AdminConsoleView({ userSession, setUserSession, setView, refreshCatalog }: AdminConsoleViewProps) {
+  const { language, setLanguage } = useLanguage();
+
+  const tAdmin = (key: string): string => {
+    if (language === "hi") {
+      const trans: Record<string, string> = {
+        // Restricted Area
+        "Restricted Area": "प्रतिबंधित क्षेत्र",
+        "Administrator credentials required.": "प्रशासक क्रेडेंशियल आवश्यक हैं।",
+        "Sign In as Admin": "एडमिन के रूप में साइन इन करें",
+
+        // Top mobile header / bottom nav / sidebar
+        "Admin Console": "एडमिन कंसोल",
+        "Overview": "अवलोकन",
+        "Catalog": "कैटलॉग",
+        "Catalog & Stock": "कैटलॉग और स्टॉक",
+        "POS Bill": "पीओएस बिल",
+        "Orders": "ऑर्डर",
+        "Order History": "ऑर्डर इतिहास",
+        "Finance & Ledger": "वित्त और बहीखाता",
+        "Vendors & Suppliers": "व्यापारी और आपूर्तिकर्ता",
+        "More": "अधिक",
+        "Additional Controls": "अतिरिक्त नियंत्रण",
+        "Management Menu": "प्रबंधन मेनू",
+        "CRM Leads": "सीआरएम लीड्स",
+        "HR & Staffing": "कर्मचारी प्रबंधन",
+        "Finance": "फाइनेंस",
+        "Vendors": "व्यापारी (Vendors)",
+        "Sync Data": "डेटा सिंक करें",
+        "Back to Store": "दुकान पर वापस जाएं",
+        "Log Out": "लॉग आउट",
+        "Expand Sidebar": "साइडबार फैलाएं",
+        "Collapse Sidebar": "साइडबार सिकोड़ें",
+        "Dashboard": "डैशबोर्ड",
+        "Catalog & Inventory": "कैटलॉग और इन्वेंटरी",
+        "Sales": "बिक्री (Sales)",
+        "CRM": "ग्राहक संबंध (CRM)",
+        "Operations": "संचालन (Operations)",
+        "Active Date Range": "सक्रिय तिथि सीमा",
+        "Filtering Overview, Catalog, Orders, and Finance & Ledger by date": "तिथि के अनुसार अवलोकन, कैटलॉग, ऑर्डर और वित्त व खाता बही को फ़िल्टर करना",
+        "to": "से",
+        "Reset": "रीसेट",
+        "Stock Alerts": "स्टॉक अलर्ट",
+        "OUT OF STOCK": "स्टॉक समाप्त",
+        "All inventory quantities are healthy.": "सभी इन्वेंटरी मात्रा स्वस्थ हैं।",
+        "Pending Receivables": "लंबित प्राप्य (Receivables)",
+        "Collection Tracker": "वसूली ट्रैकर",
+        "No pending customer outstanding receivables.": "कोई लंबित ग्राहक बकाया प्राप्य नहीं है।",
+        
+        // Dashboard Overview
+        "Dashboard Overview": "डैशबोर्ड अवलोकन",
+        "Art&Anchal Varanasi Boutique Management Console": "आर्ट एंड आंचल वाराणसी बुटीक प्रबंधन कंसोल",
+        "System Live · Year ": "सिस्टम लाइव · वर्ष ",
+        "To Collect (Receivables)": "लेना है (Receivables)",
+        "Customer unpaid dues": "ग्राहकों से बकाया राशि",
+        "To Pay (Payables)": "देना है (Payables)",
+        "Vendor outstanding dues": "सप्लायर्स की बकाया राशि",
+        "Cash in Hand": "हाथ में नकद (Cash)",
+        "Physical showroom cash float": "शोरूम में उपलब्ध नकद राशि",
+        "Bank Balance": "बैंक बैलेंस",
+        "Online/UPI/Ledger balance": "ऑनलाइन / यूपीआई / बैंक खाता",
+        "Quick Transaction Shortcuts": "त्वरित लेनदेन शॉर्टकट",
+        "Add Sale": "बिक्री जोड़ें",
+        "Generate POS Bill": "POS बिल जनरेट करें",
+        "Add Purchase": "खरीद जोड़ें",
+        "Log vendor stock purchase": "सप्लायर से स्टॉक खरीद दर्ज करें",
+        "Add Expense": "खर्च जोड़ें",
+        "Record showroom expense": "दुकान/शोरूम का खर्च दर्ज करें",
+        "Add Party": "पार्टी जोड़ें",
+        "Log lead or customer": "लीड या ग्राहक दर्ज करें",
+        "Sales vs Purchases Comparison": "बिक्री बनाम खरीद तुलना",
+        "Sales (Inflow)": "बिक्री (आवक)",
+        "Purchases (Outflow)": "खरीद (जावक)",
+        "Consolidated Daybook (Recent Transactions)": "समेकित दिन-बही (हाल के लेनदेन)",
+        "Live Feed": "लाइव फीड",
+        "Type": "प्रकार",
+        "Ref No.": "संदर्भ संख्या",
+        "Date": "तारीख",
+        "Party / Category": "पार्टी / श्रेणी",
+        "Payment Mode": "भुगतान का माध्यम",
+        "Status": "स्थिति",
+        "Amount": "रकम",
+        "No transactions recorded for this period.": "इस अवधि के लिए कोई लेनदेन दर्ज नहीं है।",
+
+        // Catalog & Inventory tab
+        "Saree Catalog & Stock": "साड़ी कैटलॉग और स्टॉक",
+        "Catalog & Inventory CMS": "कैटलॉग और इन्वेंटरी प्रबंधन",
+        "Manage public storefront products, custom weaver details, and vault availability.": "सार्वजनिक स्टोरफ्रंट उत्पादों, बुनकर विवरण और उपलब्ध स्टॉक का प्रबंधन करें।",
+        "Search catalog by name or code...": "नाम या कोड द्वारा खोजें...",
+        "All Stock Status": "सभी स्टॉक स्थिति",
+        "In Stock": "स्टॉक में है",
+        "Out of Stock / Loom Booking Needed": "स्टॉक समाप्त / लूम बुकिंग आवश्यक",
+        "Add Saree": "नई साड़ी जोड़ें",
+        "Image": "छवि",
+        "Product Details": "उत्पाद विवरण",
+        "Price & Value": "कीमत और मूल्य",
+        "Stock": "स्टॉक",
+        "Storefront": "स्टोरफ्रंट",
+        "Actions": "कार्रवाई",
+        "Weaver: ": "बुनकर: ",
+        "Zari: ": "ज़री: ",
+        "Code: ": "कोड: ",
+        "Buy: ": "खरीद: ",
+        "Sell: ": "बिक्री: ",
+        "Edit Saree": "साड़ी संपादित करें",
+        "Delete Saree": "साड़ी हटाएं",
+        "Hidden / Draft": "छिपा हुआ / ड्राफ्ट",
+        "Visible on Store": "स्टोर पर दृश्यमान",
+        "Archive / Inactive": "संग्रहीत / निष्क्रिय",
+        "Edit product": "उत्पाद संपादित करें",
+        "Delete product": "उत्पाद हटाएं",
+        "No sarees match your search/filter parameters.": "आपकी खोज/फ़िल्टर से मेल खाने वाली कोई साड़ी नहीं मिली।",
+        "Previous": "पिछला",
+        "Page": "पृष्ठ",
+        "of": "का",
+        "Next": "अगला",
+
+        // Saree Form Modal
+        "Configure Masterpiece": "उत्कृष्ट कृति सेटिंग्स",
+        "Set metadata, weaver story, images, and care instructions.": "मेटाडेटा, बुनकर की कहानी, चित्र और देखभाल निर्देश सेट करें।",
+        "Basic Info": "बुनियादी जानकारी",
+        "Weaver Story": "बुनकर की कहानी",
+        "Technical Specs": "तकनीकी विवरण",
+        "Product Title / Name *": "उत्पाद का शीर्षक / नाम *",
+        "Product SKU / Unique Code *": "उत्पाद SKU / विशिष्ट कोड *",
+        "Weaving Style *": "बुनाई शैली *",
+        "Zari Grade Type *": "ज़री ग्रेड प्रकार *",
+        "Saree Category *": "साड़ी श्रेणी *",
+        "Color Palette Name *": "रंग पैलेट नाम *",
+        "Artisan / Master Weaver *": "बुनकर / मास्टर कारीगर *",
+        "-- Unlisted / Unknown --": "-- असूचीबद्ध / अज्ञात --",
+        "Buying Price (₹, internal)": "खरीद मूल्य (₹, आंतरिक)",
+        "Retail Price (₹, customer-facing) *": "खुदरा मूल्य (₹, ग्राहक के लिए) *",
+        "Quantity in Showroom Vault *": "शोरूम तिजोरी में मात्रा *",
+        "Visible on Public Storefront": "सार्वजनिक स्टोरफ्रंट पर दृश्यमान",
+        "Draft Mode / Hidden from Store": "ड्राफ्ट मोड / स्टोर से छिपाएं",
+        "Image Configuration": "छवि कॉन्फ़िगरेशन",
+        "Upload via Files (recommended)": "फ़ाइलों के माध्यम से अपलोड करें",
+        "Paste URLs Directly (legacy)": "सीधे URL पेस्ट करें",
+        "Slot 1 (Main Image) *": "स्लॉट 1 (मुख्य छवि) *",
+        "Slot 2 (Zoom Detail)": "स्लॉट 2 (ज़ूम विवरण)",
+        "Slot 3 (Drape View)": "स्लॉट 3 (स्टाइल/ड्रेप)",
+        "Select Image File": "छवि फ़ाइल चुनें",
+        "Select File": "फ़ाइल चुनें",
+        "Paste URL": "URL पेस्ट करें",
+        "Enter image URL...": "छवि URL दर्ज करें...",
+        "Uploading...": "अपलोड हो रहा है...",
+        "Upload Failed": "अपलोड विफल",
+        "Weaver Story & Custom Drape Text": "बुनकर की कहानी और ड्रेप टेक्स्ट",
+        "Weaver Tale / Bio": "बुनकर की कहानी / जीवनी",
+        "Write the historical context or weavers background...": "ऐतिहासिक संदर्भ या बुनकर की पृष्ठभूमि लिखें...",
+        "Drape & Care Guide (Client instruction)": "ड्रेप और केयर गाइड (ग्राहक निर्देश)",
+        "E.g. Dry clean only. Iron on reverse.": "जैसे: केवल ड्राई क्लीन। उल्टी तरफ प्रेस करें।",
+        "Product Specifications (Technical Details)": "उत्पाद विवरण (तकनीकी जानकारी)",
+        "Saree Length": "साड़ी की लंबाई",
+        "Saree Width": "साड़ी की चौड़ाई",
+        "Blouse Piece Length": "ब्लाउज पीस की लंबाई",
+        "Wash Care Instruction": "धुलाई देखभाल निर्देश",
+        "Origin Location": "उत्पत्ति का स्थान",
+        "Cancel": "रद्द करें",
+        "Save Masterpiece": "उत्कृष्ट कृति सुरक्षित करें",
+        "Saving...": "सुरक्षित किया जा रहा है...",
+
+        // CRM Leads
+        "CRM Customer Pipeline": "CRM ग्राहक पाइपलाइन",
+        "Track WhatsApp consultation requests, store leads, and customer notes.": "व्हाट्सएप परामर्श अनुरोधों, स्टोर लीड्स और ग्राहक नोट्स को ट्रैक करें।",
+        "Search leads by name, email or phone...": "नाम, ईमेल या फोन द्वारा खोजें...",
+        "Add Manual Lead": "मैनुअल लीड जोड़ें",
+        "New Inquiry": "नई पूछताछ",
+        "Requested: ": "अनुरोध किया गया: ",
+        "Consultation Subject: ": "परामर्श का विषय: ",
+        "Notes: ": "नोट्स: ",
+        "Status: ": "स्थिति: ",
+        "Contact: ": "संपर्क: ",
+        "Call Lead": "कॉल करें",
+        "WhatsApp Chat": "व्हाट्सएप चैट",
+        "Interaction History": "बातचीत का इतिहास",
+        "Write a detailed follow-up note...": "एक विस्तृत अनुवर्ती नोट लिखें...",
+        "Record Interaction": "बातचीत दर्ज करें",
+        "No interactions recorded yet for this client.": "इस ग्राहक के लिए अभी तक कोई बातचीत दर्ज नहीं की गई है।",
+        "Create New CRM Lead": "नया CRM लीड बनाएं",
+        "Full Name *": "पूरा नाम *",
+        "WhatsApp Phone *": "व्हाट्सएप फोन *",
+        "Email Address (optional)": "ईमेल पता (वैकल्पिक)",
+        "Loom / Styling Preference / Subject": "लूम / स्टाइलिंग प्राथमिकता / विषय",
+        "Bridal Trousseau Showcase": "शादी-ब्याह की खरीदारी (Bridal)",
+        "Heritage Collectors Showcase": "एंटीक / खास सिल्क साड़ी संग्रह",
+        "Festive Styling Consultation": "त्योहार और विशेष उत्सव स्टाइलिंग",
+        "Showroom Walk-in Inquiry": "शोरूम में आकर पूछताछ",
+        "Initial Notes / Customization Details": "प्रारंभिक नोट्स / अनुकूलन विवरण",
+        "E.g. Wants pure gold zari, wedding date Nov 12...": "जैसे: शुद्ध सोने की ज़री चाहिए, शादी की तारीख 12 नवंबर...",
+        "Save Lead": "लीड सुरक्षित करें",
+
+        // POS Billing / POS Bill
+        "Point of Sale (POS) Billing": "प्वाइंट ऑफ सेल (POS) बिलिंग",
+        "Register walkthrough sales, apply custom discounts, print invoices instantly.": "वॉक-थ्रू बिक्री पंजीकृत करें, विशेष छूट लागू करें, इनवॉइस प्रिंट करें।",
+        "Select Customer *": "ग्राहक चुनें *",
+        "Search customer name, phone, or email...": "ग्राहक का नाम, फोन या ईमेल खोजें...",
+        "Create New Customer Profile": "नया ग्राहक प्रोफाइल बनाएं",
+        "Item Lookup": "आइटम लुकअप",
+        "Search code or name...": "कोड या नाम खोजें...",
+        "Showroom Inventory": "शोरूम इन्वेंटरी",
+        "Qty: ": "मात्रा: ",
+        "In Bag": "बैग में",
+        "Add to Invoice": "इनवॉइस में जोड़ें",
+        "Cart is Empty": "कार्ट खाली है",
+        "No items added to invoice yet. Use lookup above.": "इनवॉइस में अभी तक कोई आइटम नहीं जोड़ा गया है। ऊपर खोजें।",
+        "GST / Tax (₹)": "जीएसटी / टैक्स (₹)",
+        "Custom Discount (₹)": "कस्टम छूट (₹)",
+        "Received Amount (Cash/Bank) (₹) *": "प्राप्त राशि (नकद/बैंक) (₹) *",
+        "Notes (Payment mode details, custom fittings etc)": "नोट्स (भुगतान मोड विवरण, कस्टम फिटिंग आदि)",
+        "E.g. Paid via PhonePe, needs custom fall and pico before dispatch": "जैसे: PhonePe द्वारा भुगतान किया गया, फॉल और पीको की आवश्यकता है",
+        "Register POS Sale": "POS बिक्री पंजीकृत करें",
+        "Invoice Summary": "इनवॉइस सारांश",
+        "Invoice Reference": "इनवॉइस संदर्भ",
+        "Customer Details": "ग्राहक का विवरण",
+        "Billed Items": "बिल किए गए आइटम",
+        "Price": "कीमत",
+        "Total": "कुल",
+        "Subtotal": "उपयोग (Subtotal)",
+        "Tax / GST": "टैक्स / जीएसटी",
+        "Discount": "छूट (Discount)",
+        "Net Payable": "कुल देय",
+        "Amount Paid": "भुगतान की गई राशि",
+        "Remaining Balance": "शेष देय राशि",
+        "Payment Status": "भुगतान की स्थिति",
+        "Print Invoice": "इनवॉइस प्रिंट करें",
+        "Close Invoice": "इनवॉइस बंद करें",
+
+        // POS customer popup
+        "Full Name": "पूरा नाम",
+        "WhatsApp / Phone *": "व्हाट्सएप / फोन *",
+        "Save Customer": "ग्राहक सुरक्षित करें",
+
+        // Order History
+        "Order & Invoice Archives": "ऑर्डर और इनवॉइस अभिलेखागार",
+        "Track customer purchases, outstanding balances, and print PDF daybook sheets.": "ग्राहक खरीद, बकाया शेष राशि और पीडीएफ दिन-बही प्रिंट ट्रैक करें।",
+        "Search invoices by number or client name...": "इनवॉइस नंबर या ग्राहक के नाम से खोजें...",
+        "Date Range Selection": "दिनांक सीमा का चयन",
+        "Type / Status": "प्रकार / स्थिति",
+        "Invoice No.": "इनवॉइस नं.",
+        "Client": "ग्राहक",
+        "Net Owed": "कुल बकाया",
+        "Paid So Far": "अब तक भुगतान",
+        "Outstanding Balance": "शेष देय राशि",
+        "Print": "प्रिंट",
+        "No orders logged.": "कोई ऑर्डर दर्ज नहीं है।",
+
+        // General
+        "Edit": "संपादित करें",
+        "Delete": "हटाएं",
+        "Save": "सुरक्षित करें"
+      };
+      return trans[key] || key;
+    }
+    return key;
+  };
   const [activeTab, setActiveTab] = useState<TabType>("overview");
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState("");
@@ -776,11 +1033,11 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
       <div className="min-h-screen bg-[#FDFBF7] flex items-center justify-center px-4">
         <div className="max-w-sm w-full bg-[#FAF7F2] border border-brand-gold/25 p-10 text-center space-y-5">
           <Lock className="w-10 h-10 text-brand-maroon mx-auto stroke-[1.2]" />
-          <h2 className="font-serif text-2xl text-brand-maroon font-light">Restricted Area</h2>
-          <p className="text-xs text-brand-warm-gray leading-relaxed">Administrator credentials required.</p>
+          <h2 className="font-serif text-2xl text-brand-maroon font-light">{tAdmin("Restricted Area")}</h2>
+          <p className="text-xs text-brand-warm-gray leading-relaxed">{tAdmin("Administrator credentials required.")}</p>
           <button onClick={() => setView("login-register")}
             className="w-full bg-brand-maroon text-[#FDFBF7] text-xs uppercase tracking-widest py-3.5 font-bold">
-            Sign In as Admin
+            {tAdmin("Sign In as Admin")}
           </button>
         </div>
       </div>
@@ -790,36 +1047,36 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
   // ── Nav items (Grouped by section for SaaS-grade UX) ─────────────────────
   const navSections = [
     {
-      title: "Dashboard",
+      title: tAdmin("Dashboard"),
       items: [
-        { id: "overview" as TabType, label: "Overview", icon: LayoutDashboard }
+        { id: "overview" as TabType, label: tAdmin("Overview"), icon: LayoutDashboard }
       ]
     },
     {
-      title: "Catalog & Inventory",
+      title: tAdmin("Catalog & Inventory"),
       items: [
-        { id: "catalog" as TabType, label: "Catalog & Stock", icon: ShoppingBag, badge: outOfStock.length || undefined }
+        { id: "catalog" as TabType, label: tAdmin("Catalog & Stock"), icon: ShoppingBag, badge: outOfStock.length || undefined }
       ]
     },
     {
-      title: "Sales",
+      title: tAdmin("Sales"),
       items: [
-        { id: "pos" as TabType, label: "POS Bill", icon: IndianRupee, badge: posCart.length > 0 ? posCart.reduce((sum, item) => sum + item.quantity, 0) : undefined },
-        { id: "orders" as TabType, label: "Order History", icon: FileText }
+        { id: "pos" as TabType, label: tAdmin("POS Bill"), icon: IndianRupee, badge: posCart.length > 0 ? posCart.reduce((sum, item) => sum + item.quantity, 0) : undefined },
+        { id: "orders" as TabType, label: tAdmin("Order History"), icon: FileText }
       ]
     },
     {
-      title: "CRM",
+      title: tAdmin("CRM"),
       items: [
-        { id: "crm" as TabType, label: "CRM Leads", icon: Users, badge: dbLeads.filter(l => l.status === "new").length || undefined }
+        { id: "crm" as TabType, label: tAdmin("CRM Leads"), icon: Users, badge: dbLeads.filter(l => l.status === "new").length || undefined }
       ]
     },
     {
-      title: "Operations",
+      title: tAdmin("Operations"),
       items: [
-        { id: "hr" as TabType, label: "HR & Staffing", icon: UserPlus },
-        { id: "finance" as TabType, label: "Finance & Ledger", icon: TrendingUp },
-        { id: "vendors" as TabType, label: "Vendors & Suppliers", icon: Package }
+        { id: "hr" as TabType, label: tAdmin("HR & Staffing"), icon: UserPlus },
+        { id: "finance" as TabType, label: tAdmin("Finance & Ledger"), icon: TrendingUp },
+        { id: "vendors" as TabType, label: tAdmin("Vendors & Suppliers"), icon: Package }
       ]
     }
   ];
@@ -872,16 +1129,23 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
       <div className="lg:hidden bg-[#1C050E] text-[#F9F5F0] flex items-center justify-between px-5 py-4 sticky top-0 z-[45] shadow-md print:hidden">
         <div>
           <span className="text-[8px] tracking-[0.25em] uppercase text-brand-gold font-bold">Art & Anchal</span>
-          <p className="font-serif text-base font-light text-white">Admin Console</p>
+          <p className="font-serif text-base font-light text-white">{tAdmin("Admin Console")}</p>
         </div>
         <div className="flex items-center gap-3.5">
+          <button
+            onClick={() => setLanguage(language === "en" ? "hi" : "en")}
+            className="text-brand-gold border border-brand-gold/30 px-2 py-0.5 rounded text-[10px] font-sans font-bold hover:bg-brand-gold hover:text-[#1C050E] transition"
+            title={language === "en" ? "हिंदी" : "EN"}
+          >
+            {language === "en" ? "हिंदी" : "EN"}
+          </button>
           <button onClick={fetchAllData} disabled={loading} className="text-white/60 hover:text-white p-1 rounded hover:bg-white/5 active:scale-95 transition">
             <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
           </button>
-          <button onClick={() => setView("home")} className="text-white/60 hover:text-white p-1 rounded hover:bg-white/5 active:scale-95 transition" title="Back to Store">
+          <button onClick={() => setView("home")} className="text-white/60 hover:text-white p-1 rounded hover:bg-white/5 active:scale-95 transition" title={tAdmin("Back to Store")}>
             <ArrowLeft className="w-4 h-4" />
           </button>
-          <button onClick={handleLogout} className="text-white/60 hover:text-white p-1 rounded hover:bg-white/5 active:scale-95 transition" title="Log Out">
+          <button onClick={handleLogout} className="text-white/60 hover:text-white p-1 rounded hover:bg-white/5 active:scale-95 transition" title={tAdmin("Log Out")}>
             <LogOut className="w-4 h-4" />
           </button>
         </div>
@@ -897,7 +1161,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
           }`}
         >
           <LayoutDashboard className="w-5 h-5" />
-          <span className="text-[8px] uppercase tracking-wider">Overview</span>
+          <span className="text-[8px] uppercase tracking-wider">{tAdmin("Overview")}</span>
         </button>
 
         {/* Catalog */}
@@ -908,7 +1172,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
           }`}
         >
           <ShoppingBag className="w-5 h-5" />
-          <span className="text-[8px] uppercase tracking-wider">Catalog</span>
+          <span className="text-[8px] uppercase tracking-wider">{tAdmin("Catalog")}</span>
           {outOfStock.length ? (
             <span className="absolute top-0.5 right-2 bg-red-500 text-white text-[7px] font-bold px-1 rounded-full scale-90">
               {outOfStock.length}
@@ -924,7 +1188,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
           }`}
         >
           <IndianRupee className="w-5 h-5" />
-          <span className="text-[8px] uppercase tracking-wider">POS Bill</span>
+          <span className="text-[8px] uppercase tracking-wider">{tAdmin("POS Bill")}</span>
           {posCart.length > 0 ? (
             <span className="absolute top-0.5 right-2 bg-brand-gold text-[#1C050E] text-[7px] font-bold px-1 rounded-full scale-90 min-w-[14px] text-center">
               {posCart.reduce((sum, item) => sum + item.quantity, 0)}
@@ -940,7 +1204,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
           }`}
         >
           <FileText className="w-5 h-5" />
-          <span className="text-[8px] uppercase tracking-wider">Orders</span>
+          <span className="text-[8px] uppercase tracking-wider">{tAdmin("Orders")}</span>
         </button>
 
         {/* More Menu */}
@@ -951,7 +1215,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
           }`}
         >
           <MoreHorizontal className="w-5 h-5" />
-          <span className="text-[8px] uppercase tracking-wider">More</span>
+          <span className="text-[8px] uppercase tracking-wider">{tAdmin("More")}</span>
           {/* Badge indicator if CRM has new leads */}
           {dbLeads.filter(l => l.status === "new").length ? (
             <span className="absolute top-0.5 right-2 bg-brand-gold text-[#1C050E] text-[7px] font-bold px-1 rounded-full scale-90">
@@ -968,8 +1232,8 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
             {/* Header */}
             <div className="flex justify-between items-center border-b border-white/10 pb-4">
               <div>
-                <p className="text-[8px] tracking-[0.25em] uppercase text-brand-gold font-bold">Additional Controls</p>
-                <h3 className="font-serif text-lg text-white font-light">Management Menu</h3>
+                <p className="text-[8px] tracking-[0.25em] uppercase text-brand-gold font-bold">{tAdmin("Additional Controls")}</p>
+                <h3 className="font-serif text-lg text-white font-light">{tAdmin("Management Menu")}</h3>
               </div>
               <button onClick={() => setIsMoreMenuOpen(false)} className="text-white/50 hover:text-white p-2 rounded-full hover:bg-white/5">
                 <X className="w-5 h-5" />
@@ -986,10 +1250,10 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                 }`}
               >
                 <Users className="w-6 h-6" />
-                <span className="text-[10px] font-bold uppercase tracking-wider text-center">CRM Leads</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-center">{tAdmin("CRM Leads")}</span>
                 {dbLeads.filter(l => l.status === "new").length ? (
                   <span className="bg-brand-gold text-[#1C050E] text-[8px] font-bold px-2 py-0.5 rounded-full mt-1">
-                    {dbLeads.filter(l => l.status === "new").length} New
+                    {dbLeads.filter(l => l.status === "new").length} {language === "hi" ? "नया" : "New"}
                   </span>
                 ) : null}
               </button>
@@ -1002,7 +1266,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                 }`}
               >
                 <UserPlus className="w-6 h-6" />
-                <span className="text-[10px] font-bold uppercase tracking-wider text-center">HR & Staffing</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-center">{tAdmin("HR & Staffing")}</span>
               </button>
 
               {/* Finance Ledger */}
@@ -1013,7 +1277,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                 }`}
               >
                 <TrendingUp className="w-6 h-6" />
-                <span className="text-[10px] font-bold uppercase tracking-wider text-center">Finance</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-center">{tAdmin("Finance")}</span>
               </button>
 
               {/* Vendors & Suppliers */}
@@ -1024,7 +1288,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                 }`}
               >
                 <Package className="w-6 h-6" />
-                <span className="text-[10px] font-bold uppercase tracking-wider text-center">Vendors</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-center">{tAdmin("Vendors")}</span>
               </button>
             </div>
           </div>
@@ -1038,7 +1302,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
           {!isSidebarCollapsed && (
             <div>
               <span className="text-[9px] tracking-[0.3em] uppercase text-brand-gold font-bold block">Art & Anchal</span>
-              <h1 className="font-serif text-lg font-light mt-0.5 text-white">Admin Console</h1>
+              <h1 className="font-serif text-lg font-light mt-0.5 text-white">{tAdmin("Admin Console")}</h1>
             </div>
           )}
           {isSidebarCollapsed && (
@@ -1047,7 +1311,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
           <button 
             onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
             className="p-1.5 rounded-lg hover:bg-white/5 text-white/60 hover:text-white transition"
-            title={isSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+            title={isSidebarCollapsed ? tAdmin("Expand Sidebar") : tAdmin("Collapse Sidebar")}
           >
             {isSidebarCollapsed ? <Menu className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
           </button>
@@ -1105,21 +1369,32 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
 
         {/* Footer */}
         <div className={`px-4 py-5 border-t border-white/10 space-y-3 ${isSidebarCollapsed ? "flex flex-col items-center px-2" : ""}`}>
+          <button
+            onClick={() => setLanguage(language === "en" ? "hi" : "en")}
+            className={`w-full flex items-center justify-center gap-2 border border-brand-gold/30 text-brand-gold hover:bg-brand-gold hover:text-[#1C050E] text-xs py-2 rounded-lg transition font-bold font-sans ${
+              isSidebarCollapsed ? "px-0" : ""
+            }`}
+            title={language === "en" ? "हिंदी में बदलें" : "Switch to English"}
+          >
+            <Globe className="w-3.5 h-3.5" />
+            {!isSidebarCollapsed && <span>{language === "en" ? "हिंदी (Hindi)" : "English"}</span>}
+            {isSidebarCollapsed && <span>{language === "en" ? "हिं" : "EN"}</span>}
+          </button>
           <button onClick={fetchAllData} disabled={loading}
             className={`w-full flex items-center justify-center gap-2 border border-white/15 text-white/60 hover:text-white text-xs py-2.5 rounded-lg transition ${
               isSidebarCollapsed ? "px-0" : ""
             }`}
-            title="Sync Data"
+            title={tAdmin("Sync Data")}
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
-            {!isSidebarCollapsed && <span>Sync Data</span>}
+            {!isSidebarCollapsed && <span>{tAdmin("Sync Data")}</span>}
           </button>
           <button onClick={() => setView("home")}
             className="w-full flex items-center justify-center gap-2 text-white/50 hover:text-white text-xs py-2 transition"
-            title="Back to Store"
+            title={tAdmin("Back to Store")}
           >
             <ArrowLeft className="w-3.5 h-3.5" /> 
-            {!isSidebarCollapsed && <span>Back to Store</span>}
+            {!isSidebarCollapsed && <span>{tAdmin("Back to Store")}</span>}
           </button>
           <div className={`flex items-center gap-2 pt-1 ${isSidebarCollapsed ? "flex-col w-full text-center" : ""}`}>
             <div className="w-7 h-7 rounded-full bg-brand-gold/20 border border-brand-gold/30 flex items-center justify-center flex-shrink-0">
@@ -1131,7 +1406,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                 <p className="text-[9px] text-white/40 truncate">{userSession?.email}</p>
               </div>
             )}
-            <button onClick={handleLogout} className={`p-2 text-white/50 hover:text-white transition ${isSidebarCollapsed ? "w-full flex justify-center" : ""}`} title="Log Out">
+            <button onClick={handleLogout} className={`p-2 text-white/50 hover:text-white transition ${isSidebarCollapsed ? "w-full flex justify-center" : ""}`} title={tAdmin("Log Out")}>
               <LogOut className="w-4 h-4" />
             </button>
           </div>
@@ -1145,10 +1420,10 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
         <div className="bg-[#FAF7F2] border-b border-brand-gold/15 px-6 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 print:hidden sticky top-0 z-[30] shadow-sm">
           <div className="flex items-center gap-2">
             <span className="text-[9px] font-bold uppercase tracking-wider text-[#FAF7F2] bg-brand-maroon px-2 py-1 rounded">
-              Active Date Range
+              {tAdmin("Active Date Range")}
             </span>
             <span className="text-[11px] text-brand-warm-gray hidden sm:inline">
-              Filtering Overview, Catalog, Orders, and Finance & Ledger by date
+              {tAdmin("Filtering Overview, Catalog, Orders, and Finance & Ledger by date")}
             </span>
           </div>
           <div className="flex items-center gap-2">
@@ -1158,7 +1433,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
               onChange={(e) => setStartDate(e.target.value)} 
               className="bg-white border border-brand-gold/20 px-2.5 py-1.5 text-xs focus:outline-none focus:border-brand-maroon font-mono rounded"
             />
-            <span className="text-xs text-brand-warm-gray">to</span>
+            <span className="text-xs text-brand-warm-gray">{tAdmin("to")}</span>
             <input 
               type="date" 
               value={endDate} 
@@ -1173,7 +1448,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                 }}
                 className="text-[9px] font-bold uppercase tracking-wider text-brand-maroon hover:underline ml-2 bg-brand-gold/15 px-2.5 py-1 rounded transition"
               >
-                Reset
+                {tAdmin("Reset")}
               </button>
             )}
           </div>
@@ -1198,21 +1473,66 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
             <div className="space-y-6 animate-fade-in print:hidden">
               <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-brand-gold/10 pb-4">
                 <div>
-                  <h2 className="font-serif text-3xl text-brand-maroon font-light">Dashboard Overview</h2>
-                  <p className="text-xs text-brand-warm-gray mt-0.5">Art&Anchal Varanasi Boutique Management Console</p>
+                  <h2 className="font-serif text-3xl text-brand-maroon font-light">{tAdmin("Dashboard Overview")}</h2>
+                  <p className="text-xs text-brand-warm-gray mt-0.5">{tAdmin("Art&Anchal Varanasi Boutique Management Console")}</p>
                 </div>
                 <div className="mt-2 md:mt-0 text-[10px] text-brand-warm-gray font-mono uppercase bg-brand-sand px-3 py-1.5 rounded select-none">
-                  System Live · Year {new Date().getFullYear()}
+                  {tAdmin("System Live · Year ")}{new Date().getFullYear()}
+                </div>
+              </div>
+
+              {/* Quick Transaction Action Bar */}
+              <div className="bg-[#FAF7F2] border border-brand-gold/15 rounded-xl p-5 shadow-sm space-y-4">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-brand-maroon flex items-center gap-2 border-b border-brand-gold/10 pb-3">
+                  <Sparkles className="w-4 h-4 text-brand-gold" /> {tAdmin("Quick Transaction Shortcuts")}
+                </h3>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  <button onClick={() => { setActiveTab("pos"); setActiveInvoice(null); }} className="flex items-center gap-3 p-3.5 border border-emerald-500/20 hover:border-emerald-600/40 bg-emerald-500/5 hover:bg-emerald-500/10 rounded-xl transition-all cursor-pointer active:scale-95 group">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-500/15 flex items-center justify-center text-emerald-700">
+                      <Plus className="w-4 h-4" />
+                    </div>
+                    <div className="text-left">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 block">{tAdmin("Add Sale")}</span>
+                      <span className="text-[9px] text-emerald-600 font-sans block">{tAdmin("Generate POS Bill")}</span>
+                    </div>
+                  </button>
+                  <button onClick={() => { setActiveTab("finance"); setActiveInvoice(null); setOpenFinancePurchaseModal(true); }} className="flex items-center gap-3 p-3.5 border border-rose-500/20 hover:border-rose-600/40 bg-rose-500/5 hover:bg-rose-500/10 rounded-xl transition-all cursor-pointer active:scale-95 group">
+                    <div className="w-8 h-8 rounded-lg bg-rose-500/15 flex items-center justify-center text-rose-700">
+                      <Minus className="w-4 h-4" />
+                    </div>
+                    <div className="text-left">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-rose-800 block">{tAdmin("Add Purchase")}</span>
+                      <span className="text-[9px] text-rose-600 font-sans block">{tAdmin("Log vendor stock purchase")}</span>
+                    </div>
+                  </button>
+                  <button onClick={() => { setActiveTab("finance"); setActiveInvoice(null); setOpenFinanceExpenseModal(true); }} className="flex items-center gap-3 p-3.5 border border-amber-500/20 hover:border-amber-600/40 bg-amber-500/5 hover:bg-amber-500/10 rounded-xl transition-all cursor-pointer active:scale-95 group">
+                    <div className="w-8 h-8 rounded-lg bg-amber-500/15 flex items-center justify-center text-amber-700">
+                      <Tag className="w-4 h-4" />
+                    </div>
+                    <div className="text-left">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800 block">{tAdmin("Add Expense")}</span>
+                      <span className="text-[9px] text-amber-600 font-sans block">{tAdmin("Record showroom expense")}</span>
+                    </div>
+                  </button>
+                  <button onClick={() => { setActiveTab("crm"); setActiveInvoice(null); }} className="flex items-center gap-3 p-3.5 border border-brand-maroon/20 hover:border-brand-maroon/40 bg-brand-maroon/5 hover:bg-brand-maroon/10 rounded-xl transition-all cursor-pointer active:scale-95 group">
+                    <div className="w-8 h-8 rounded-lg bg-brand-maroon/15 flex items-center justify-center text-brand-maroon">
+                      <UserPlus className="w-4 h-4" />
+                    </div>
+                    <div className="text-left">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-brand-maroon block">{tAdmin("Add Party")}</span>
+                      <span className="text-[9px] text-brand-maroon/70 font-sans block">{tAdmin("Log lead or customer")}</span>
+                    </div>
+                  </button>
                 </div>
               </div>
 
               {/* Vyapar Transaction Summary Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
                 {[
-                  { label: "To Collect (Receivables)", value: `₹${totalReceivables.toLocaleString("en-IN")}`, subtitle: "Customer unpaid dues", icon: IndianRupee, color: "text-amber-700", bg: "bg-amber-500/10 border-amber-500/15" },
-                  { label: "To Pay (Payables)", value: `₹${totalPayables.toLocaleString("en-IN")}`, subtitle: "Vendor outstanding dues", icon: CreditCard, color: "text-rose-700", bg: "bg-rose-500/10 border-rose-500/15" },
-                  { label: "Cash in Hand", value: `₹${cashInHand.toLocaleString("en-IN")}`, subtitle: "Physical showroom cash float", icon: IndianRupee, color: "text-emerald-700", bg: "bg-emerald-500/10 border-emerald-500/15" },
-                  { label: "Bank Balance", value: `₹${bankBalance.toLocaleString("en-IN")}`, subtitle: "Online/UPI/Ledger balance", icon: TrendingUp, color: "text-sky-700", bg: "bg-sky-500/10 border-sky-500/15" },
+                  { label: tAdmin("To Collect (Receivables)"), value: `₹${totalReceivables.toLocaleString("en-IN")}`, subtitle: tAdmin("Customer unpaid dues"), icon: IndianRupee, color: "text-amber-700", bg: "bg-amber-500/10 border-amber-500/15" },
+                  { label: tAdmin("To Pay (Payables)"), value: `₹${totalPayables.toLocaleString("en-IN")}`, subtitle: tAdmin("Vendor outstanding dues"), icon: CreditCard, color: "text-rose-700", bg: "bg-rose-500/10 border-rose-500/15" },
+                  { label: tAdmin("Cash in Hand"), value: `₹${cashInHand.toLocaleString("en-IN")}`, subtitle: tAdmin("Physical showroom cash float"), icon: IndianRupee, color: "text-emerald-700", bg: "bg-emerald-500/10 border-emerald-500/15" },
+                  { label: tAdmin("Bank Balance"), value: `₹${bankBalance.toLocaleString("en-IN")}`, subtitle: tAdmin("Online/UPI/Ledger balance"), icon: TrendingUp, color: "text-sky-700", bg: "bg-sky-500/10 border-sky-500/15" },
                 ].map((card) => (
                   <div key={card.label} className="bg-[#FAF7F2] border border-brand-gold/15 rounded-xl p-5 shadow-sm hover:shadow-md transition-all duration-300 flex items-center justify-between group">
                     <div className="space-y-1.5">
@@ -1227,65 +1547,20 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                 ))}
               </div>
 
-              {/* Quick Transaction Action Bar */}
-              <div className="bg-[#FAF7F2] border border-brand-gold/15 rounded-xl p-5 shadow-sm space-y-4">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-brand-maroon flex items-center gap-2 border-b border-brand-gold/10 pb-3">
-                  <Sparkles className="w-4 h-4 text-brand-gold" /> Quick Transaction Shortcuts
-                </h3>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                  <button onClick={() => { setActiveTab("pos"); setActiveInvoice(null); }} className="flex items-center gap-3 p-3.5 border border-emerald-500/20 hover:border-emerald-600/40 bg-emerald-500/5 hover:bg-emerald-500/10 rounded-xl transition-all cursor-pointer active:scale-95 group">
-                    <div className="w-8 h-8 rounded-lg bg-emerald-500/15 flex items-center justify-center text-emerald-700">
-                      <Plus className="w-4 h-4" />
-                    </div>
-                    <div className="text-left">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 block">Add Sale</span>
-                      <span className="text-[9px] text-emerald-600 font-sans block">Generate POS Bill</span>
-                    </div>
-                  </button>
-                  <button onClick={() => { setActiveTab("finance"); setActiveInvoice(null); setOpenFinancePurchaseModal(true); }} className="flex items-center gap-3 p-3.5 border border-rose-500/20 hover:border-rose-600/40 bg-rose-500/5 hover:bg-rose-500/10 rounded-xl transition-all cursor-pointer active:scale-95 group">
-                    <div className="w-8 h-8 rounded-lg bg-rose-500/15 flex items-center justify-center text-rose-700">
-                      <Minus className="w-4 h-4" />
-                    </div>
-                    <div className="text-left">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-rose-800 block">Add Purchase</span>
-                      <span className="text-[9px] text-rose-600 font-sans block">Log vendor stock purchase</span>
-                    </div>
-                  </button>
-                  <button onClick={() => { setActiveTab("finance"); setActiveInvoice(null); setOpenFinanceExpenseModal(true); }} className="flex items-center gap-3 p-3.5 border border-amber-500/20 hover:border-amber-600/40 bg-amber-500/5 hover:bg-amber-500/10 rounded-xl transition-all cursor-pointer active:scale-95 group">
-                    <div className="w-8 h-8 rounded-lg bg-amber-500/15 flex items-center justify-center text-amber-700">
-                      <Tag className="w-4 h-4" />
-                    </div>
-                    <div className="text-left">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800 block">Add Expense</span>
-                      <span className="text-[9px] text-amber-600 font-sans block">Record showroom expense</span>
-                    </div>
-                  </button>
-                  <button onClick={() => { setActiveTab("crm"); setActiveInvoice(null); }} className="flex items-center gap-3 p-3.5 border border-brand-maroon/20 hover:border-brand-maroon/40 bg-brand-maroon/5 hover:bg-brand-maroon/10 rounded-xl transition-all cursor-pointer active:scale-95 group">
-                    <div className="w-8 h-8 rounded-lg bg-brand-maroon/15 flex items-center justify-center text-brand-maroon">
-                      <UserPlus className="w-4 h-4" />
-                    </div>
-                    <div className="text-left">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-brand-maroon block">Add Party</span>
-                      <span className="text-[9px] text-brand-maroon/70 font-sans block">Log lead or customer</span>
-                    </div>
-                  </button>
-                </div>
-              </div>
-
               {/* Comparison chart (Sales vs Purchases) */}
               <div className="bg-[#FAF7F2] border border-brand-gold/15 rounded-xl p-5 shadow-sm space-y-4">
                 <div className="flex items-center justify-between border-b border-brand-gold/10 pb-3">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-brand-maroon flex items-center gap-2">
-                    <TrendingUp className="w-4 h-4 text-brand-gold" /> Sales vs Purchases Comparison
+                    <TrendingUp className="w-4 h-4 text-brand-gold" /> {tAdmin("Sales vs Purchases Comparison")}
                   </h3>
                   <div className="flex items-center gap-4 text-[9px] font-bold uppercase tracking-wider">
                     <div className="flex items-center gap-1.5">
                       <span className="w-2.5 h-2.5 bg-brand-maroon rounded-sm" />
-                      <span className="text-brand-maroon">Sales (Inflow)</span>
+                      <span className="text-brand-maroon">{tAdmin("Sales (Inflow)")}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <span className="w-2.5 h-2.5 bg-brand-gold rounded-sm" />
-                      <span className="text-brand-gold">Purchases (Outflow)</span>
+                      <span className="text-brand-gold">{tAdmin("Purchases (Outflow)")}</span>
                     </div>
                   </div>
                 </div>
@@ -1321,8 +1596,8 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                         <div key={d.month} className="flex-1 flex flex-col items-center gap-2 h-full justify-end group relative">
                           {/* Tooltip value */}
                           <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-10 text-[8px] font-bold font-mono bg-[#1C050E] text-[#F9F5F0] px-2 py-1 rounded shadow-lg flex flex-col gap-0.5 whitespace-nowrap">
-                            <span className="text-emerald-400">Sales: ₹{d.sales.toLocaleString("en-IN")}</span>
-                            <span className="text-rose-400">Purchases: ₹{d.purchases.toLocaleString("en-IN")}</span>
+                            <span className="text-emerald-400">{language === "hi" ? "बिक्री" : "Sales"}: ₹{d.sales.toLocaleString("en-IN")}</span>
+                            <span className="text-rose-400">{language === "hi" ? "खरीद" : "Purchases"}: ₹{d.purchases.toLocaleString("en-IN")}</span>
                           </div>
                           {/* Side-by-side bars */}
                           <div className="flex items-end justify-center gap-1 w-full h-full">
@@ -1350,21 +1625,21 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
               <div className="bg-[#FAF7F2] border border-brand-gold/15 rounded-xl p-5 shadow-sm space-y-4">
                 <div className="flex items-center justify-between border-b border-brand-gold/10 pb-3">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-brand-maroon flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-brand-gold" /> Consolidated Daybook (Recent Transactions)
+                    <FileText className="w-4 h-4 text-brand-gold" /> {tAdmin("Consolidated Daybook (Recent Transactions)")}
                   </h3>
-                  <span className="text-[8px] font-mono uppercase bg-brand-sand px-2 py-1 rounded">Live Feed</span>
+                  <span className="text-[8px] font-mono uppercase bg-brand-sand px-2 py-1 rounded">{tAdmin("Live Feed")}</span>
                 </div>
                 <div className="overflow-x-auto border border-brand-gold/10 rounded-lg">
                   <table className="min-w-full divide-y divide-brand-gold/10 bg-white">
                     <thead className="bg-[#FAF7F2]">
                       <tr>
-                        <th className="px-4 py-3 text-left text-[9px] font-bold uppercase tracking-wider text-brand-maroon">Type</th>
-                        <th className="px-4 py-3 text-left text-[9px] font-bold uppercase tracking-wider text-brand-maroon">Ref No.</th>
-                        <th className="px-4 py-3 text-left text-[9px] font-bold uppercase tracking-wider text-brand-maroon">Date</th>
-                        <th className="px-4 py-3 text-left text-[9px] font-bold uppercase tracking-wider text-brand-maroon">Party / Category</th>
-                        <th className="px-4 py-3 text-left text-[9px] font-bold uppercase tracking-wider text-brand-maroon">Payment Mode</th>
-                        <th className="px-4 py-3 text-center text-[9px] font-bold uppercase tracking-wider text-brand-maroon">Status</th>
-                        <th className="px-4 py-3 text-right text-[9px] font-bold uppercase tracking-wider text-brand-maroon">Amount</th>
+                        <th className="px-4 py-3 text-left text-[9px] font-bold uppercase tracking-wider text-brand-maroon">{tAdmin("Type")}</th>
+                        <th className="px-4 py-3 text-left text-[9px] font-bold uppercase tracking-wider text-brand-maroon">{tAdmin("Ref No.")}</th>
+                        <th className="px-4 py-3 text-left text-[9px] font-bold uppercase tracking-wider text-brand-maroon">{tAdmin("Date")}</th>
+                        <th className="px-4 py-3 text-left text-[9px] font-bold uppercase tracking-wider text-brand-maroon">{tAdmin("Party / Category")}</th>
+                        <th className="px-4 py-3 text-left text-[9px] font-bold uppercase tracking-wider text-brand-maroon">{tAdmin("Payment Mode")}</th>
+                        <th className="px-4 py-3 text-center text-[9px] font-bold uppercase tracking-wider text-brand-maroon">{tAdmin("Status")}</th>
+                        <th className="px-4 py-3 text-right text-[9px] font-bold uppercase tracking-wider text-brand-maroon">{tAdmin("Amount")}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-brand-gold/10">
@@ -1398,7 +1673,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                       {daybookTransactions.length === 0 && (
                         <tr>
                           <td colSpan={7} className="px-4 py-8 text-center text-xs text-brand-warm-gray italic">
-                            No transactions logged in the system yet.
+                            {tAdmin("No transactions recorded for this period.")}
                           </td>
                         </tr>
                       )}
@@ -1413,10 +1688,10 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                 <div className="bg-[#FAF7F2] border border-brand-gold/15 rounded-xl p-5 shadow-sm space-y-4">
                   <div className="flex items-center justify-between border-b border-brand-gold/10 pb-3">
                     <h3 className="text-xs font-bold uppercase tracking-wider text-brand-maroon flex items-center gap-2">
-                      <AlertTriangle className="w-4 h-4 text-red-600" /> Stock Alerts
+                      <AlertTriangle className="w-4 h-4 text-red-600" /> {tAdmin("Stock Alerts")}
                     </h3>
                     <span className="bg-red-100 text-red-800 text-[9px] font-bold px-2 py-0.5 rounded">
-                      {lowStockSarees.length} Items Low
+                      {lowStockSarees.length} {language === "hi" ? "आइटम कम" : "Items Low"}
                     </span>
                   </div>
                   {lowStockSarees.length > 0 ? (
@@ -1431,10 +1706,10 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                             <span className={`font-mono font-bold px-2 py-0.5 rounded text-[10px] ${
                               (s.stock_quantity ?? 0) <= 0 ? "bg-red-100 text-red-800" : "bg-amber-100 text-amber-800"
                             }`}>
-                              {(s.stock_quantity ?? 0) <= 0 ? "OUT OF STOCK" : `${s.stock_quantity} left`}
+                              {(s.stock_quantity ?? 0) <= 0 ? tAdmin("OUT OF STOCK") : `${s.stock_quantity} ${language === "hi" ? "शेष" : "left"}`}
                             </span>
                             <button onClick={() => { setActiveTab("vendors"); }} className="text-[10px] font-bold text-brand-maroon hover:underline flex items-center gap-0.5">
-                              Buy
+                              {language === "hi" ? "खरीदें" : "Buy"}
                             </button>
                           </div>
                         </div>
@@ -1442,7 +1717,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                     </div>
                   ) : (
                     <div className="py-12 text-center text-xs text-brand-warm-gray/60 italic">
-                      All inventory quantities are healthy.
+                      {tAdmin("All inventory quantities are healthy.")}
                     </div>
                   )}
                 </div>
@@ -1451,10 +1726,10 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                 <div className="bg-[#FAF7F2] border border-brand-gold/15 rounded-xl p-5 shadow-sm space-y-4">
                   <div className="flex items-center justify-between border-b border-brand-gold/10 pb-3">
                     <h3 className="text-xs font-bold uppercase tracking-wider text-brand-maroon flex items-center gap-2">
-                      <IndianRupee className="w-4 h-4 text-emerald-600" /> Pending Receivables
+                      <IndianRupee className="w-4 h-4 text-emerald-600" /> {tAdmin("Pending Receivables")}
                     </h3>
                     <span className="bg-emerald-100 text-emerald-800 text-[9px] font-bold px-2 py-0.5 rounded">
-                      Collection Tracker
+                      {tAdmin("Collection Tracker")}
                     </span>
                   </div>
                   {dbDues.filter(d => d.due_type === "receivable" && d.status === "pending").length > 0 ? (
@@ -1465,17 +1740,17 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                             <span className="font-serif text-brand-maroon font-semibold block">{due.entity_name}</span>
                             {due.due_date && (
                               <span className="text-[9px] text-brand-warm-gray block font-mono">
-                                Due Date: {new Date(due.due_date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                                {language === "hi" ? "नियत तिथि" : "Due Date"}: {new Date(due.due_date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
                               </span>
                             )}
                           </div>
                           <div className="text-right flex items-center gap-3">
                             <div>
                               <span className="font-mono font-bold text-rose-600 block">₹{Number(due.total_amount - due.amount_paid).toLocaleString("en-IN")}</span>
-                              <span className="text-[9px] text-brand-warm-gray block">of ₹{due.total_amount?.toLocaleString("en-IN")}</span>
+                              <span className="text-[9px] text-brand-warm-gray block">{language === "hi" ? "कुल ₹ में से" : "of ₹"}{due.total_amount?.toLocaleString("en-IN")}</span>
                             </div>
                             <button onClick={() => setActiveTab("finance")} className="text-[10px] font-bold text-brand-maroon hover:underline">
-                              Pay
+                              {language === "hi" ? "भुगतान" : "Pay"}
                             </button>
                           </div>
                         </div>
@@ -1483,7 +1758,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                     </div>
                   ) : (
                     <div className="py-12 text-center text-xs text-brand-warm-gray/60 italic">
-                      No pending customer outstanding receivables.
+                      {tAdmin("No pending customer outstanding receivables.")}
                     </div>
                   )}
                 </div>
@@ -1495,12 +1770,14 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
             <div className="space-y-5 animate-fade-in print:hidden">
               <div className="flex justify-between items-center">
                 <div>
-                  <h2 className="font-serif text-2xl text-brand-maroon font-light">Saree Catalog & Stock</h2>
-                  <p className="text-xs text-brand-warm-gray mt-0.5">{dbSarees.filter(s => s.is_active !== false).length} items in inventory</p>
+                  <h2 className="font-serif text-2xl text-brand-maroon font-light">{tAdmin("Saree Catalog & Stock")}</h2>
+                  <p className="text-xs text-brand-warm-gray mt-0.5">
+                    {dbSarees.filter(s => s.is_active !== false).length} {language === "hi" ? "आइटम इन्वेंटरी में" : "items in inventory"}
+                  </p>
                 </div>
                 <button onClick={() => { setEditingSaree(null); setSareeForm({ ...emptySaree }); setSlotPreview(["","",""]); setSlotError(["","",""]); setSlotUploading([false,false,false]); setSlotProgress([0,0,0]); setUrlInputMode(false); setSareeModalTab("basic"); setIsSareeModalOpen(true); }}
                   className="bg-brand-maroon text-brand-ivory text-xs uppercase tracking-widest px-5 py-3 font-bold flex items-center gap-2 hover:bg-brand-maroon/90 transition">
-                  <Plus className="w-4 h-4" /> Add Saree
+                  <Plus className="w-4 h-4" /> {tAdmin("Add Saree")}
                 </button>
               </div>
 
@@ -1515,7 +1792,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                       setCatalogSearch(e.target.value);
                       setCatalogPage(1);
                     }}
-                    placeholder="Search catalog by name, material, technique..."
+                    placeholder={tAdmin("Search catalog by name or code...")}
                     className="w-full bg-[#FAF7F2] border border-brand-gold/20 pl-9 pr-4 py-2.5 text-xs focus:outline-none focus:border-brand-maroon"
                   />
                 </div>
@@ -1528,10 +1805,10 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                     }}
                     className="w-full bg-[#FAF7F2] border border-brand-gold/20 px-3 py-2.5 text-xs focus:outline-none focus:border-brand-maroon"
                   >
-                    <option value="all">All Stock Status</option>
-                    <option value="in_stock">In Stock</option>
-                    <option value="low_stock">Low Stock (≤ 2)</option>
-                    <option value="out_of_stock">Out of Stock</option>
+                    <option value="all">{tAdmin("All Stock Status")}</option>
+                    <option value="in_stock">{tAdmin("In Stock")}</option>
+                    <option value="low_stock">{language === "hi" ? "कम स्टॉक (≤ 2)" : "Low Stock (≤ 2)"}</option>
+                    <option value="out_of_stock">{tAdmin("Out of Stock")}</option>
                   </select>
                 </div>
               </div>
@@ -1541,11 +1818,11 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                   <table className="w-full text-left text-xs">
                     <thead>
                       <tr className="bg-[#1C050E] text-[#F9F5F0] text-[10px] uppercase tracking-wider">
-                        <th className="px-4 py-3.5">Product</th>
-                        <th className="px-4 py-3.5">Technique</th>
-                        <th className="px-4 py-3.5">Price</th>
-                        <th className="px-4 py-3.5 text-center">Stock</th>
-                        <th className="px-4 py-3.5 text-center">Actions</th>
+                        <th className="px-4 py-3.5">{tAdmin("Product")}</th>
+                        <th className="px-4 py-3.5">{tAdmin("Technique")}</th>
+                        <th className="px-4 py-3.5">{tAdmin("Price")}</th>
+                        <th className="px-4 py-3.5 text-center">{tAdmin("Stock")}</th>
+                        <th className="px-4 py-3.5 text-center">{tAdmin("Actions")}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-brand-gold/10">
@@ -1562,9 +1839,9 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                                 <div>
                                   <p className="font-serif font-semibold text-[13px] text-brand-maroon leading-tight">{s.name}</p>
                                   <div className="flex gap-1 mt-0.5">
-                                    {s.is_bestseller && <span className="text-[8px] bg-brand-gold/20 text-brand-gold-dark px-1.5 py-0.5 rounded font-bold uppercase">Bestseller</span>}
-                                    {s.is_featured && <span className="text-[8px] bg-brand-maroon/10 text-brand-maroon px-1.5 py-0.5 rounded font-bold uppercase">Featured</span>}
-                                    {s.is_new && <span className="text-[8px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded font-bold uppercase">New</span>}
+                                    {s.is_bestseller && <span className="text-[8px] bg-brand-gold/20 text-brand-gold-dark px-1.5 py-0.5 rounded font-bold uppercase">{language === "hi" ? "सर्वश्रेष्ठ विक्रेता" : "Bestseller"}</span>}
+                                    {s.is_featured && <span className="text-[8px] bg-brand-maroon/10 text-brand-maroon px-1.5 py-0.5 rounded font-bold uppercase">{language === "hi" ? "विशेष" : "Featured"}</span>}
+                                    {s.is_new && <span className="text-[8px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded font-bold uppercase">{language === "hi" ? "नया" : "New"}</span>}
                                   </div>
                                 </div>
                               </div>
@@ -1576,15 +1853,15 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                             </td>
                             <td className="px-4 py-3.5 text-center">
                               <span className={`inline-block text-[10px] font-bold px-2.5 py-1 rounded-full ${stockColor}`}>
-                                {stock <= 0 ? "Out of Stock" : `${stock} pcs`}
+                                {stock <= 0 ? tAdmin("Out of Stock") : (language === "hi" ? `${stock} पीस` : `${stock} pcs`)}
                               </span>
                             </td>
                             <td className="px-4 py-3.5">
                               <div className="flex items-center justify-center gap-3">
-                                <button onClick={() => handleOpenEditSaree(s)} className="text-brand-gold-dark hover:text-brand-maroon transition" title="Edit">
+                                <button onClick={() => handleOpenEditSaree(s)} className="text-brand-gold-dark hover:text-brand-maroon transition" title={tAdmin("Edit")}>
                                   <Edit className="w-4 h-4" />
                                 </button>
-                                <button onClick={() => handleDeleteSaree(s.id)} className="text-red-600 hover:text-red-800 transition" title="Remove">
+                                <button onClick={() => handleDeleteSaree(s.id)} className="text-red-600 hover:text-red-800 transition" title={language === "hi" ? "हटाएं" : "Remove"}>
                                   <Trash2 className="w-4 h-4" />
                                 </button>
                               </div>
@@ -1610,10 +1887,12 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                           </div>
                         </div>
                         <p className="font-mono font-bold">₹{Number(s.price).toLocaleString("en-IN")}</p>
-                        <span className={`inline-block text-[10px] font-bold px-2.5 py-1 rounded-full ${stockColor}`}>{stock <= 0 ? "Out of Stock" : `${stock} pcs`}</span>
+                        <span className={`inline-block text-[10px] font-bold px-2.5 py-1 rounded-full ${stockColor}`}>
+                          {stock <= 0 ? tAdmin("Out of Stock") : (language === "hi" ? `${stock} पीस` : `${stock} pcs`)}
+                        </span>
                         <div className="flex gap-2">
-                          <button onClick={() => handleOpenEditSaree(s)} className="text-brand-gold-dark hover:text-brand-maroon transition" title="Edit"><Edit className="w-4 h-4"/></button>
-                          <button onClick={() => handleDeleteSaree(s.id)} className="text-red-600 hover:text-red-800 transition" title="Remove"><Trash2 className="w-4 h-4"/></button>
+                          <button onClick={() => handleOpenEditSaree(s)} className="text-brand-gold-dark hover:text-brand-maroon transition" title={tAdmin("Edit")}><Edit className="w-4 h-4"/></button>
+                          <button onClick={() => handleDeleteSaree(s.id)} className="text-red-600 hover:text-red-800 transition" title={language === "hi" ? "हटाएं" : "Remove"}><Trash2 className="w-4 h-4"/></button>
                         </div>
                       </div>
                     );
@@ -1621,7 +1900,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                 </div>
                 {paginatedCatalogSarees.length === 0 && (
                   <div className="py-16 text-center text-xs text-brand-warm-gray italic">
-                    No sarees match the current search filters or date range.
+                    {tAdmin("No sarees match your search/filter parameters.")}
                   </div>
                 )}
               </div>
@@ -1630,14 +1909,18 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
               {totalCatalogPages > 1 && (
                 <div className="flex items-center justify-between bg-[#FAF7F2] border border-brand-gold/15 p-4 rounded-lg">
                   <span className="text-xs text-brand-warm-gray">
-                    Showing Page <strong className="text-brand-maroon">{currentCatalogPage}</strong> of <strong className="text-brand-maroon">{totalCatalogPages}</strong> ({filteredCatalogSarees.length} items total)
+                    {language === "hi" ? (
+                      <>पृष्ठ <strong className="text-brand-maroon">{currentCatalogPage}</strong> का <strong className="text-brand-maroon">{totalCatalogPages}</strong> (कुल <strong className="text-brand-maroon">{filteredCatalogSarees.length}</strong> आइटम) दिखा रहा है</>
+                    ) : (
+                      <>Showing Page <strong className="text-brand-maroon">{currentCatalogPage}</strong> of <strong className="text-brand-maroon">{totalCatalogPages}</strong> ({filteredCatalogSarees.length} items total)</>
+                    )}
                   </span>
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => setCatalogPage((prev) => Math.max(prev - 1, 1))}
                       disabled={currentCatalogPage === 1}
                       className="p-1.5 rounded border border-brand-gold/20 text-brand-maroon hover:bg-brand-gold/10 disabled:opacity-30 disabled:hover:bg-transparent transition"
-                      title="Previous Page"
+                      title={language === "hi" ? "पिछला पृष्ठ" : "Previous Page"}
                     >
                       <ChevronLeft className="w-4 h-4" />
                     </button>
@@ -1645,7 +1928,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                       onClick={() => setCatalogPage((prev) => Math.min(prev + 1, totalCatalogPages))}
                       disabled={currentCatalogPage === totalCatalogPages}
                       className="p-1.5 rounded border border-brand-gold/20 text-brand-maroon hover:bg-brand-gold/10 disabled:opacity-30 disabled:hover:bg-transparent transition"
-                      title="Next Page"
+                      title={language === "hi" ? "अगला पृष्ठ" : "Next Page"}
                     >
                       <ChevronRight className="w-4 h-4" />
                     </button>
@@ -1660,22 +1943,22 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
             <div className="space-y-5 animate-fade-in print:hidden">
               <div className="flex justify-between items-center">
                 <div>
-                  <h2 className="font-serif text-2xl text-brand-maroon font-light">CRM — Client Leads</h2>
-                  <p className="text-xs text-brand-warm-gray mt-0.5">{dbLeads.length} total leads</p>
+                  <h2 className="font-serif text-2xl text-brand-maroon font-light">{tAdmin("CRM Customer Pipeline")}</h2>
+                  <p className="text-xs text-brand-warm-gray mt-0.5">{dbLeads.length} {language === "hi" ? "कुल लीड्स" : "total leads"}</p>
                 </div>
                 <button onClick={() => setIsNewLeadModalOpen(true)}
                   className="bg-brand-maroon text-brand-ivory text-xs uppercase tracking-widest px-5 py-3 font-bold flex items-center gap-2 hover:bg-brand-maroon/90 transition">
-                  <Plus className="w-4 h-4" /> Add Offline Lead
+                  <Plus className="w-4 h-4" /> {tAdmin("Add Manual Lead")}
                 </button>
               </div>
 
               {/* Status summary */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                 {[
-                  { label: "New", status: "new", color: "bg-blue-50 border-blue-200 text-blue-700" },
-                  { label: "Contacted", status: "contacted", color: "bg-amber-50 border-amber-200 text-amber-700" },
-                  { label: "Qualified", status: "qualified", color: "bg-purple-50 border-purple-200 text-purple-700" },
-                  { label: "Won", status: "won", color: "bg-emerald-50 border-emerald-200 text-emerald-700" },
+                  { label: language === "hi" ? "नया" : "New", status: "new", color: "bg-blue-50 border-blue-200 text-blue-700" },
+                  { label: language === "hi" ? "संपर्क किया" : "Contacted", status: "contacted", color: "bg-amber-50 border-amber-200 text-amber-700" },
+                  { label: language === "hi" ? "योग्य" : "Qualified", status: "qualified", color: "bg-purple-50 border-purple-200 text-purple-700" },
+                  { label: language === "hi" ? "सफल" : "Won", status: "won", color: "bg-emerald-50 border-emerald-200 text-emerald-700" },
                 ].map(st => (
                   <div key={st.status} className={`border rounded-lg p-4 text-center ${st.color}`}>
                     <p className="text-[10px] uppercase font-bold">{st.label}</p>
@@ -1691,13 +1974,17 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-brand-warm-gray" />
                     <input type="text" value={leadSearch} onChange={e => setLeadSearch(e.target.value)}
-                      placeholder="Search by name, phone or email..."
+                      placeholder={language === "hi" ? "नाम, फोन या ईमेल से खोजें..." : "Search by name, phone or email..."}
                       className="w-full bg-[#FAF7F2] border border-brand-gold/20 pl-9 pr-4 py-2.5 text-xs focus:outline-none focus:border-brand-maroon" />
                   </div>
 
                   <div className="space-y-2 max-h-[540px] overflow-y-auto">
                     {filteredLeads.map(lead => {
                       const active = selectedLead?.id === lead.id;
+                      const displayStatus = lead.status === "new" ? (language === "hi" ? "नया" : "new") :
+                                            lead.status === "contacted" ? (language === "hi" ? "संपर्क किया" : "contacted") :
+                                            lead.status === "qualified" ? (language === "hi" ? "योग्य" : "qualified") :
+                                            lead.status === "won" ? (language === "hi" ? "सफल" : "won") : lead.status;
                       return (
                         <div key={lead.id} onClick={() => handleSelectLead(lead)}
                           className={`border p-4 cursor-pointer transition rounded-lg ${
@@ -1713,11 +2000,11 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                                   lead.status === "qualified" ? "bg-purple-100 text-purple-800" :
                                   lead.status === "won" ? "bg-emerald-100 text-emerald-800" :
                                   "bg-gray-100 text-gray-700"
-                                }`}>{lead.status}</span>
+                                }`}>{displayStatus}</span>
                                 <span className="text-[8px] uppercase font-mono border border-brand-gold/30 text-brand-gold px-1.5 py-0.5">{lead.source}</span>
                               </div>
                               <p className="text-[10px] text-brand-warm-gray font-mono">{lead.phone} {lead.email && `• ${lead.email}`}</p>
-                              {lead.interest && <p className="text-[10px] text-brand-maroon/70 italic">Interest: {lead.interest}</p>}
+                              {lead.interest && <p className="text-[10px] text-brand-maroon/70 italic">{language === "hi" ? "रुचि: " : "Interest: "}{lead.interest}</p>}
                               {lead.message && <p className="text-xs text-brand-maroon font-serif italic truncate max-w-xs">&ldquo;{lead.message}&rdquo;</p>}
                             </div>
                             <span className="text-[9px] text-brand-warm-gray font-mono flex-shrink-0 ml-2">
@@ -1728,14 +2015,14 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                       );
                     })}
                     {filteredLeads.length === 0 && (
-                      <p className="text-center text-xs text-brand-warm-gray italic py-12">No leads found.</p>
+                      <p className="text-center text-xs text-brand-warm-gray italic py-12">{language === "hi" ? "कोई लीड नहीं मिली।" : "No leads found."}</p>
                     )}
                   </div>
                 </div>
 
                 {/* Interaction panel */}
                 <div ref={interactionPanelRef} className="lg:col-span-5 space-y-4">
-                  <h3 className="font-serif text-lg text-brand-maroon border-b border-brand-gold/15 pb-2">Interaction Log</h3>
+                  <h3 className="font-serif text-lg text-brand-maroon border-b border-brand-gold/15 pb-2">{language === "hi" ? "बातचीत का ब्यौरा" : "Interaction Log"}</h3>
                   {selectedLead ? (
                     <div className="space-y-4 animate-fade-in">
                       <div className="bg-[#FAF7F2] border border-brand-gold/20 p-4 rounded-lg space-y-3">
@@ -1747,55 +2034,62 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                           <select value={selectedLead.status}
                             onChange={e => handleUpdateLeadStatus(selectedLead.id, e.target.value)}
                             className="bg-brand-ivory border border-brand-gold/25 text-brand-maroon text-xs px-2 py-1.5 focus:outline-none">
-                            <option value="new">New</option>
-                            <option value="contacted">Contacted</option>
-                            <option value="qualified">Qualified</option>
-                            <option value="proposal">Proposal</option>
-                            <option value="won">Won ✓</option>
-                            <option value="lost">Lost</option>
+                            <option value="new">{language === "hi" ? "नया" : "New"}</option>
+                            <option value="contacted">{language === "hi" ? "संपर्क किया" : "Contacted"}</option>
+                            <option value="qualified">{language === "hi" ? "योग्य" : "Qualified"}</option>
+                            <option value="proposal">{language === "hi" ? "प्रस्ताव" : "Proposal"}</option>
+                            <option value="won">{language === "hi" ? "सफल ✓" : "Won ✓"}</option>
+                            <option value="lost">{language === "hi" ? "असफल" : "Lost"}</option>
                           </select>
                         </div>
                       </div>
 
                       <form onSubmit={handleAddInteraction} className="bg-[#FAF7F2] border border-brand-gold/20 p-4 rounded-lg space-y-3">
-                        <h4 className="text-[10px] uppercase tracking-wider font-bold text-brand-maroon">Log Activity</h4>
+                        <h4 className="text-[10px] uppercase tracking-wider font-bold text-brand-maroon">{language === "hi" ? "गतिविधि दर्ज करें" : "Log Activity"}</h4>
                         <select value={interactionChannel} onChange={e => setInteractionChannel(e.target.value)}
                           className="w-full bg-brand-ivory border border-brand-gold/20 px-2.5 py-2 text-xs focus:outline-none">
-                          <option value="phone">Phone Call</option>
-                          <option value="whatsapp">WhatsApp</option>
-                          <option value="email">Email</option>
-                          <option value="in_person_showroom">Showroom Visit</option>
+                          <option value="phone">{language === "hi" ? "फ़ोन कॉल" : "Phone Call"}</option>
+                          <option value="whatsapp">{language === "hi" ? "व्हाट्सएप" : "WhatsApp"}</option>
+                          <option value="email">{language === "hi" ? "ईमेल" : "Email"}</option>
+                          <option value="in_person_showroom">{language === "hi" ? "शोरूम विज़िट" : "Showroom Visit"}</option>
                         </select>
                         <textarea rows={3} required value={newInteractionNote}
                           onChange={e => setNewInteractionNote(e.target.value)}
-                          placeholder="Notes from this interaction..."
+                          placeholder={language === "hi" ? "इस बातचीत के मुख्य बिंदु..." : "Notes from this interaction..."}
                           className="w-full bg-brand-ivory border border-brand-gold/20 px-2.5 py-2 text-xs focus:outline-none focus:border-brand-maroon resize-none" />
                         <button type="submit"
                           className="w-full bg-brand-maroon text-brand-ivory text-xs uppercase tracking-widest py-2.5 font-bold hover:bg-brand-maroon/90 transition">
-                          Log Entry
+                          {language === "hi" ? "प्रविष्टि दर्ज करें" : "Log Entry"}
                         </button>
                       </form>
 
                       <div className="space-y-3 max-h-60 overflow-y-auto">
-                        {leadInteractions.map(inter => (
-                          <div key={inter.id} className="border-l-2 border-brand-gold pl-3 py-1 space-y-0.5">
-                            <div className="flex justify-between items-baseline">
-                              <span className="text-[9px] uppercase font-bold text-brand-gold">{inter.channel?.replace(/_/g, " ")}</span>
-                              <span className="text-[9px] font-mono text-brand-warm-gray">
-                                {new Date(inter.created_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
-                              </span>
+                        {leadInteractions.map(inter => {
+                          const displayChannel = inter.channel === "phone" ? (language === "hi" ? "फ़ोन कॉल" : "Phone Call") :
+                                                 inter.channel === "whatsapp" ? (language === "hi" ? "व्हाट्सएप" : "WhatsApp") :
+                                                 inter.channel === "email" ? (language === "hi" ? "ईमेल" : "Email") :
+                                                 inter.channel === "in_person_showroom" ? (language === "hi" ? "शोरूम विज़िट" : "Showroom Visit") :
+                                                 inter.channel?.replace(/_/g, " ");
+                          return (
+                            <div key={inter.id} className="border-l-2 border-brand-gold pl-3 py-1 space-y-0.5">
+                              <div className="flex justify-between items-baseline">
+                                <span className="text-[9px] uppercase font-bold text-brand-gold">{displayChannel}</span>
+                                <span className="text-[9px] font-mono text-brand-warm-gray">
+                                  {new Date(inter.created_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
+                                </span>
+                              </div>
+                              <p className="text-xs text-brand-maroon font-serif italic">&ldquo;{inter.notes}&rdquo;</p>
                             </div>
-                            <p className="text-xs text-brand-maroon font-serif italic">&ldquo;{inter.notes}&rdquo;</p>
-                          </div>
-                        ))}
+                          );
+                        })}
                         {leadInteractions.length === 0 && (
-                          <p className="text-xs text-brand-warm-gray italic text-center py-4">No interactions logged yet.</p>
+                          <p className="text-xs text-brand-warm-gray italic text-center py-4">{language === "hi" ? "अभी तक कोई बातचीत दर्ज नहीं की गई है।" : "No interactions logged yet."}</p>
                         )}
                       </div>
                     </div>
                   ) : (
                     <div className="border border-dashed border-brand-gold/25 rounded-lg py-20 text-center text-xs text-brand-warm-gray">
-                      Select a lead to view interaction history.
+                      {language === "hi" ? "बातचीत का इतिहास देखने के लिए लीड चुनें।" : "Select a lead to view interaction history."}
                     </div>
                   )}
                 </div>
@@ -1807,8 +2101,8 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
           {activeTab === "pos" && !activeInvoice && (
             <div className="space-y-5 animate-fade-in print:hidden">
               <div>
-                <h2 className="font-serif text-2xl text-brand-maroon font-light">Generate Showroom Bill</h2>
-                <p className="text-xs text-brand-warm-gray mt-0.5">POS billing with automatic stock deduction</p>
+                <h2 className="font-serif text-2xl text-brand-maroon font-light">{language === "hi" ? "शोरूम बिल बनाएं" : "Generate Showroom Bill"}</h2>
+                <p className="text-xs text-brand-warm-gray mt-0.5">{language === "hi" ? "स्वचालित स्टॉक कटौती के साथ पीओएस बिलिंग" : "POS billing with automatic stock deduction"}</p>
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -1819,11 +2113,11 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                   <div className="bg-[#FAF7F2] border border-brand-gold/20 rounded-lg p-5 space-y-4">
                     <div className="flex justify-between items-center border-b border-brand-gold/10 pb-3">
                       <h3 className="font-serif text-base text-brand-maroon font-semibold">
-                        <span className="text-brand-gold mr-1.5">1.</span> Customer
+                        <span className="text-brand-gold mr-1.5">1.</span> {language === "hi" ? "ग्राहक" : "Customer"}
                       </h3>
                       <button onClick={() => setIsNewProfileModalOpen(true)}
                         className="text-[10px] uppercase font-bold text-brand-gold hover:text-brand-maroon flex items-center gap-1 transition">
-                        <Plus className="w-3 h-3" /> New Customer
+                        <Plus className="w-3 h-3" /> {language === "hi" ? "नया ग्राहक" : "New Customer"}
                       </button>
                     </div>
                     <div className="relative">
@@ -1837,7 +2131,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                               {p.email && <p className="text-emerald-700">{p.email}</p>}
                               <button onClick={() => { setSelectedProfileId(""); setPosCustomerSearch(""); }}
                                 className="absolute top-3 right-3 text-emerald-600 hover:text-emerald-900 text-[10px] font-bold uppercase underline">
-                                Change
+                                {language === "hi" ? "बदलें" : "Change"}
                               </button>
                             </div>
                           ) : null;
@@ -1851,7 +2145,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                               value={posCustomerSearch}
                               onChange={e => { setPosCustomerSearch(e.target.value); setIsCustomerDropdownOpen(true); }}
                               onFocus={() => setIsCustomerDropdownOpen(true)}
-                              placeholder="Search by name, phone or email..."
+                              placeholder={language === "hi" ? "नाम, फोन या ईमेल से खोजें..." : "Search by name, phone or email..."}
                               className="w-full bg-brand-ivory border border-brand-gold/20 pl-9 pr-4 py-2.5 text-xs focus:outline-none focus:border-brand-maroon"
                             />
                           </div>
@@ -1866,7 +2160,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                                   </button>
                                 ))
                               ) : (
-                                <div className="p-3 text-center text-xs text-brand-warm-gray italic">No matching customers</div>
+                                <div className="p-3 text-center text-xs text-brand-warm-gray italic">{language === "hi" ? "कोई मेल खाने वाला ग्राहक नहीं मिला" : "No matching customers"}</div>
                               )}
                             </div>
                           )}
@@ -1878,12 +2172,12 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                   {/* Step 2: Products */}
                   <div className="bg-[#FAF7F2] border border-brand-gold/20 rounded-lg p-5 space-y-4">
                     <h3 className="font-serif text-base text-brand-maroon font-semibold border-b border-brand-gold/10 pb-3">
-                      <span className="text-brand-gold mr-1.5">2.</span> Select Sarees
+                      <span className="text-brand-gold mr-1.5">2.</span> {language === "hi" ? "साड़ी चुनें" : "Select Sarees"}
                     </h3>
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-brand-warm-gray" />
                       <input type="text" value={posSearch} onChange={e => setPosSearch(e.target.value)}
-                        placeholder="Search sarees..." className="w-full bg-brand-ivory border border-brand-gold/20 pl-9 pr-4 py-2 text-xs focus:outline-none" />
+                        placeholder={language === "hi" ? "साड़ी खोजें..." : "Search sarees..."} className="w-full bg-brand-ivory border border-brand-gold/20 pl-9 pr-4 py-2 text-xs focus:outline-none" />
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-72 overflow-y-auto pr-1">
                       {filteredSarees.map(saree => {
@@ -1910,11 +2204,11 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                                   outOfStockItem ? "bg-red-100 text-red-700" :
                                   stock <= 2 ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"
                                 }`}>
-                                  {outOfStockItem ? "Out of Stock" : `${stock} in stock`}
+                                  {outOfStockItem ? (language === "hi" ? "स्टॉक में नहीं है" : "Out of Stock") : (language === "hi" ? `${stock} स्टॉक में` : `${stock} in stock`)}
                                 </span>
                                 {inCartQty > 0 && (
                                   <span className="bg-brand-maroon text-white text-[8px] font-bold uppercase px-1.5 py-0.5 rounded-full inline-block">
-                                    {inCartQty} in cart
+                                    {language === "hi" ? `${inCartQty} कार्ट में` : `${inCartQty} in cart`}
                                   </span>
                                 )}
                               </div>
@@ -1928,10 +2222,10 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                   {/* Step 3: Notes */}
                   <div className="bg-[#FAF7F2] border border-brand-gold/20 rounded-lg p-5 space-y-2">
                     <h3 className="font-serif text-base text-brand-maroon font-semibold">
-                      <span className="text-brand-gold mr-1.5">3.</span> Bill Notes (optional)
+                      <span className="text-brand-gold mr-1.5">3.</span> {language === "hi" ? "बिल विवरण/नोट्स (वैकल्पिक)" : "Bill Notes (optional)"}
                     </h3>
                     <textarea rows={2} value={posNotes} onChange={e => setPosNotes(e.target.value)}
-                      placeholder="E.g. custom blouse, delivery date, alterations..."
+                      placeholder={language === "hi" ? "जैसे- कस्टम ब्लाउज़, डिलीवरी की तारीख, परिवर्तन आदि..." : "E.g. custom blouse, delivery date, alterations..."}
                       className="w-full bg-brand-ivory border border-brand-gold/20 px-3 py-2 text-xs focus:outline-none focus:border-brand-maroon resize-none" />
                   </div>
                 </div>
@@ -1940,11 +2234,11 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                 <div className="lg:col-span-5">
                   <div className="bg-[#FAF7F2] border border-brand-gold/20 rounded-lg p-5 space-y-5 sticky top-6">
                     <h3 className="font-serif text-base text-brand-maroon font-semibold border-b border-brand-gold/10 pb-3">
-                      Billing Cart
+                      {language === "hi" ? "बिलिंग कार्ट" : "Billing Cart"}
                     </h3>
 
                     {posCart.length === 0 ? (
-                      <p className="text-xs italic text-brand-warm-gray/60 py-8 text-center">Cart is empty. Click sarees to add.</p>
+                      <p className="text-xs italic text-brand-warm-gray/60 py-8 text-center">{language === "hi" ? "कार्ट खाली है। जोड़ने के लिए साड़ी पर क्लिक करें।" : "Cart is empty. Click sarees to add."}</p>
                     ) : (
                       <div className="space-y-4">
                         {/* Items */}
@@ -1990,7 +2284,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                         {/* Discount */}
                         <div className="flex items-center gap-2 border-t border-brand-gold/10 pt-3">
                           <Tag className="w-3.5 h-3.5 text-brand-warm-gray flex-shrink-0" />
-                          <span className="text-[10px] uppercase font-bold text-brand-warm-gray">Discount (₹)</span>
+                          <span className="text-[10px] uppercase font-bold text-brand-warm-gray">{language === "hi" ? "छूट (₹)" : "Discount (₹)"}</span>
                           <input type="number" min={0} max={posSubtotal} value={posDiscount || ""}
                             onChange={e => setPosDiscount(Number(e.target.value))}
                             placeholder="0"
@@ -2000,34 +2294,34 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                         {/* Totals */}
                         <div className="space-y-2 border-t border-brand-gold/10 pt-3 text-xs">
                           <div className="flex justify-between text-brand-warm-gray">
-                            <span>Subtotal</span>
+                            <span>{language === "hi" ? "उप-योग" : "Subtotal"}</span>
                             <span className="font-mono">₹{posSubtotal.toLocaleString("en-IN")}</span>
                           </div>
                           {posDiscountAmt > 0 && (
                             <div className="flex justify-between text-emerald-600">
-                              <span>Discount</span>
+                              <span>{language === "hi" ? "छूट" : "Discount"}</span>
                               <span className="font-mono">−₹{posDiscountAmt.toLocaleString("en-IN")}</span>
                             </div>
                           )}
                           <div className="flex justify-between text-brand-warm-gray">
-                            <span>GST (CGST 2.5% + SGST 2.5%)</span>
+                            <span>{language === "hi" ? "जीएसटी (CGST 2.5% + SGST 2.5%)" : "GST (CGST 2.5% + SGST 2.5%)"}</span>
                             <span className="font-mono">₹{posTaxAmt.toLocaleString("en-IN")}</span>
                           </div>
                           <div className="flex justify-between font-bold text-sm border-t border-brand-maroon/15 pt-2 text-brand-maroon">
-                            <span>Grand Total</span>
+                            <span>{language === "hi" ? "कुल योग" : "Grand Total"}</span>
                             <span className="font-mono">₹{posTotal.toLocaleString("en-IN")}</span>
                           </div>
                         </div>
 
                         {/* Payment Method */}
                         <div className="space-y-2">
-                          <label className="text-[10px] uppercase font-bold text-brand-maroon block">Payment Method</label>
+                          <label className="text-[10px] uppercase font-bold text-brand-maroon block">{language === "hi" ? "भुगतान का प्रकार" : "Payment Method"}</label>
                           <div className="grid grid-cols-2 gap-2">
                             {[
-                              { id: "cash", label: "Cash" },
-                              { id: "upi", label: "UPI" },
-                              { id: "card", label: "Card" },
-                              { id: "bank_transfer", label: "Bank Transfer" },
+                              { id: "cash", label: language === "hi" ? "नकद" : "Cash" },
+                              { id: "upi", label: language === "hi" ? "यूपीआई" : "UPI" },
+                              { id: "card", label: language === "hi" ? "कार्ड" : "Card" },
+                              { id: "bank_transfer", label: language === "hi" ? "बैंक ट्रांसफर" : "Bank Transfer" },
                             ].map(pay => (
                               <button key={pay.id} type="button" onClick={() => setPosPaymentMethod(pay.id)}
                                 className={`border p-2 text-xs text-center font-semibold transition rounded ${
@@ -2044,7 +2338,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                         <button onClick={handlePOSCheckout} disabled={loading}
                           className="w-full bg-brand-maroon text-brand-ivory text-xs uppercase tracking-widest font-bold py-4 flex items-center justify-center gap-2 hover:bg-brand-maroon/90 transition shadow-md disabled:opacity-50">
                           {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Printer className="w-4 h-4" />}
-                          Generate Bill — ₹{posTotal.toLocaleString("en-IN")}
+                          {language === "hi" ? `बिल बनाएं — ₹${posTotal.toLocaleString("en-IN")}` : `Generate Bill — ₹${posTotal.toLocaleString("en-IN")}`}
                         </button>
                       </div>
                     )}
@@ -2059,13 +2353,13 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
             <div className="space-y-5 animate-fade-in print:hidden">
               <div className="flex justify-between items-center">
                 <div>
-                  <h2 className="font-serif text-2xl text-brand-maroon font-light">Order History</h2>
-                  <p className="text-xs text-brand-warm-gray mt-0.5">{dbOrders.length} total orders</p>
+                  <h2 className="font-serif text-2xl text-brand-maroon font-light">{language === "hi" ? "ऑर्डर्स का इतिहास" : "Order History"}</h2>
+                  <p className="text-xs text-brand-warm-gray mt-0.5">{dbOrders.length} {language === "hi" ? "कुल ऑर्डर्स" : "total orders"}</p>
                 </div>
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-brand-warm-gray" />
                   <input type="text" value={orderSearch} onChange={e => setOrderSearch(e.target.value)}
-                    placeholder="Search by name or invoice..."
+                    placeholder={language === "hi" ? "नाम या इनवॉइस नंबर से खोजें..." : "Search by name or invoice..."}
                     className="bg-[#FAF7F2] border border-brand-gold/20 pl-9 pr-4 py-2.5 text-xs focus:outline-none focus:border-brand-maroon" />
                 </div>
               </div>
@@ -2077,18 +2371,22 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                   <table className="w-full text-left text-xs">
                     <thead>
                       <tr className="bg-[#1C050E] text-[#F9F5F0] text-[10px] uppercase tracking-wider">
-                        <th className="px-4 py-3.5">Invoice #</th>
-                        <th className="px-4 py-3.5">Customer</th>
-                        <th className="px-4 py-3.5">Date</th>
-                        <th className="px-4 py-3.5">Channel</th>
-                        <th className="px-4 py-3.5">Payment</th>
-                        <th className="px-4 py-3.5 text-right">Total</th>
-                        <th className="px-4 py-3.5 text-center">Status</th>
-                        <th className="px-4 py-3.5 text-center">Actions</th>
+                        <th className="px-4 py-3.5">{language === "hi" ? "इनवॉइस नंबर" : "Invoice #"}</th>
+                        <th className="px-4 py-3.5">{language === "hi" ? "ग्राहक" : "Customer"}</th>
+                        <th className="px-4 py-3.5">{language === "hi" ? "तारीख" : "Date"}</th>
+                        <th className="px-4 py-3.5">{language === "hi" ? "माध्यम" : "Channel"}</th>
+                        <th className="px-4 py-3.5">{language === "hi" ? "भुगतान" : "Payment"}</th>
+                        <th className="px-4 py-3.5 text-right">{language === "hi" ? "कुल" : "Total"}</th>
+                        <th className="px-4 py-3.5 text-center">{language === "hi" ? "स्थिति" : "Status"}</th>
+                        <th className="px-4 py-3.5 text-center">{language === "hi" ? "कार्रवाई" : "Actions"}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-brand-gold/10">
-                      {filteredOrders.map(o => (
+                      {filteredOrders.map(o => {
+                        const displayStatus = o.status === "delivered" ? (language === "hi" ? "वितरित" : "delivered") :
+                                              o.status === "pending" ? (language === "hi" ? "लंबित" : "pending") :
+                                              o.status === "cancelled" ? (language === "hi" ? "रद्द" : "cancelled") : o.status;
+                        return (
                           <tr key={o.id} className="hover:bg-brand-sand/10 transition">
                             <td className="px-4 py-3.5 font-mono text-[10px] text-brand-gold font-bold">{o.invoice_number || o.id?.slice(0, 8)}</td>
                             <td className="px-4 py-3.5">
@@ -2101,7 +2399,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                             <td className="px-4 py-3.5">
                               <span className={`text-[9px] uppercase font-bold px-2 py-0.5 rounded-full ${
                                 o.is_offline ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-blue-700"
-                              }`}>{o.is_offline ? "Showroom" : "Online"}</span>
+                              }`}>{o.is_offline ? (language === "hi" ? "शोरूम" : "Showroom") : (language === "hi" ? "ऑनलाइन" : "Online")}</span>
                             </td>
                             <td className="px-4 py-3.5 font-mono uppercase text-[10px] text-brand-gold-dark">{o.payment_mode || "—"}</td>
                             <td className="px-4 py-3.5 font-mono font-bold text-right">₹{Number(o.total || 0).toLocaleString("en-IN")}</td>
@@ -2111,7 +2409,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                                 o.status === "pending" ? "bg-amber-100 text-amber-700" :
                                 o.status === "cancelled" ? "bg-red-100 text-red-700" :
                                 "bg-blue-100 text-blue-700"
-                              }`}>{o.status}</span>
+                              }`}>{displayStatus}</span>
                             </td>
                             <td className="px-4 py-3.5 text-center">
                               <button 
@@ -2125,17 +2423,18 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                                 }}
                                 className="text-[10px] uppercase font-bold tracking-widest text-brand-maroon hover:text-brand-gold transition"
                               >
-                                Update
+                                {language === "hi" ? "अपडेट" : "Update"}
                               </button>
                               <button 
                                 onClick={() => handleViewInvoice(o)}
                                 className="text-[10px] uppercase font-bold tracking-widest text-brand-gold hover:text-brand-maroon transition ml-3"
                               >
-                                View Bill
+                                {language === "hi" ? "बिल देखें" : "View Bill"}
                               </button>
                             </td>
                           </tr>
-                        ))}
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -2160,7 +2459,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                           }`}>{o.status}</span>
                           <span className={`px-2 py-0.5 rounded-full ${
                             o.is_offline ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-blue-700"
-                          }`}>{o.is_offline ? "Showroom" : "Online"}</span>
+                          }`}>{o.is_offline ? (language === "hi" ? "शोरूम" : "Showroom") : (language === "hi" ? "ऑनलाइन" : "Online")}</span>
                         </div>
                         <div className="flex justify-between items-center text-[10px] text-brand-warm-gray pt-2 border-t border-brand-gold/5">
                           <span>{new Date(o.created_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</span>
@@ -2177,13 +2476,13 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                               }}
                               className="text-brand-maroon font-bold uppercase hover:text-brand-gold transition"
                             >
-                              Update
+                              {language === "hi" ? "अपडेट" : "Update"}
                             </button>
                             <button 
                               onClick={() => handleViewInvoice(o)}
                               className="text-brand-gold font-bold uppercase hover:text-brand-maroon transition ml-1"
                             >
-                              View Bill
+                              {language === "hi" ? "बिल देखें" : "View Bill"}
                             </button>
                           </div>
                         </div>
@@ -2246,10 +2545,15 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
 
       {/* ══ MODAL: ADD/EDIT SAREE ══════════════════════════════════════════ */}
       {isSareeModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-brand-maroon/40 backdrop-blur-sm">
-          <div className="relative w-full max-w-2xl bg-[#FDFBF7] border border-brand-gold/25 rounded-lg p-6 max-h-[90vh] overflow-y-auto space-y-5 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-brand-maroon/40 backdrop-blur-sm">
+          <div className="relative w-full max-w-2xl bg-[#FDFBF7] border-t sm:border border-brand-gold/25 rounded-t-3xl sm:rounded-lg p-5 sm:p-6 max-h-[92vh] sm:max-h-[90vh] overflow-y-auto space-y-5 shadow-2xl animate-slide-up">
+            <div className="w-12 h-1.5 bg-brand-gold/20 rounded-full mx-auto sm:hidden mb-1"></div>
             <div className="flex justify-between items-center">
-              <h3 className="font-serif text-xl text-brand-maroon">{editingSaree ? "Edit Saree" : "Add New Saree"}</h3>
+              <h3 className="font-serif text-xl text-brand-maroon">
+                {editingSaree 
+                  ? (language === "hi" ? "साड़ी संपादित करें" : "Edit Saree") 
+                  : (language === "hi" ? "नई साड़ी जोड़ें" : "Add New Saree")}
+              </h3>
               <button onClick={() => setIsSareeModalOpen(false)} className="text-brand-warm-gray hover:text-brand-maroon">
                 <X className="w-5 h-5" />
               </button>
@@ -2266,7 +2570,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                     : "border-transparent text-brand-warm-gray hover:text-brand-maroon"
                 }`}
               >
-                1. Basic Info
+                {language === "hi" ? "1. बुनियादी जानकारी" : "1. Basic Info"}
               </button>
               <button
                 type="button"
@@ -2277,7 +2581,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                     : "border-transparent text-brand-warm-gray hover:text-brand-maroon"
                 }`}
               >
-                2. Characteristics
+                {language === "hi" ? "2. विशेषताएँ" : "2. Characteristics"}
               </button>
               <button
                 type="button"
@@ -2288,7 +2592,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                     : "border-transparent text-brand-warm-gray hover:text-brand-maroon"
                 }`}
               >
-                3. Images & Specs
+                {language === "hi" ? "3. छवियाँ और विवरण" : "3. Images & Specs"}
               </button>
             </div>
 
@@ -2299,14 +2603,14 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                   {/* Name + Material */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-1">
-                      <label className="text-[10px] uppercase font-bold block">Saree Name *</label>
+                      <label className="text-[10px] uppercase font-bold block">{language === "hi" ? "साड़ी का नाम *" : "Saree Name *"}</label>
                       <input type="text" required value={sareeForm.name} onChange={e => setSareeForm({ ...sareeForm, name: e.target.value })}
                         className="w-full bg-white border border-brand-gold/20 p-2.5 focus:outline-none focus:border-brand-maroon text-xs" />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[10px] uppercase font-bold block">Material *</label>
+                      <label className="text-[10px] uppercase font-bold block">{language === "hi" ? "सामग्री *" : "Material *"}</label>
                       <input type="text" required value={sareeForm.material} onChange={e => setSareeForm({ ...sareeForm, material: e.target.value })}
-                        placeholder="e.g. 100% Pure Katan Silk" list="material-list"
+                        placeholder={language === "hi" ? "जैसे: 100% शुद्ध कातान सिल्क" : "e.g. 100% Pure Katan Silk"} list="material-list"
                         className="w-full bg-white border border-brand-gold/20 p-2.5 focus:outline-none focus:border-brand-maroon text-xs" />
                       <datalist id="material-list">
                         {Array.from(new Set(dbSarees.map(s => s.material).filter(Boolean))).map((m: any) => <option key={m} value={m} />)}
@@ -2317,18 +2621,18 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                   {/* Price + Original Price + Stock */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="space-y-1">
-                      <label className="text-[10px] uppercase font-bold block">Price (₹) *</label>
+                      <label className="text-[10px] uppercase font-bold block">{language === "hi" ? "कीमत (₹) *" : "Price (₹) *"}</label>
                       <input type="number" min="0" required value={sareeForm.price} onChange={e => setSareeForm({ ...sareeForm, price: Number(e.target.value) })}
                         className="w-full bg-white border border-brand-gold/20 p-2.5 focus:outline-none focus:border-brand-maroon text-xs" />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[10px] uppercase font-bold block">Original Price (₹)</label>
+                      <label className="text-[10px] uppercase font-bold block">{language === "hi" ? "मूल कीमत (₹)" : "Original Price (₹)"}</label>
                       <input type="number" min="0" value={sareeForm.original_price} onChange={e => setSareeForm({ ...sareeForm, original_price: e.target.value })}
-                        placeholder="Optional" className="w-full bg-white border border-brand-gold/20 p-2.5 focus:outline-none focus:border-brand-maroon text-xs" />
+                        placeholder={language === "hi" ? "वैकल्पिक" : "Optional"} className="w-full bg-white border border-brand-gold/20 p-2.5 focus:outline-none focus:border-brand-maroon text-xs" />
                     </div>
                     <div className="space-y-1">
                       <label className="text-[10px] uppercase font-bold block flex items-center gap-1">
-                        <Package className="w-3 h-3" /> Stock Qty *
+                        <Package className="w-3 h-3" /> {language === "hi" ? "स्टॉक मात्रा *" : "Stock Qty *"}
                       </label>
                       <input type="number" min={0} required value={sareeForm.stock_quantity} onChange={e => setSareeForm({ ...sareeForm, stock_quantity: Number(e.target.value) })}
                         className="w-full bg-white border border-brand-gold/20 p-2.5 focus:outline-none focus:border-brand-maroon font-mono text-xs" />
@@ -2337,7 +2641,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
 
                   {/* Description */}
                   <div className="space-y-1">
-                    <label className="text-[10px] uppercase font-bold block">Description *</label>
+                    <label className="text-[10px] uppercase font-bold block">{language === "hi" ? "विवरण *" : "Description *"}</label>
                     <textarea rows={4} required value={sareeForm.description} onChange={e => setSareeForm({ ...sareeForm, description: e.target.value })}
                       className="w-full bg-white border border-brand-gold/20 p-2.5 focus:outline-none focus:border-brand-maroon resize-none text-xs" />
                   </div>
@@ -2350,28 +2654,28 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                   {/* Zari + Technique + Collection */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="space-y-1">
-                      <label className="text-[10px] uppercase font-bold block">Zari Type</label>
+                      <label className="text-[10px] uppercase font-bold block">{language === "hi" ? "जरी प्रकार" : "Zari Type"}</label>
                       <input type="text" value={sareeForm.zari_type} onChange={e => setSareeForm({ ...sareeForm, zari_type: e.target.value })}
-                        placeholder="e.g. Pure Gold Zari" list="zari-list"
+                        placeholder={language === "hi" ? "जैसे: शुद्ध सोना जरी" : "e.g. Pure Gold Zari"} list="zari-list"
                         className="w-full bg-white border border-brand-gold/20 p-2.5 focus:outline-none focus:border-brand-maroon text-xs" />
                       <datalist id="zari-list">
                         {Array.from(new Set(dbSarees.map(s => s.zari_type).filter(Boolean))).map((z: any) => <option key={z} value={z} />)}
                       </datalist>
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[10px] uppercase font-bold block">Technique</label>
+                      <label className="text-[10px] uppercase font-bold block">{language === "hi" ? "बुनाई तकनीक" : "Technique"}</label>
                       <input type="text" value={sareeForm.weaving_technique} onChange={e => setSareeForm({ ...sareeForm, weaving_technique: e.target.value })}
-                        placeholder="e.g. Kadwa Handloom" list="technique-list"
+                        placeholder={language === "hi" ? "जैसे: कढ़ुआ हथकरघा" : "e.g. Kadwa Handloom"} list="technique-list"
                         className="w-full bg-white border border-brand-gold/20 p-2.5 focus:outline-none focus:border-brand-maroon text-xs" />
                       <datalist id="technique-list">
                         {Array.from(new Set(dbSarees.map(s => s.weaving_technique).filter(Boolean))).map((t: any) => <option key={t} value={t} />)}
                       </datalist>
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[10px] uppercase font-bold block">Collection</label>
+                      <label className="text-[10px] uppercase font-bold block">{language === "hi" ? "कलेक्शन (संग्रह)" : "Collection"}</label>
                       <select value={sareeForm.collection_id} onChange={e => setSareeForm({ ...sareeForm, collection_id: e.target.value })}
                         className="w-full bg-white border border-brand-gold/20 p-2.5 focus:outline-none focus:border-brand-maroon text-xs">
-                        <option value="">— None —</option>
+                        <option value="">{language === "hi" ? "— कोई नहीं —" : "— None —"}</option>
                         {dbCollections.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                       </select>
                     </div>
@@ -2380,26 +2684,26 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                   {/* Artisan + Color + Drape Recommendation */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="space-y-1">
-                      <label className="text-[10px] uppercase font-bold block">Artisan</label>
+                      <label className="text-[10px] uppercase font-bold block">{language === "hi" ? "शिल्पकार (बुनकर)" : "Artisan"}</label>
                       <select value={sareeForm.artisan_id} onChange={e => setSareeForm({ ...sareeForm, artisan_id: e.target.value })}
                         className="w-full bg-white border border-brand-gold/20 p-2.5 focus:outline-none focus:border-brand-maroon text-xs">
-                        <option value="">— None —</option>
+                        <option value="">{language === "hi" ? "— कोई नहीं —" : "— None —"}</option>
                         {dbArtisans.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
                       </select>
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[10px] uppercase font-bold block">Color</label>
+                      <label className="text-[10px] uppercase font-bold block">{language === "hi" ? "रंग" : "Color"}</label>
                       <input type="text" value={sareeForm.colors} onChange={e => setSareeForm({ ...sareeForm, colors: e.target.value })}
-                        placeholder="e.g. Ivory Gold" list="color-list"
+                        placeholder={language === "hi" ? "जैसे: आइवरी गोल्ड" : "e.g. Ivory Gold"} list="color-list"
                         className="w-full bg-white border border-brand-gold/20 p-2.5 focus:outline-none focus:border-brand-maroon text-xs" />
                       <datalist id="color-list">
                         {Array.from(new Set(dbSarees.flatMap(s => s.colors || []).filter(Boolean))).map((c: any) => <option key={c} value={c} />)}
                       </datalist>
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[10px] uppercase font-bold block">Drape Recommendation</label>
+                      <label className="text-[10px] uppercase font-bold block">{language === "hi" ? "ड्रेप सुझाव" : "Drape Recommendation"}</label>
                       <input type="text" value={sareeForm.drape_recommendation} onChange={e => setSareeForm({ ...sareeForm, drape_recommendation: e.target.value })}
-                        placeholder="E.g. Classic style with gold jewelry"
+                        placeholder={language === "hi" ? "जैसे: क्लासिक शैली सोने के आभूषणों के साथ" : "E.g. Classic style with gold jewelry"}
                         className="w-full bg-white border border-brand-gold/20 p-2.5 focus:outline-none focus:border-brand-maroon text-xs" />
                     </div>
                   </div>
@@ -2407,10 +2711,10 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                   {/* Badges */}
                   <div className="flex flex-wrap gap-x-6 gap-y-3 py-3 border-y border-brand-gold/15">
                     {[
-                      { key: "sell_online", label: "Sell Online" },
-                      { key: "is_bestseller", label: "Bestseller" },
-                      { key: "is_featured", label: "Featured" },
-                      { key: "is_new", label: "New Arrival" },
+                      { key: "sell_online", label: language === "hi" ? "ऑनलाइन बेचें" : "Sell Online" },
+                      { key: "is_bestseller", label: language === "hi" ? "सर्वश्रेष्ठ विक्रेता (Bestseller)" : "Bestseller" },
+                      { key: "is_featured", label: language === "hi" ? "विशेष (Featured)" : "Featured" },
+                      { key: "is_new", label: language === "hi" ? "नया आगमन (New Arrival)" : "New Arrival" },
                     ].map(({ key, label }) => (
                       <label key={key} className="flex items-center gap-2 cursor-pointer select-none">
                         <input type="checkbox" checked={(sareeForm as any)[key]}
@@ -2430,7 +2734,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <label className="text-[10px] uppercase font-bold block">
-                        Product Images <span className="text-brand-gold font-normal">(at least 1 required)</span>
+                        {language === "hi" ? "उत्पाद की छवियाँ *" : "Product Images *"} <span className="text-brand-gold font-normal">({language === "hi" ? "कम से कम 1 आवश्यक" : "at least 1 required"})</span>
                       </label>
                       <span className="text-[9px] text-brand-warm-gray">JPG · PNG · WebP · max 10MB each</span>
                     </div>
@@ -2453,104 +2757,111 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
 
                     {/* 3-slot grid */}
                     <div className="grid grid-cols-3 gap-3">
-                      {(["Main", "Detail", "Drape"] as const).map((label, idx) => (
-                        <div key={idx} className="space-y-1">
-                          <span className="text-[9px] uppercase font-bold text-brand-warm-gray block text-center">
-                            {label} {idx === 0 && <span className="text-red-500">*</span>}
-                          </span>
+                      {(["Main", "Detail", "Drape"] as const).map((label, idx) => {
+                        const translatedLabel = label === "Main" 
+                          ? (language === "hi" ? "मुख्य" : "Main")
+                          : label === "Detail" 
+                            ? (language === "hi" ? "बारीकी (डिटेल)" : "Detail")
+                            : (language === "hi" ? "ड्रेप" : "Drape");
+                        return (
+                          <div key={idx} className="space-y-1">
+                            <span className="text-[9px] uppercase font-bold text-brand-warm-gray block text-center font-sans">
+                              {translatedLabel} {idx === 0 && <span className="text-red-500">*</span>}
+                            </span>
 
-                          <div
-                            className={`relative border-2 border-dashed rounded-lg transition group ${
-                              slotUploading[idx]
-                                ? "border-brand-gold/60 cursor-wait"
-                                : "border-brand-gold/30 hover:border-brand-maroon cursor-pointer"
-                            }`}
-                            onClick={() => !slotUploading[idx] && fileInputRefs[idx].current?.click()}
-                            onDragOver={e => { e.preventDefault(); e.currentTarget.classList.add('border-brand-maroon'); }}
-                            onDragLeave={e => { e.currentTarget.classList.remove('border-brand-maroon'); }}
-                            onDrop={e => {
-                              e.preventDefault();
-                              e.currentTarget.classList.remove('border-brand-maroon');
-                              const file = e.dataTransfer.files?.[0];
-                              if (file && !slotUploading[idx]) handleImageUpload(file, idx);
-                            }}
-                          >
-                            {slotPreview[idx] ? (
-                              <div className="relative rounded-lg overflow-hidden">
-                                <img
-                                  src={slotPreview[idx]}
-                                  alt={label}
-                                  className="w-full h-24 object-cover"
-                                />
-                                {!slotUploading[idx] && (
-                                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex flex-col items-center justify-center gap-1 rounded-lg">
-                                    <Upload className="w-4 h-4 text-white" />
-                                    <span className="text-white text-[8px] font-bold uppercase">Replace</span>
-                                  </div>
-                                )}
-                                <button
-                                  type="button"
-                                  onClick={e => {
-                                    e.stopPropagation();
-                                    setSareeForm(prev => {
-                                      const imgs = [...prev.images] as [string, string, string];
-                                      imgs[idx] = "";
-                                      return { ...prev, images: imgs };
-                                    });
-                                    setSlotPreview(prev => { const n = [...prev]; n[idx] = ""; return n; });
-                                    setSlotError(prev => { const n = [...prev]; n[idx] = ""; return n; });
-                                    setSlotProgress(prev => { const n = [...prev]; n[idx] = 0; return n; });
-                                  }}
-                                  className="absolute top-1 right-1 bg-red-500/90 hover:bg-red-600 text-white rounded-full p-0.5"
-                                >
-                                  <X className="w-3 h-3" />
-                                </button>
-                              </div>
-                            ) : (
-                              <div className="py-5 flex flex-col items-center gap-1 text-brand-warm-gray">
-                                <ImageIcon className="w-4 h-4 text-brand-gold" />
-                                <p className="text-[7.5px] text-center leading-tight">Click/Drop<br/>image</p>
-                              </div>
-                            )}
-
-                            {slotUploading[idx] && (
-                              <div className="absolute bottom-0 left-0 right-0 bg-black/70 px-1 py-1 flex items-center gap-1 rounded-b-lg">
-                                <div className="flex-1 bg-white/20 rounded-full h-0.5 overflow-hidden">
-                                  <div
-                                    className="h-full bg-brand-gold transition-all duration-300 rounded-full"
-                                    style={{ width: `${slotProgress[idx]}%` }}
+                            <div
+                              className={`relative border-2 border-dashed rounded-lg transition group ${
+                                slotUploading[idx]
+                                  ? "border-brand-gold/60 cursor-wait"
+                                  : "border-brand-gold/30 hover:border-brand-maroon cursor-pointer"
+                              }`}
+                              onClick={() => !slotUploading[idx] && fileInputRefs[idx].current?.click()}
+                              onDragOver={e => { e.preventDefault(); e.currentTarget.classList.add('border-brand-maroon'); }}
+                              onDragLeave={e => { e.currentTarget.classList.remove('border-brand-maroon'); }}
+                              onDrop={e => {
+                                e.preventDefault();
+                                e.currentTarget.classList.remove('border-brand-maroon');
+                                const file = e.dataTransfer.files?.[0];
+                                if (file && !slotUploading[idx]) handleImageUpload(file, idx);
+                              }}
+                            >
+                              {slotPreview[idx] ? (
+                                <div className="relative rounded-lg overflow-hidden">
+                                  <img
+                                    src={slotPreview[idx]}
+                                    alt={label}
+                                    className="w-full h-24 object-cover"
                                   />
+                                  {!slotUploading[idx] && (
+                                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex flex-col items-center justify-center gap-1 rounded-lg">
+                                      <Upload className="w-4 h-4 text-white" />
+                                      <span className="text-white text-[8px] font-bold uppercase">{language === "hi" ? "बदलें" : "Replace"}</span>
+                                    </div>
+                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={e => {
+                                      e.stopPropagation();
+                                      setSareeForm(prev => {
+                                        const imgs = [...prev.images] as [string, string, string];
+                                        imgs[idx] = "";
+                                        return { ...prev, images: imgs };
+                                      });
+                                      setSlotPreview(prev => { const n = [...prev]; n[idx] = ""; return n; });
+                                      setSlotError(prev => { const n = [...prev]; n[idx] = ""; return n; });
+                                      setSlotProgress(prev => { const n = [...prev]; n[idx] = 0; return n; });
+                                    }}
+                                    className="absolute top-1 right-1 bg-red-500/90 hover:bg-red-600 text-white rounded-full p-0.5"
+                                  >
+                                    <X className="w-3 h-3" />
+                                  </button>
                                 </div>
-                                <span className="text-white text-[7px] font-mono">{slotProgress[idx]}%</span>
-                              </div>
-                            )}
-                          </div>
+                              ) : (
+                                <div className="py-5 flex flex-col items-center gap-1 text-brand-warm-gray">
+                                  <ImageIcon className="w-4 h-4 text-brand-gold" />
+                                  <p className="text-[7.5px] text-center leading-tight">{language === "hi" ? "छवि चुनें /" : "Click/Drop"}<br/>{language === "hi" ? "ड्रॉप करें" : "image"}</p>
+                                </div>
+                              )}
 
-                          {slotError[idx] ? (
-                            <p className="text-[8px] text-red-500 flex items-start gap-0.5 leading-tight">
-                              <AlertTriangle className="w-2 h-2 mt-0.5 flex-shrink-0" />
-                              {slotError[idx]}
-                            </p>
-                          ) : !slotUploading[idx] && slotProgress[idx] === 100 && slotPreview[idx] ? (
-                            <p className="text-[8px] text-emerald-600 flex items-center gap-0.5 justify-center">
-                              <CheckCircle className="w-2 h-2" /> Uploaded
-                            </p>
-                          ) : null}
-                        </div>
-                      ))}
+                              {slotUploading[idx] && (
+                                <div className="absolute bottom-0 left-0 right-0 bg-black/70 px-1 py-1 flex items-center gap-1 rounded-b-lg">
+                                  <div className="flex-1 bg-white/20 rounded-full h-0.5 overflow-hidden">
+                                    <div
+                                      className="h-full bg-brand-gold transition-all duration-300 rounded-full"
+                                      style={{ width: `${slotProgress[idx]}%` }}
+                                    />
+                                  </div>
+                                  <span className="text-white text-[7px] font-mono">{slotProgress[idx]}%</span>
+                                </div>
+                              )}
+                            </div>
+
+                            {slotError[idx] ? (
+                              <p className="text-[8px] text-red-500 flex items-start gap-0.5 leading-tight">
+                                <AlertTriangle className="w-2 h-2 mt-0.5 flex-shrink-0" />
+                                {slotError[idx]}
+                              </p>
+                            ) : !slotUploading[idx] && slotProgress[idx] === 100 && slotPreview[idx] ? (
+                              <p className="text-[8px] text-emerald-600 flex items-center gap-0.5 justify-center">
+                                <CheckCircle className="w-2 h-2" /> {language === "hi" ? "अपलोड हो गया" : "Uploaded"}
+                              </p>
+                            ) : null}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
 
                   {/* Specs */}
                   <div className="bg-[#FAF7F2] border border-brand-gold/15 p-4 rounded-lg space-y-3">
-                    <h4 className="text-[10px] uppercase tracking-wider font-bold text-brand-maroon">Specifications</h4>
+                    <h4 className="text-[10px] uppercase tracking-wider font-bold text-brand-maroon">{language === "hi" ? "विवरण विशिष्टताएँ" : "Specifications"}</h4>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {[
-                        { key: "spec_length", label: "Length" },
-                        { key: "spec_width", label: "Width" },
-                        { key: "spec_blouse", label: "Blouse" },
-                        { key: "spec_wash_care", label: "Wash Care" },
-                        { key: "spec_origin", label: "Origin" },
+                        { key: "spec_length", label: language === "hi" ? "लंबाई (Length)" : "Length" },
+                        { key: "spec_width", label: language === "hi" ? "चौड़ाई (Width)" : "Width" },
+                        { key: "spec_blouse", label: language === "hi" ? "ब्लाउज (Blouse)" : "Blouse" },
+                        { key: "spec_wash_care", label: language === "hi" ? "धुलाई देखभाल (Wash Care)" : "Wash Care" },
+                        { key: "spec_origin", label: language === "hi" ? "उत्पत्ति (Origin)" : "Origin" },
                       ].map(({ key, label }) => (
                         <div key={key} className="space-y-1">
                           <label className="text-[9px] uppercase font-bold text-brand-warm-gray">{label}</label>
@@ -2568,12 +2879,14 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
               <div className="flex justify-end gap-3 pt-3 border-t border-brand-gold/15">
                 <button type="button" onClick={() => setIsSareeModalOpen(false)}
                   className="text-brand-warm-gray uppercase tracking-wider text-[10px] font-bold px-4 py-2 hover:text-brand-maroon transition">
-                  Cancel
+                  {language === "hi" ? "रद्द करें" : "Cancel"}
                 </button>
                 <button type="submit" disabled={loading}
                   className="bg-brand-maroon text-brand-ivory uppercase tracking-widest text-[10px] font-bold px-6 py-3 hover:bg-brand-maroon/90 transition shadow flex items-center gap-2 disabled:opacity-50">
                   {loading && <RefreshCw className="w-3 h-3 animate-spin" />}
-                  {editingSaree ? "Save Changes" : "Add to Catalog"}
+                  {editingSaree 
+                    ? (language === "hi" ? "परिवर्तन सहेजें" : "Save Changes") 
+                    : (language === "hi" ? "कैटलॉग में जोड़ें" : "Add to Catalog")}
                 </button>
               </div>
             </form>
@@ -2581,12 +2894,12 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
         </div>
       )}
 
-      {/* ══ MODAL: ADD OFFLINE LEAD ════════════════════════════════════════ */}
       {isNewLeadModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-brand-maroon/40 backdrop-blur-sm">
-          <div className="w-full max-w-md bg-[#FDFBF7] border border-brand-gold/25 rounded-lg p-6 space-y-5 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-brand-maroon/40 backdrop-blur-sm">
+          <div className="w-full max-w-md bg-[#FDFBF7] border-t sm:border border-brand-gold/25 rounded-t-3xl sm:rounded-lg p-5 sm:p-6 space-y-5 shadow-2xl max-h-[92vh] sm:max-h-[90vh] overflow-y-auto animate-slide-up">
+            <div className="w-12 h-1.5 bg-brand-gold/20 rounded-full mx-auto sm:hidden mb-1"></div>
             <div className="flex justify-between items-center">
-              <h3 className="font-serif text-xl text-brand-maroon">Add Offline Lead</h3>
+              <h3 className="font-serif text-xl text-brand-maroon">{language === "hi" ? "ऑफ़लाइन लीड जोड़ें" : "Add Offline Lead"}</h3>
               <button onClick={() => setIsNewLeadModalOpen(false)} className="text-brand-warm-gray hover:text-brand-maroon">
                 <X className="w-5 h-5" />
               </button>
@@ -2594,42 +2907,42 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
 
             <form onSubmit={handleAddOfflineLead} className="space-y-4 text-xs text-brand-maroon">
               <div className="space-y-1">
-                <label className="text-[10px] uppercase font-bold block">Client Name *</label>
+                <label className="text-[10px] uppercase font-bold block">{language === "hi" ? "ग्राहक का नाम *" : "Client Name *"}</label>
                 <input type="text" required value={leadForm.name} onChange={e => setLeadForm({ ...leadForm, name: e.target.value })}
                   className="w-full bg-white border border-brand-gold/20 p-2.5 focus:outline-none focus:border-brand-maroon" />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-[10px] uppercase font-bold block">Phone</label>
+                  <label className="text-[10px] uppercase font-bold block">{language === "hi" ? "फ़ोन" : "Phone"}</label>
                   <input type="tel" value={leadForm.phone} onChange={e => setLeadForm({ ...leadForm, phone: e.target.value })}
                     placeholder="+91..." className="w-full bg-white border border-brand-gold/20 p-2.5 focus:outline-none" />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] uppercase font-bold block">Email</label>
+                  <label className="text-[10px] uppercase font-bold block">{language === "hi" ? "ईमेल" : "Email"}</label>
                   <input type="email" value={leadForm.email} onChange={e => setLeadForm({ ...leadForm, email: e.target.value })}
                     className="w-full bg-white border border-brand-gold/20 p-2.5 focus:outline-none" />
                 </div>
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] uppercase font-bold block">Interest / Saree Type</label>
+                <label className="text-[10px] uppercase font-bold block">{language === "hi" ? "रुचि / साड़ी का प्रकार" : "Interest / Saree Type"}</label>
                 <input type="text" value={leadForm.interest} onChange={e => setLeadForm({ ...leadForm, interest: e.target.value })}
-                  placeholder="e.g. Bridal Katan Silk, Shikargah Collection..."
+                  placeholder={language === "hi" ? "जैसे: ब्राइडल कातान सिल्क, शिकारगाह कलेक्शन..." : "e.g. Bridal Katan Silk, Shikargah Collection..."}
                   className="w-full bg-white border border-brand-gold/20 p-2.5 focus:outline-none" />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] uppercase font-bold block">Notes</label>
+                <label className="text-[10px] uppercase font-bold block">{language === "hi" ? "टिप्पणियाँ (नोट्स)" : "Notes"}</label>
                 <textarea rows={3} value={leadForm.message} onChange={e => setLeadForm({ ...leadForm, message: e.target.value })}
-                  placeholder="Occasion, budget, color preferences, timeline..."
+                  placeholder={language === "hi" ? "अवसर (शादी, आदि), बजट, रंग की पसंद, समय-सीमा..." : "Occasion, budget, color preferences, timeline..."}
                   className="w-full bg-white border border-brand-gold/20 p-2.5 focus:outline-none resize-none" />
               </div>
               <div className="flex justify-end gap-3 pt-2 border-t border-brand-gold/15">
                 <button type="button" onClick={() => setIsNewLeadModalOpen(false)}
                   className="text-brand-warm-gray uppercase text-[10px] font-bold px-4 py-2 hover:text-brand-maroon transition">
-                  Cancel
+                  {language === "hi" ? "रद्द करें" : "Cancel"}
                 </button>
                 <button type="submit"
                   className="bg-brand-maroon text-brand-ivory uppercase tracking-widest text-[10px] font-bold px-5 py-3 hover:bg-brand-maroon/90 transition shadow">
-                  Create Lead
+                  {language === "hi" ? "लीड बनाएं" : "Create Lead"}
                 </button>
               </div>
             </form>
@@ -2637,12 +2950,12 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
         </div>
       )}
 
-      {/* ══ MODAL: ADD CUSTOMER (POS) ══════════════════════════════════════ */}
       {isNewProfileModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-brand-maroon/40 backdrop-blur-sm">
-          <div className="w-full max-w-md bg-[#FDFBF7] border border-brand-gold/25 rounded-lg p-6 space-y-5 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-brand-maroon/40 backdrop-blur-sm">
+          <div className="w-full max-w-md bg-[#FDFBF7] border-t sm:border border-brand-gold/25 rounded-t-3xl sm:rounded-lg p-5 sm:p-6 space-y-5 shadow-2xl max-h-[92vh] sm:max-h-[90vh] overflow-y-auto animate-slide-up">
+            <div className="w-12 h-1.5 bg-brand-gold/20 rounded-full mx-auto sm:hidden mb-1"></div>
             <div className="flex justify-between items-center">
-              <h3 className="font-serif text-xl text-brand-maroon">Register Customer</h3>
+              <h3 className="font-serif text-xl text-brand-maroon">{language === "hi" ? "ग्राहक पंजीकृत करें" : "Register Customer"}</h3>
               <button onClick={() => setIsNewProfileModalOpen(false)} className="text-brand-warm-gray hover:text-brand-maroon">
                 <X className="w-5 h-5" />
               </button>
@@ -2650,28 +2963,28 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
 
             <form onSubmit={handleAddProfile} className="space-y-4 text-xs text-brand-maroon">
               <div className="space-y-1">
-                <label className="text-[10px] uppercase font-bold block">Full Name *</label>
+                <label className="text-[10px] uppercase font-bold block">{language === "hi" ? "पूरा नाम *" : "Full Name *"}</label>
                 <input type="text" required value={profileForm.name} onChange={e => setProfileForm({ ...profileForm, name: e.target.value })}
                   className="w-full bg-white border border-brand-gold/20 p-2.5 focus:outline-none focus:border-brand-maroon" />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] uppercase font-bold block">Phone</label>
+                <label className="text-[10px] uppercase font-bold block">{language === "hi" ? "फ़ोन" : "Phone"}</label>
                 <input type="tel" value={profileForm.phone} onChange={e => setProfileForm({ ...profileForm, phone: e.target.value })}
                   placeholder="+91..." className="w-full bg-white border border-brand-gold/20 p-2.5 focus:outline-none" />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] uppercase font-bold block">Email</label>
+                <label className="text-[10px] uppercase font-bold block">{language === "hi" ? "ईमेल" : "Email"}</label>
                 <input type="email" value={profileForm.email} onChange={e => setProfileForm({ ...profileForm, email: e.target.value })}
                   className="w-full bg-white border border-brand-gold/20 p-2.5 focus:outline-none" />
               </div>
               <div className="flex justify-end gap-3 pt-2 border-t border-brand-gold/15">
                 <button type="button" onClick={() => setIsNewProfileModalOpen(false)}
                   className="text-brand-warm-gray uppercase text-[10px] font-bold px-4 py-2 hover:text-brand-maroon transition">
-                  Cancel
+                  {language === "hi" ? "रद्द करें" : "Cancel"}
                 </button>
                 <button type="submit"
                   className="bg-brand-maroon text-brand-ivory uppercase tracking-widest text-[10px] font-bold px-5 py-3 hover:bg-brand-maroon/90 transition shadow">
-                  Register Customer
+                  {language === "hi" ? "पंजीकृत करें" : "Register Customer"}
                 </button>
               </div>
             </form>
@@ -2679,10 +2992,10 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
         </div>
       )}
 
-      {/* ── UPDATE ORDER STATUS MODAL ── */}
       {statusModalOrder && (
-        <div className="fixed inset-0 bg-brand-maroon/20 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <div className="bg-[#FAF7F2] w-full max-w-md p-6 sm:p-8 shadow-2xl relative border border-brand-gold/20">
+        <div className="fixed inset-0 bg-brand-maroon/20 backdrop-blur-sm z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="bg-[#FAF7F2] w-full max-w-md p-5 sm:p-8 shadow-2xl relative border-t sm:border border-brand-gold/20 rounded-t-3xl sm:rounded-lg max-h-[92vh] sm:max-h-[90vh] overflow-y-auto animate-slide-up">
+            <div className="w-12 h-1.5 bg-brand-gold/20 rounded-full mx-auto sm:hidden mb-1"></div>
             <div className="flex justify-between items-center mb-6 border-b border-brand-gold/15 pb-4">
               <div>
                 <h3 className="font-serif text-xl text-brand-maroon">Update Order</h3>

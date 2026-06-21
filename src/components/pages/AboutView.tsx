@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import { ViewState } from "../../types";
 import { MapPin, Phone } from "lucide-react";
+import { useLanguage } from "../../context/LanguageContext";
 
 const kamlaDeviImg = "/images/about/kamla_devi.jpg";
 const priyankaYadavImg = "/images/about/priyanka_yadav.jpg";
@@ -15,6 +16,7 @@ interface AboutViewProps {
 
 export default function AboutView({ setView }: AboutViewProps) {
   const observerRef = useRef<IntersectionObserver | null>(null);
+  const { t } = useLanguage();
 
   useEffect(() => {
     observerRef.current = new IntersectionObserver((entries) => {
@@ -34,10 +36,10 @@ export default function AboutView({ setView }: AboutViewProps) {
 
   // Set page title and meta description for SEO
   useEffect(() => {
-    document.title = 'About Art & Anchal – The Funky Genesis';
+    document.title = t('about_title');
     const meta = document.querySelector('meta[name="description"]') || document.createElement('meta');
     (meta as HTMLMetaElement).name = 'description';
-    (meta as HTMLMetaElement).content = 'Discover the vibrant story behind Art & Anchal, founded by Kamla Devi, Priyanka Yadav, and Vandana Yadav.';
+    (meta as HTMLMetaElement).content = t('about_desc');
     if (!document.querySelector('meta[name="description"]')) document.head.appendChild(meta);
     return () => { document.title = 'Art & Anchal'; };
   }, []);
@@ -58,9 +60,9 @@ export default function AboutView({ setView }: AboutViewProps) {
         <div className="relative z-10 w-full max-w-5xl mx-auto px-6 grid grid-cols-1 md:grid-cols-12 gap-8 items-center mt-20">
           <div className="md:col-span-7 space-y-6 transform -rotate-2">
             <h1 className="text-7xl sm:text-9xl font-serif font-black text-[#FDFBF7] leading-[0.8] drop-shadow-[0_10px_20px_rgba(0,0,0,0.5)]">
-              THE <br/> <span className="text-[#E8C39E] italic font-light">GENESIS</span>
+              {t('about_title')}
             </h1>
-            <p className="text-xl text-[#FDFBF7] font-bold tracking-[0.3em] uppercase mix-blend-overlay">A Tale of Varanasi</p>
+            <p className="text-xl text-[#FDFBF7] font-bold tracking-[0.3em] uppercase mix-blend-overlay">{t('about_subtitle')}</p>
           </div>
           
           <div className="md:col-span-5 relative mt-10 md:mt-0">
@@ -74,7 +76,7 @@ export default function AboutView({ setView }: AboutViewProps) {
                 onClick={() => setView("shop")}
                 className="w-full bg-[#E8C39E] text-[#2A0815] hover:bg-white font-bold uppercase tracking-widest text-xs py-4 rounded-xl shadow-lg transition-colors"
               >
-                Explore The Collection
+                {t('about_explore_btn')}
               </button>
             </div>
           </div>

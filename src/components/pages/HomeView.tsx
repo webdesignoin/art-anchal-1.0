@@ -7,6 +7,7 @@ import { ViewState, Saree, Collection } from "../../types";
 import { CUSTOM_ASSETS } from "../../data/sarees";
 import { ArrowRight, Gem, ShieldCheck, UserCheck, Play } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
+import { useLanguage } from "../../context/LanguageContext";
 
 interface HomeViewProps {
   setView: (view: ViewState) => void;
@@ -25,6 +26,7 @@ export default function HomeView({
   sarees,
   collections,
 }: HomeViewProps) {
+  const { language, t } = useLanguage();
   const bestsellers = sarees.filter((s) => s.isBestseller).slice(0, 4);
   const featured = sarees.filter((s) => s.isFeatured).slice(0, 3);
   
@@ -62,14 +64,23 @@ export default function HomeView({
         {/* Hero Content */}
         <div className="relative z-10 text-center px-4 max-w-4xl mx-auto space-y-8 animate-fade-in mt-20">
           <span className="inline-block border border-brand-gold/30 text-brand-gold text-[9px] uppercase tracking-[0.3em] font-bold px-4 py-1.5 rounded-full backdrop-blur-md bg-[#1C050E]/50">
-            The Sacred Weaves of Varanasi
+            {t("hero_badge")}
           </span>
           <h1 className="serif-heading text-5xl sm:text-7xl lg:text-[6rem] font-light text-brand-ivory leading-[1.1] tracking-tight drop-shadow-2xl">
-            Woven in <br />
-            <span className="font-serif italic text-brand-gold">Whispers of Gold</span>
+            {language === "hi" ? (
+              <>
+                {t("home_hero_title_line1")} <br />
+                <span className="font-serif italic text-brand-gold">{t("home_hero_title_line2")}</span>
+              </>
+            ) : (
+              <>
+                {t("home_hero_title_line1")} <br />
+                <span className="font-serif italic text-brand-gold">{t("home_hero_title_line2")}</span>
+              </>
+            )}
           </h1>
           <p className="font-sans text-xs sm:text-sm text-[#C7B7AE] leading-relaxed max-w-xl mx-auto font-light">
-            Experience handloom masterworks crafted over months by legacy weaving families. Real mulberry silk intertwined with genuine lab-certified gold zari.
+            {t("hero_desc")}
           </p>
           
           <div className="flex flex-col sm:flex-row items-center justify-center gap-6 pt-6">
@@ -81,7 +92,7 @@ export default function HomeView({
               }}
               className="bg-brand-gold hover:bg-white text-brand-maroon text-[10px] tracking-widest uppercase px-10 py-5 font-bold transition-all duration-300 shadow-[0_0_40px_rgba(197,168,128,0.3)] flex items-center gap-3 w-full sm:w-auto justify-center"
             >
-              Explore the Weaves <ArrowRight className="w-4 h-4" />
+              {t("hero_btn_shop")} <ArrowRight className="w-4 h-4" />
             </button>
             <button
               onClick={() => setView("collections")}
@@ -90,14 +101,16 @@ export default function HomeView({
               <span className="w-12 h-12 rounded-full border border-brand-gold/30 flex items-center justify-center group-hover:border-brand-gold transition-colors">
                 <Play className="w-3 h-3 fill-brand-ivory group-hover:fill-brand-gold transition-colors ml-0.5" />
               </span>
-              View the Parampara
+              {t("hero_btn_parampara")}
             </button>
           </div>
         </div>
 
         {/* Scroll Indicator */}
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3 animate-bounce-slow">
-          <span className="text-[8px] uppercase tracking-[0.3em] text-brand-gold/60 font-bold">Scroll to discover</span>
+          <span className="text-[8px] uppercase tracking-[0.3em] text-brand-gold/60 font-bold">
+            {t("hero_scroll_discover")}
+          </span>
           <div className="w-[1px] h-12 bg-gradient-to-b from-brand-gold to-transparent"></div>
         </div>
       </section>
@@ -113,9 +126,11 @@ export default function HomeView({
             </div>
             <div className="relative z-10 max-w-md space-y-6">
               <Gem className="w-8 h-8 text-brand-gold" />
-              <h3 className="font-serif text-4xl leading-tight">Authentic Banarasi Karigari</h3>
+              <h3 className="font-serif text-4xl leading-tight">
+                {t("home_bento_karigari_title")}
+              </h3>
               <p className="text-xs text-brand-gold/80 leading-relaxed max-w-sm">
-                Crafted by master weavers using techniques passed down through generations. True handloom, true heritage.
+                {t("home_bento_karigari_desc")}
               </p>
             </div>
           </div>
@@ -123,18 +138,22 @@ export default function HomeView({
           {/* Small Feature 1 */}
           <div className="md:col-span-4 bg-brand-sand border border-brand-gold/15 p-10 flex flex-col justify-center space-y-4 hover:bg-brand-gold/10 transition-colors">
             <UserCheck className="w-6 h-6 text-brand-gold" />
-            <h3 className="font-serif text-2xl text-brand-maroon">Empowering the Weaver</h3>
+            <h3 className="font-serif text-2xl text-brand-maroon">
+              {t("home_bento_empower_title")}
+            </h3>
             <p className="text-[11px] text-brand-warm-gray leading-relaxed">
-              Directly supporting the artisan families of Banaras, ensuring the survival of this sacred craft and fair compensation for their art.
+              {t("home_bento_empower_desc")}
             </p>
           </div>
 
           {/* Small Feature 2 */}
           <div className="md:col-span-5 bg-brand-ivory border border-brand-gold/15 p-10 flex flex-col justify-center space-y-4 shadow-sm">
             <ShieldCheck className="w-6 h-6 text-brand-gold" />
-            <h3 className="font-serif text-2xl text-brand-maroon">Heirloom Sandook</h3>
+            <h3 className="font-serif text-2xl text-brand-maroon">
+              {t("home_bento_sandook_title")}
+            </h3>
             <p className="text-[11px] text-brand-warm-gray leading-relaxed">
-              Delivered safely anywhere in the world. Your saree arrives in a custom, protective case to preserve the intricate Zari for generations.
+              {t("home_bento_sandook_desc")}
             </p>
           </div>
 
@@ -144,7 +163,9 @@ export default function HomeView({
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="bg-brand-ivory/10 backdrop-blur-md border border-brand-gold/30 px-6 py-3 rounded-full flex items-center gap-3">
                 <Play className="w-3 h-3 text-brand-gold fill-brand-gold" />
-                <span className="text-[9px] uppercase tracking-widest text-brand-ivory font-bold">Watch The Process</span>
+                <span className="text-[9px] uppercase tracking-widest text-brand-ivory font-bold">
+                  {t("home_bento_process_btn")}
+                </span>
               </div>
             </div>
           </div>
@@ -155,52 +176,80 @@ export default function HomeView({
       <section className="py-24 bg-brand-sand/30 border-y border-brand-gold/15 overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-12 flex items-end justify-between">
           <div>
-            <span className="text-[10px] tracking-[0.2em] font-sans uppercase text-brand-gold font-bold mb-2 block">Seasonal Chapters</span>
-            <h2 className="serif-heading text-4xl sm:text-5xl text-brand-maroon font-serif">Curated Collections</h2>
+            <span className="text-[10px] tracking-[0.2em] font-sans uppercase text-brand-gold font-bold mb-2 block">
+              {t("home_seasonal_badge")}
+            </span>
+            <h2 className="serif-heading text-4xl sm:text-5xl text-brand-maroon font-serif">
+              {t("home_seasonal_title")}
+            </h2>
           </div>
           <button
             onClick={() => setView("collections")}
             className="hidden sm:flex items-center gap-2 text-[10px] uppercase tracking-widest text-brand-maroon font-bold hover:text-brand-gold transition"
           >
-            View All Chapters <ArrowRight className="w-3 h-3" />
+            {t("home_seasonal_btn")} <ArrowRight className="w-3 h-3" />
           </button>
         </div>
 
         {/* Horizontal Snap Scroll Container */}
         <div className="flex overflow-x-auto snap-x snap-mandatory hide-scrollbar pb-12 px-4 sm:px-6 lg:px-8 gap-6 lg:gap-8 mx-auto max-w-7xl">
-          {collections.map((col) => (
-            <div
-              key={col.id}
-              className="snap-center sm:snap-start flex-none w-[85vw] sm:w-[400px] lg:w-[450px] relative group cursor-pointer"
-              onClick={() => handleCollectionView(col.name)}
-            >
-              <div className="aspect-[4/5] overflow-hidden bg-[#1C050E]">
-                <img
-                  src={col.coverImage}
-                  alt={col.name}
-                  className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition duration-700"
-                  referrerPolicy="no-referrer"
-                />
+          {collections.map((col) => {
+            const translatedColName = language === "hi" ? (
+              col.name === "The Royal Katan Heritage" ? "शाही कतान विरासत" :
+              col.name === "Ethereal Organza" ? "अलौकिक ऑर्गेंज़ा" :
+              col.name === "Shikargah Chronicles" ? "शिकारगाह गाथा" :
+              col.name === "Vintage Tissue Silk" ? "विंटेज टिशू सिल्क" :
+              col.name === "The Kadwa Masterpieces" ? "कढ़ुआ मास्टरपीस" :
+              col.name === "Tanchoi Illusions" ? "तनचोई इल्यूजन्स" : col.name
+            ) : col.name;
+
+            const translatedTagline = language === "hi" ? (
+              col.tagline === "Purest silk, timeless grace" ? "प्योर रेशम, सदाबहार सुंदरता" :
+              col.tagline === "Feather-light modern elegance" ? "पंख जैसी हल्की, आधुनिक सुंदरता" :
+              col.tagline === "Tales of the royal hunt" ? "शाही शिकार की कहानियां" :
+              col.tagline === "Woven with liquid gold" ? "तरल सोने के धागों से बुनी" :
+              col.tagline === "Embossed artistry" ? "उभरी हुई नक्काशीदार कला" :
+              col.tagline === "Subtle shadows, infinite depth" ? "सूक्ष्म छाया, अनंत गहराई" : col.tagline
+            ) : col.tagline;
+
+            return (
+              <div
+                key={col.id}
+                className="snap-center sm:snap-start flex-none w-[85vw] sm:w-[400px] lg:w-[450px] relative group cursor-pointer"
+                onClick={() => handleCollectionView(col.name)}
+              >
+                <div className="aspect-[4/5] overflow-hidden bg-[#1C050E]">
+                  <img
+                    src={col.coverImage}
+                    alt={translatedColName}
+                    className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition duration-700"
+                    referrerPolicy="no-referrer"
+                  />
+                </div>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-8">
+                  <span className="text-brand-gold text-[10px] font-bold uppercase tracking-widest mb-2 border border-brand-gold/30 px-3 py-1 w-max backdrop-blur-sm">
+                    {translatedColName}
+                  </span>
+                  <p className="text-brand-ivory text-sm font-serif italic mb-4 opacity-0 group-hover:opacity-100 translate-y-4 group-hover:translate-y-0 transition-all duration-500 delay-100">
+                    {translatedTagline}
+                  </p>
+                  <div className="w-full h-[1px] bg-brand-gold/30 scale-x-0 group-hover:scale-x-100 transform origin-left transition-transform duration-500"></div>
+                </div>
               </div>
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-8">
-                <span className="text-brand-gold text-[10px] font-bold uppercase tracking-widest mb-2 border border-brand-gold/30 px-3 py-1 w-max backdrop-blur-sm">
-                  {col.name}
-                </span>
-                <p className="text-brand-ivory text-sm font-serif italic mb-4 opacity-0 group-hover:opacity-100 translate-y-4 group-hover:translate-y-0 transition-all duration-500 delay-100">
-                  {col.tagline}
-                </p>
-                <div className="w-full h-[1px] bg-brand-gold/30 scale-x-0 group-hover:scale-x-100 transform origin-left transition-transform duration-500"></div>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </section>
 
       {/* ── 4. The Bestsellers Grid ────────────────────────────────────── */}
       <section className="py-32 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center space-y-4 mb-20">
-          <span className="text-[10px] tracking-[0.2em] font-sans uppercase text-brand-gold font-bold">Client Favorites</span>
-          <h2 className="serif-heading text-4xl sm:text-5xl text-brand-maroon font-serif font-light">Heritage Bestsellers</h2>
+          <span className="text-[10px] tracking-[0.2em] font-sans uppercase text-brand-gold font-bold">
+            {t("home_favorites_badge")}
+          </span>
+          <h2 className="serif-heading text-4xl sm:text-5xl text-brand-maroon font-serif font-light">
+            {t("home_favorites_title")}
+          </h2>
           <div className="w-12 h-0.5 bg-brand-gold mx-auto"></div>
         </div>
 
@@ -224,14 +273,14 @@ export default function HomeView({
                       onClick={(e) => { e.stopPropagation(); setQuickViewSaree(saree); }}
                       className="bg-brand-ivory text-brand-maroon text-[9px] uppercase font-bold tracking-widest px-6 py-3 shadow-xl w-full hover:bg-brand-gold hover:text-brand-ivory transition-colors"
                     >
-                      Quick View
+                      {t("shop_quickview")}
                     </button>
                   </div>
                 </div>
                 
                 <div className="space-y-1.5 flex-1">
                   <span className="text-[9px] uppercase tracking-widest text-brand-gold font-bold block">
-                    {saree.category}
+                    {t("cat_" + saree.category, saree.category)}
                   </span>
                   <h3 className="font-serif text-lg text-brand-maroon leading-tight group-hover:text-brand-gold transition-colors">
                     {saree.name}
@@ -250,7 +299,7 @@ export default function HomeView({
             onClick={() => { setView("shop"); window.scrollTo(0,0); }}
             className="inline-flex items-center gap-2 border-b-2 border-brand-maroon text-brand-maroon pb-1 text-xs uppercase tracking-widest font-bold hover:text-brand-gold hover:border-brand-gold transition-colors"
           >
-            Discover All Designs <ArrowRight className="w-4 h-4" />
+            {t("home_favorites_btn")} <ArrowRight className="w-4 h-4" />
           </button>
         </div>
       </section>

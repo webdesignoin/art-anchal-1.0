@@ -10,6 +10,7 @@ import {
   HelpCircle, PhoneCall, LayoutDashboard, Users, ShoppingBag, IndianRupee, RefreshCw
 } from "lucide-react";
 import { supabase, isMock } from "../../lib/supabase";
+import { useLanguage } from "../../context/LanguageContext";
 
 interface LoginRegisterViewProps {
   setView: (view: ViewState) => void;
@@ -28,8 +29,47 @@ export default function LoginRegisterView({
   postLoginRedirect,
   setPostLoginRedirect,
 }: LoginRegisterViewProps) {
+  const { language } = useLanguage();
   const [isLogin, setIsLogin] = useState(true);
   const [inp, setInp] = useState({ name: "", email: "", password: "" });
+
+  const tAuth = (key: string): string => {
+    if (language === "hi") {
+      const trans: Record<string, string> = {
+        "Join The Guild": "गिल्ड में शामिल हों",
+        "Registry Credentials": "पंजीकरण क्रेडेंशियल",
+        "Welcome back. Log in to preview dispatches.": "वापसी पर स्वागत है। प्रेषण देखने के लिए लॉगिन करें।",
+        "Create a secure account to track loom milestones.": "करघे के चरणों को ट्रैक करने के लिए एक सुरक्षित खाता बनाएं।",
+        "Full Name": "पूरा नाम",
+        "Your name": "आपका नाम",
+        "Email Address": "ईमेल पता",
+        "Password": "पासवर्ड",
+        "Sign In": "साइन इन करें",
+        "Create Account": "खाता बनाएं",
+        "By registering you agree to our Heritage Craft Privacy Charter and Cooperative Terms of Service.": "पंजीकरण करके आप हमारे हेरिटेज क्राफ्ट प्राइवेसी चार्टर और सहकारी सेवा शर्तों से सहमत होते हैं।",
+        "New to Art & Anchal? ": "आर्ट एंड आंचल में नए हैं? ",
+        "Already a member? ": "पहले से ही सदस्य हैं? ",
+        "Create an Account": "खाता बनाएं",
+        "Log In Credentials": "लॉग इन क्रेडेंशियल",
+        "Or": "या",
+        "Continue with Google": "गूगल के साथ जारी रखें",
+        "Verified Sovereign Weaving Alliance Protocol": "सत्यापित संप्रभु बुनाई गठबंधन प्रोटोकॉल",
+        "Artisan Guild Profile": "कारीगर गिल्ड प्रोफ़ाइल",
+        "Historic client records": "ऐतिहासिक ग्राहक रिकॉर्ड",
+        "No prior archival orders registered yet.": "अभी तक कोई पूर्व अभिलेखीय आदेश पंजीकृत नहीं है।",
+        "Your Art&Anchal account grants you access to live dispatches, loom previews, and preferred bridal tailor consultations.": "आपका आर्ट एंड आंचल खाता आपको लाइव प्रेषण, करघे के पूर्वावलोकन और पसंदीदा ब्राइडल दर्जी परामर्श तक पहुंच प्रदान करता है।",
+        "Browse Heirloom Saree Catalogue": "विरासत साड़ी कैटलॉग ब्राउज़ करें",
+        "Sign Out Of Heritage Account": "विरासत खाते से साइन आउट करें",
+        "Signing in...": "साइन इन हो रहा है...",
+        "Authenticating...": "प्रमाणित किया जा रहा है...",
+        "Account created! Please check your email to verify your account before signing in.": "खाता बन गया! कृपया साइन इन करने से पहले अपने खाते को सत्यापित करने के लिए अपना ईमेल जांचें।",
+        "Google Login is mocked in this environment. Please use email or phone.": "गूगल लॉगिन इस परिवेश में नकली (mocked) है। कृपया ईमेल या फोन का उपयोग करें।",
+        "Logged out successfully.": "सफलतापूर्वक लॉग आउट हो गया।"
+      };
+      return trans[key] || key;
+    }
+    return key;
+  };
 
   // Redirect logic upon successful login
   useEffect(() => {
@@ -58,7 +98,7 @@ export default function LoginRegisterView({
   const [isLoading, setIsLoading] = useState(false);
 
   const showMsg = (msg: string) => {
-    setSubmitFeedback(msg);
+    setSubmitFeedback(tAuth(msg));
     setTimeout(() => setSubmitFeedback(""), 4000);
   };
 
@@ -166,7 +206,7 @@ export default function LoginRegisterView({
                 <User className="w-8 h-8 stroke-[1.5]" />
               </div>
               <div className="space-y-1">
-                <span className="text-[9px] uppercase tracking-widest text-brand-gold font-bold">Artisan Guild Profile</span>
+                <span className="text-[9px] uppercase tracking-widest text-brand-gold font-bold">{tAuth("Artisan Guild Profile")}</span>
                 <h2 className="serif-heading text-2xl text-brand-maroon font-serif font-light">{userSession.name}</h2>
                 <p className="text-xs text-brand-warm-gray font-mono">{userSession.email}</p>
               </div>
@@ -176,10 +216,10 @@ export default function LoginRegisterView({
             <div className="border-t border-b border-brand-gold/15 py-4 text-xs text-brand-warm-gray space-y-2 text-left">
               <span className="block text-[10px] uppercase font-bold text-brand-maroon tracking-wider font-sans mb-2 flex items-center gap-1">
                 <ClipboardList className="w-3.5 h-3.5 text-brand-gold" />
-                Historic client records
+                {tAuth("Historic client records")}
               </span>
-              <p className="italic text-brand-warm-gray/70">No prior archival orders registered yet.</p>
-              <p>Your Art&amp;Anchal account grants you access to live dispatches, loom previews, and preferred bridal tailor consultations.</p>
+              <p className="italic text-brand-warm-gray/70">{tAuth("No prior archival orders registered yet.")}</p>
+              <p>{tAuth("Your Art&Anchal account grants you access to live dispatches, loom previews, and preferred bridal tailor consultations.")}</p>
             </div>
 
             {/* Actions */}
@@ -189,14 +229,14 @@ export default function LoginRegisterView({
                 className="w-full bg-brand-maroon hover:bg-brand-maroon/95 text-brand-ivory text-xs uppercase tracking-widest font-sans font-bold py-3.5 cursor-pointer shadow-md"
                 id="profile-browse-shop-btn"
               >
-                Browse Heirloom Saree Catalogue
+                {tAuth("Browse Heirloom Saree Catalogue")}
               </button>
               <button
                 onClick={handleLogout}
                 className="w-full text-center text-[11px] text-[#B64545] hover:text-brand-maroon underline tracking-wider cursor-pointer font-sans"
                 id="profile-logout-btn"
               >
-                Sign Out Of Heritage Account
+                {tAuth("Sign Out Of Heritage Account")}
               </button>
             </div>
           </div>
@@ -205,12 +245,12 @@ export default function LoginRegisterView({
           <div className="bg-[#FAF7F2] border border-brand-gold/25 p-8 sm:p-10 space-y-6">
             <div className="text-center space-y-1.5">
               <h2 className="serif-heading text-2xl text-brand-maroon font-serif font-light leading-tight">
-                {isLogin ? "Join The Guild" : "Registry Credentials"}
+                {isLogin ? tAuth("Join The Guild") : tAuth("Registry Credentials")}
               </h2>
               <p className="text-xs text-brand-warm-gray font-light">
                 {isLogin
-                  ? "Welcome back. Log in to preview dispatches."
-                  : "Create a secure account to track loom milestones."}
+                  ? tAuth("Welcome back. Log in to preview dispatches.")
+                  : tAuth("Create a secure account to track loom milestones.")}
               </p>
             </div>
 
@@ -218,12 +258,12 @@ export default function LoginRegisterView({
               <form onSubmit={handleEmailSubmit} className="space-y-4">
                 {!isLogin && (
                   <div className="space-y-1.5">
-                    <label className="text-[10px] uppercase tracking-widest font-bold text-brand-maroon block">Full Name</label>
+                    <label className="text-[10px] uppercase tracking-widest font-bold text-brand-maroon block">{tAuth("Full Name")}</label>
                     <input
                       type="text"
                       value={inp.name}
                       onChange={(e) => setInp({ ...inp, name: e.target.value })}
-                      placeholder="Your name"
+                      placeholder={tAuth("Your name")}
                       className="w-full bg-white border border-brand-gold/25 px-4 py-3 text-xs text-brand-maroon placeholder-brand-warm-gray/50 focus:outline-none focus:border-brand-maroon"
                       id="register-name-input"
                     />
@@ -231,7 +271,7 @@ export default function LoginRegisterView({
                 )}
 
                 <div className="space-y-1.5">
-                  <label className="text-[10px] uppercase tracking-widest font-bold text-brand-maroon block">Email Address</label>
+                  <label className="text-[10px] uppercase tracking-widest font-bold text-brand-maroon block">{tAuth("Email Address")}</label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-brand-warm-gray" />
                     <input
@@ -247,7 +287,7 @@ export default function LoginRegisterView({
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-[10px] uppercase tracking-widest font-bold text-brand-maroon block">Password</label>
+                  <label className="text-[10px] uppercase tracking-widest font-bold text-brand-maroon block">{tAuth("Password")}</label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-brand-warm-gray" />
                     <input
@@ -285,38 +325,38 @@ export default function LoginRegisterView({
                   id="auth-submit-btn"
                 >
                   {isLoading && <RefreshCw className="w-4 h-4 animate-spin text-brand-gold" />}
-                  {isLoading ? "Authenticating..." : isLogin ? "Sign In" : "Create Account"}
+                  {isLoading ? tAuth("Authenticating...") : isLogin ? tAuth("Sign In") : tAuth("Create Account")}
                 </button>
 
                 {!isLogin && (
                   <p className="text-[9px] text-brand-warm-gray/60 text-center leading-relaxed">
-                    By registering you agree to our Heritage Craft Privacy Charter and Cooperative Terms of Service.
+                    {tAuth("By registering you agree to our Heritage Craft Privacy Charter and Cooperative Terms of Service.")}
                   </p>
                 )}
 
                 <div className="text-center text-[10px] text-brand-warm-gray font-sans">
-                  {isLogin ? "New to Art & Anchal? " : "Already a member? "}
+                  {isLogin ? tAuth("New to Art & Anchal? ") : tAuth("Already a member? ")}
                   <button
                     type="button"
                     onClick={() => { setIsLogin(!isLogin); setSubmitFeedback(""); }}
                     className="text-brand-maroon font-bold underline cursor-pointer font-sans"
                     id="auth-toggle-btn"
                   >
-                    {isLogin ? "Create an Account" : "Log In Credentials"}
+                    {isLogin ? tAuth("Create an Account") : tAuth("Log In Credentials")}
                   </button>
                 </div>
               </form>
 
             <div className="relative flex items-center py-2">
               <div className="flex-grow border-t border-brand-gold/20"></div>
-              <span className="flex-shrink-0 mx-4 text-brand-warm-gray text-[9px] uppercase tracking-widest font-bold">Or</span>
+              <span className="flex-shrink-0 mx-4 text-brand-warm-gray text-[9px] uppercase tracking-widest font-bold">{tAuth("Or")}</span>
               <div className="flex-grow border-t border-brand-gold/20"></div>
             </div>
             
             <button
               onClick={async () => {
                 if (isMock) {
-                  setSubmitFeedback("Google Login is mocked in this environment. Please use email or phone.");
+                  setSubmitFeedback(tAuth("Google Login is mocked in this environment. Please use email or phone."));
                   return;
                 }
                 setIsLoading(true);
@@ -345,12 +385,12 @@ export default function LoginRegisterView({
                 <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
                 <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
               </svg>
-              Continue with Google
+              {tAuth("Continue with Google")}
             </button>
 
             <div className="flex items-center justify-center space-x-1.5 text-[9px] text-brand-gold-dark pt-1.5 font-sans">
               <ShieldCheck className="w-4 h-4" />
-              <span>Verified Sovereign Weaving Alliance Protocol</span>
+              <span>{tAuth("Verified Sovereign Weaving Alliance Protocol")}</span>
             </div>
           </div>
         )}

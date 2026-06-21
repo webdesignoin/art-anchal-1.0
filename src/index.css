@@ -267,3 +267,222 @@ main > * {
   font-size: 2.625rem;
   line-height: 1.1;
 }
+
+/* Sizing overrides for Hindi text to ensure balanced proportions and avoid overlaps */
+body.lang-hi h1,
+body.lang-hi h2,
+body.lang-hi h3,
+body.lang-hi h4,
+body.lang-hi h5,
+body.lang-hi h6,
+body.lang-hi .serif-heading,
+body.lang-hi .font-serif {
+  line-height: 1.25;
+}
+
+/* Reduce size of titles for Hindi texts (around 12-15% reduction) */
+body.lang-hi .text-\[15rem\] { font-size: 11rem !important; }
+body.lang-hi .text-9xl { font-size: 6.8rem !important; }
+body.lang-hi .text-8xl { font-size: 5.1rem !important; }
+body.lang-hi .text-7xl { font-size: 3.8rem !important; }
+body.lang-hi .text-6xl { font-size: 3.2rem !important; }
+body.lang-hi .text-5xl { font-size: 2.5rem !important; }
+body.lang-hi .text-4\.5xl { font-size: 2.2rem !important; }
+body.lang-hi .text-4xl { font-size: 1.9rem !important; }
+body.lang-hi .text-3\.5xl { font-size: 1.7rem !important; }
+body.lang-hi .text-3xl { font-size: 1.6rem !important; }
+body.lang-hi .text-2xl { font-size: 1.3rem !important; }
+body.lang-hi .text-xl { font-size: 1.1rem !important; }
+body.lang-hi .text-lg { font-size: 1.05rem !important; }
+
+/* Responsive tailwind modifiers for Hindi language */
+@media (min-width: 640px) {
+  body.lang-hi .sm\:text-9xl { font-size: 6.8rem !important; }
+  body.lang-hi .sm\:text-8xl { font-size: 5.1rem !important; }
+  body.lang-hi .sm\:text-7xl { font-size: 3.8rem !important; }
+  body.lang-hi .sm\:text-6xl { font-size: 3.2rem !important; }
+  body.lang-hi .sm\:text-5xl { font-size: 2.5rem !important; }
+  body.lang-hi .sm\:text-4xl { font-size: 1.9rem !important; }
+  body.lang-hi .sm\:text-3xl { font-size: 1.6rem !important; }
+  body.lang-hi .sm\:text-2xl { font-size: 1.3rem !important; }
+}
+
+@media (min-width: 1024px) {
+  body.lang-hi .lg\:text-\[6rem\] { font-size: 5.1rem !important; }
+  body.lang-hi .lg\:text-9xl { font-size: 6.8rem !important; }
+  body.lang-hi .lg\:text-8xl { font-size: 5.1rem !important; }
+  body.lang-hi .lg\:text-7xl { font-size: 3.8rem !important; }
+  body.lang-hi .lg\:text-6xl { font-size: 3.2rem !important; }
+  body.lang-hi .lg\:text-5xl { font-size: 2.5rem !important; }
+  body.lang-hi .lg\:text-4xl { font-size: 1.9rem !important; }
+  body.lang-hi .lg\:text-3xl { font-size: 1.6rem !important; }
+}
+
+/* Premium Mobile UI overrides for admin forms & controls */
+#admin-console-view input[type="text"],
+#admin-console-view input[type="number"],
+#admin-console-view input[type="email"],
+#admin-console-view input[type="tel"],
+#admin-console-view input[type="password"],
+#admin-console-view select,
+#admin-console-view textarea,
+#login-register-view input:not([type="date"]),
+#login-register-view select,
+#login-register-view textarea {
+  display: block;
+  width: 100%;
+  background-color: #FAF8F5 !important; /* Soft sand white */
+  border: 1.5px solid #E6DEC1 !important; /* Subtle gold border */
+  border-radius: 0.75rem !important; /* rounded-lg (12px) */
+  font-size: 13px !important; /* Reduced font size on mobile */
+  color: #5B0E2D !important; /* brand-maroon */
+  padding: 0.5rem 0.75rem !important; /* Touch friendly compact padding */
+  box-shadow: inset 0 2px 4px rgba(91, 14, 45, 0.02) !important;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  outline: none !important;
+}
+
+/* Retain left padding for search icons in text inputs to prevent overlapping */
+#admin-console-view input[type="text"].pl-9,
+#admin-console-view input.pl-9,
+#admin-console-view .pl-9 {
+  padding-left: 2.25rem !important;
+}
+
+@media (min-width: 768px) {
+  #admin-console-view input[type="text"],
+  #admin-console-view input[type="number"],
+  #admin-console-view input[type="email"],
+  #admin-console-view input[type="tel"],
+  #admin-console-view input[type="password"],
+  #admin-console-view select,
+  #admin-console-view textarea {
+    font-size: 0.875rem !important; /* Scale to text-sm (14px) on desktop */
+    padding: 0.625rem 0.875rem !important;
+    border-radius: 0.875rem !important; /* rounded-xl */
+  }
+  #admin-console-view input[type="text"].pl-9,
+  #admin-console-view input.pl-9,
+  #admin-console-view .pl-9 {
+    padding-left: 2.25rem !important;
+  }
+}
+
+/* Hover & Focus states */
+#admin-console-view input:hover,
+#admin-console-view textarea:hover,
+#admin-console-view select:hover,
+#login-register-view input:hover,
+#login-register-view textarea:hover,
+#login-register-view select:hover {
+  border-color: #A4865E !important; /* Gold hover */
+  background-color: #FCFAF8 !important;
+}
+
+#admin-console-view input:focus,
+#admin-console-view textarea:focus,
+#admin-console-view select:focus,
+#login-register-view input:focus,
+#login-register-view textarea:focus,
+#login-register-view select:focus {
+  border-color: #5B0E2D !important; /* Maroon focus */
+  background-color: #FFFFFF !important;
+  box-shadow: 0 0 0 4px rgba(91, 14, 45, 0.08), inset 0 2px 4px rgba(91, 14, 45, 0.02) !important;
+}
+
+/* Premium form labels (smaller on mobile) */
+#admin-console-view label,
+#login-register-view label {
+  font-family: "Inter", sans-serif;
+  font-size: 9px !important; /* Smaller label text on mobile */
+  font-weight: 700 !important;
+  letter-spacing: 0.06em !important;
+  text-transform: uppercase !important;
+  color: #7E726B !important; /* Warm gray label */
+  margin-bottom: 0.25rem !important;
+  display: block;
+}
+
+@media (min-width: 768px) {
+  #admin-console-view label,
+  #login-register-view label {
+    font-size: 11px !important;
+    letter-spacing: 0.08em !important;
+    margin-bottom: 0.375rem !important;
+  }
+}
+
+/* Premium Buttons Redesign (more compact on mobile) */
+#admin-console-view button,
+#login-register-view button {
+  border-radius: 0.75rem !important;
+  padding: 0.5rem 1rem !important; /* Compact button padding on mobile */
+  font-size: 11px !important;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+@media (min-width: 768px) {
+  #admin-console-view button,
+  #login-register-view button {
+    border-radius: 0.875rem !important;
+    padding: 0.625rem 1.25rem !important;
+    font-size: 12px !important;
+  }
+}
+
+/* Primary Filled Buttons styling */
+#admin-console-view button[type="submit"],
+#admin-console-view .bg-brand-maroon,
+#login-register-view button[type="submit"],
+#login-register-view .bg-brand-maroon {
+  background: linear-gradient(135deg, #5B0E2D 0%, #420A20 100%) !important;
+  color: #FDFBF7 !important; /* ivory text */
+  box-shadow: 0 4px 12px rgba(91, 14, 45, 0.15), 0 2px 4px rgba(0, 0, 0, 0.05) !important;
+  border: none !important;
+}
+
+#admin-console-view button[type="submit"]:hover,
+#admin-console-view .bg-brand-maroon:hover,
+#login-register-view button[type="submit"]:hover,
+#login-register-view .bg-brand-maroon:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(91, 14, 45, 0.22), 0 2px 4px rgba(0, 0, 0, 0.05) !important;
+  filter: brightness(1.1);
+}
+
+#admin-console-view button[type="submit"]:active,
+#admin-console-view .bg-brand-maroon:active,
+#login-register-view button[type="submit"]:active,
+#login-register-view .bg-brand-maroon:active {
+  transform: translateY(1px) scale(0.98);
+  box-shadow: 0 2px 6px rgba(91, 14, 45, 0.12) !important;
+}
+
+/* Secondary/Outline Buttons styling */
+#admin-console-view button[type="button"],
+#login-register-view button[type="button"] {
+  background-color: transparent;
+  border: 1.5px solid #E6DEC1 !important;
+  color: #7E726B !important;
+}
+
+#admin-console-view button[type="button"]:hover,
+#login-register-view button[type="button"]:hover {
+  background-color: #FAF8F5 !important;
+  border-color: #A4865E !important;
+  color: #5B0E2D !important;
+}
+
+/* Bottom-sheet slide-up animation for mobile modals */
+@keyframes slide-up {
+  0% {
+    transform: translateY(100%);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}

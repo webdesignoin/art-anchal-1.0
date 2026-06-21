@@ -7,6 +7,7 @@ import React, { useState, useMemo, useEffect, FormEvent } from "react";
 import { ViewState, Saree, FilterState } from "../../types";
 import { Filter, SlidersHorizontal, Heart, Grid, List, RefreshCw, Star, ArrowRight, Video, CheckCircle2, MessageSquare } from "lucide-react";
 import { supabase } from "../../lib/supabase";
+import { useLanguage } from "../../context/LanguageContext";
 
 interface ShopViewProps {
   setView: (view: ViewState) => void;
@@ -42,6 +43,8 @@ export default function ShopView({
   userSession,
   setUserSession,
 }: ShopViewProps) {
+  const { language, t } = useLanguage();
+
   // Filters state
   const [activeCategory, setActiveCategory] = useState<string>(selectedCategory || "All");
   const [activeZari, setActiveZari] = useState<string>("All");
@@ -177,8 +180,8 @@ export default function ShopView({
       if (sortBy === "price-asc") return a.price - b.price;
       if (sortBy === "price-desc") return b.price - a.price;
       if (sortBy === "rating") return b.rating - a.rating;
-      // Featured / default sorting
-      return b.isBestseller ? 1 : -1;
+      // Featured / default: bestsellers first, then new arrivals, then price
+      return (b.isBestseller ? 2 : 0) + (b.isNew ? 1 : 0) - (a.isBestseller ? 2 : 0) - (a.isNew ? 1 : 0);
     });
   }, [sarees, activeCategory, activeZari, activeWeave, activeColor, maxPrice, initialSearchQuery, sortBy]);
 
@@ -194,10 +197,10 @@ export default function ShopView({
         
         {/* Editorial Page Header */}
         <div className="text-center space-y-3 pb-8 border-b border-brand-gold/15">
-          <span className="text-[11px] font-sans tracking-[0.2em] uppercase text-brand-gold font-bold">The Banarasi Darbar</span>
-          <h1 className="serif-heading text-3xl sm:text-5xl text-brand-maroon font-serif font-light">Our Handwoven Masterpieces</h1>
+          <span className="text-[11px] font-sans tracking-[0.2em] uppercase text-brand-gold font-bold">{t("hero_title")}</span>
+          <h1 className="serif-heading text-3xl sm:text-5xl text-brand-maroon font-serif font-light">{t("shop_title")}</h1>
           <p className="text-xs text-brand-warm-gray max-w-lg mx-auto leading-relaxed">
-            A curation of exquisite weaves, straight from the quiet, rhythmic looms of Banaras to your wardrobe. Discover elegance in every thread.
+            {t("shop_desc")}
           </p>
         </div>
 
@@ -205,14 +208,22 @@ export default function ShopView({
         {initialSearchQuery && (
           <div className="bg-brand-sand/50 border border-brand-gold/20 p-4 flex items-center justify-between text-xs text-brand-maroon">
             <span>
-              Showing results for &ldquo;<strong>{initialSearchQuery}</strong>&rdquo;
+              {language === "hi" ? (
+                <>
+                  &ldquo;<strong>{initialSearchQuery}</strong>&rdquo; के लिए परिणाम दिखाए जा रहे हैं
+                </>
+              ) : (
+                <>
+                  Showing results for &ldquo;<strong>{initialSearchQuery}</strong>&rdquo;
+                </>
+              )}
             </span>
             <button
               onClick={() => setInitialSearchQuery("")}
               className="text-brand-gold-dark hover:text-brand-maroon underline cursor-pointer"
               id="clear-search-btn"
             >
-              Clear Search
+              {language === "hi" ? "खोज मिटाएं" : "Clear Search"}
             </button>
           </div>
         )}
@@ -224,20 +235,20 @@ export default function ShopView({
           <aside className="hidden lg:block w-64 flex-shrink-0 space-y-8 animate-fade-in" id="desktop-sidebar-filters">
             <div>
               <div className="flex items-center justify-between pb-3 border-b border-brand-maroon/10 mb-5">
-                <h3 className="serif-heading text-lg font-serif text-brand-maroon tracking-wide">Refine Collections</h3>
+                <h3 className="serif-heading text-lg font-serif text-brand-maroon tracking-wide">{t("shop_refine")}</h3>
                 <button
                   onClick={handleResetFilters}
                   className="text-[10px] uppercase font-mono tracking-wider text-brand-gold hover:text-brand-maroon flex items-center space-x-1 cursor-pointer"
                   id="reset-filters-btn"
                 >
                   <RefreshCw className="w-3 h-3" />
-                  <span>Reset All</span>
+                  <span>{t("shop_reset")}</span>
                 </button>
               </div>
 
               {/* Category Filter */}
               <div className="space-y-4 mb-8">
-                <h4 className="text-xs font-semibold tracking-wider text-brand-maroon uppercase">Saree Category</h4>
+                <h4 className="text-xs font-semibold tracking-wider text-brand-maroon uppercase">{t("shop_category")}</h4>
                 <div className="space-y-2">
                   {CATEGORIES.map((cat) => (
                     <button
@@ -253,7 +264,7 @@ export default function ShopView({
                       }`}
                       id={`filter-cat-${cat}`}
                     >
-                      {cat}
+                      {t("cat_" + cat, cat)}
                     </button>
                   ))}
                 </div>
@@ -261,7 +272,7 @@ export default function ShopView({
 
               {/* Zari Grade Filter */}
               <div className="space-y-4 mb-8">
-                <h4 className="text-xs font-semibold tracking-wider text-brand-maroon uppercase">Zari Specification</h4>
+                <h4 className="text-xs font-semibold tracking-wider text-brand-maroon uppercase">{t("shop_zari")}</h4>
                 <div className="space-y-2">
                   {ZARI_TYPES.map((zari) => (
                     <button
@@ -274,7 +285,7 @@ export default function ShopView({
                       }`}
                       id={`filter-zari-${zari}`}
                     >
-                      {zari}
+                      {t("zari_" + zari, zari)}
                     </button>
                   ))}
                 </div>
@@ -282,7 +293,7 @@ export default function ShopView({
 
               {/* Weaving Style Filter */}
               <div className="space-y-4 mb-8">
-                <h4 className="text-xs font-semibold tracking-wider text-brand-maroon uppercase">Weaving Style</h4>
+                <h4 className="text-xs font-semibold tracking-wider text-brand-maroon uppercase">{t("shop_weave")}</h4>
                 <div className="space-y-2">
                   {WEAVING_TECHNIQUES.map((tech) => (
                     <button
@@ -295,7 +306,7 @@ export default function ShopView({
                       }`}
                       id={`filter-weave-${tech}`}
                     >
-                      {tech}
+                      {t("weave_" + tech, tech)}
                     </button>
                   ))}
                 </div>
@@ -303,7 +314,7 @@ export default function ShopView({
 
               {/* Palette Filter */}
               <div className="space-y-4 mb-8">
-                <h4 className="text-xs font-semibold tracking-wider text-brand-maroon uppercase">Color Palette</h4>
+                <h4 className="text-xs font-semibold tracking-wider text-brand-maroon uppercase">{t("shop_color")}</h4>
                 <div className="space-y-2">
                   {COLORS.map((col) => (
                     <button
@@ -316,7 +327,7 @@ export default function ShopView({
                       }`}
                       id={`filter-color-${col}`}
                     >
-                      {col}
+                      {t("color_" + col, col)}
                     </button>
                   ))}
                 </div>
@@ -325,7 +336,7 @@ export default function ShopView({
               {/* Price Range Slider Filter */}
               <div className="space-y-4">
                 <div className="flex justify-between items-baseline">
-                  <h4 className="text-xs font-semibold tracking-wider text-brand-maroon uppercase">Price Boundary</h4>
+                  <h4 className="text-xs font-semibold tracking-wider text-brand-maroon uppercase">{t("shop_price")}</h4>
                   <span className="text-xs font-mono font-bold text-brand-maroon">
                     {new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(maxPrice)}
                   </span>
@@ -342,7 +353,7 @@ export default function ShopView({
                 />
                 <div className="flex justify-between text-[11px] text-brand-warm-gray">
                   <span>₹40,000</span>
-                  <span>₹2.5 Lacs</span>
+                  <span>{language === "hi" ? "₹२.५ लाख" : "₹2.5 Lacs"}</span>
                 </div>
               </div>
 
@@ -361,24 +372,24 @@ export default function ShopView({
                   id="mobile-filters-trigger"
                 >
                   <Filter className="w-4 h-4" />
-                  <span>Drape Filters</span>
+                  <span>{language === "hi" ? "ड्रेप फ़िल्टर" : "Drape Filters"}</span>
                 </button>
-                <span>Showing <strong>{filteredSarees.length}</strong> masterwork sarees</span>
+                <span>{t("shop_showing")} <strong>{filteredSarees.length}</strong> {t("shop_sarees_count")}</span>
               </div>
 
               {/* Sorting */}
               <div className="flex items-center space-x-2 text-xs">
-                <span className="text-brand-warm-gray">Sort by:</span>
+                <span className="text-brand-warm-gray">{t("shop_sort")}</span>
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
                   className="bg-brand-ivory border border-brand-gold/20 text-brand-maroon py-1.5 px-3 focus:outline-none focus:border-brand-maroon text-xs cursor-pointer rounded-none"
                   id="sort-select-menu"
                 >
-                  <option value="featured">Featured Masterworks</option>
-                  <option value="price-asc">Price: Heirloom to Royal</option>
-                  <option value="price-desc">Price: Royal to Heirloom</option>
-                  <option value="rating">Client Favorites</option>
+                  <option value="featured">{t("shop_sort_featured")}</option>
+                  <option value="price-asc">{t("shop_sort_asc")}</option>
+                  <option value="price-desc">{t("shop_sort_desc")}</option>
+                  <option value="rating">{t("shop_sort_rating")}</option>
                 </select>
               </div>
             </div>
@@ -389,16 +400,16 @@ export default function ShopView({
                 
                 {/* Left Side: Standard Empty Warning */}
                 <div className="lg:col-span-5 py-12 px-6 text-center border border-dashed border-brand-gold/30 space-y-4 bg-[#FAF7F2]/30">
-                  <p className="font-serif text-lg text-brand-maroon font-light">No matching heritage drapes discovered</p>
+                  <p className="font-serif text-lg text-brand-maroon font-light">{t("shop_no_results")}</p>
                   <p className="text-xs text-brand-warm-gray max-w-xs mx-auto leading-relaxed">
-                    We curate our collection carefully, weaving only in small heritage batches. Try adjusting your filters or price boundaries.
+                    {t("shop_adjust_filters")}
                   </p>
                   <button
                     onClick={handleResetFilters}
                     className="bg-brand-maroon text-brand-ivory text-xs uppercase tracking-widest px-6 py-3 cursor-pointer hover:bg-brand-maroon/90 font-sans shadow-md transition duration-300"
                     id="reset-saree-grid-btn"
                   >
-                    Reset Refinements
+                    {t("shop_reset_refinements")}
                   </button>
                 </div>
 
@@ -409,12 +420,12 @@ export default function ShopView({
                       <Video className="w-6 h-6" />
                     </div>
                     <div>
-                      <span className="text-[10px] font-sans tracking-[0.2em] uppercase text-brand-gold font-bold">Personalized Service</span>
+                      <span className="text-[10px] font-sans tracking-[0.2em] uppercase text-brand-gold font-bold">{t("shop_video_service")}</span>
                       <h2 className="serif-heading text-xl sm:text-2xl font-serif text-brand-maroon tracking-wide">
-                        Book a Live WhatsApp Video Sitting
+                        {t("shop_video_title")}
                       </h2>
                       <p className="text-xs text-brand-warm-gray mt-1 leading-relaxed">
-                        Can't find your perfect weave in stock? Schedule a high-definition private video consultation. Zoom in on zari metal threads, inspect the drape live on our showroom mannequin, or request custom loom bookings directly from Varanasi.
+                        {t("shop_video_desc")}
                       </p>
                     </div>
                   </div>
@@ -422,9 +433,9 @@ export default function ShopView({
                   {bookingSubmitted ? (
                     <div className="bg-[#E7F3EC] border border-[#2E7D32]/20 p-5 text-center space-y-2 animate-fade-in">
                       <CheckCircle2 className="w-8 h-8 text-[#2E7D32] mx-auto animate-bounce" />
-                      <span className="text-[#2E7D32] block font-semibold text-sm">Consultation Requested Successfully!</span>
+                      <span className="text-[#2E7D32] block font-semibold text-sm">{t("shop_video_success")}</span>
                       <p className="text-brand-warm-gray text-xs max-w-md mx-auto leading-relaxed">
-                        Our textile curator will contact you on WhatsApp at your phone number shortly to schedule your personalized live showcase.
+                        {t("shop_video_success_desc")}
                       </p>
                     </div>
                   ) : (
@@ -437,11 +448,11 @@ export default function ShopView({
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-1.5">
-                          <label htmlFor="video-booking-name" className="text-[10px] text-brand-maroon font-bold uppercase tracking-wider block">Your Name</label>
+                          <label htmlFor="video-booking-name" className="text-[10px] text-brand-maroon font-bold uppercase tracking-wider block">{t("shop_video_name")}</label>
                           <input
                             type="text"
                             required
-                            placeholder="e.g. Priyadarshini Sen"
+                            placeholder={language === "hi" ? "जैसे: प्रियदर्शिनी सेन" : "e.g. Priyadarshini Sen"}
                             value={bookingName}
                             onChange={(e) => setBookingName(e.target.value)}
                             className="w-full bg-brand-ivory border border-brand-gold/30 rounded-none px-4 py-3 text-brand-maroon focus:outline-none focus:border-brand-maroon text-xs"
@@ -449,11 +460,11 @@ export default function ShopView({
                           />
                         </div>
                         <div className="space-y-1.5">
-                          <label htmlFor="video-booking-phone" className="text-[10px] text-brand-maroon font-bold uppercase tracking-wider block">WhatsApp Phone Number</label>
+                          <label htmlFor="video-booking-phone" className="text-[10px] text-brand-maroon font-bold uppercase tracking-wider block">{t("shop_video_phone")}</label>
                           <input
                             type="tel"
                             required
-                            placeholder="e.g. +91 98765 43210"
+                            placeholder={language === "hi" ? "जैसे: +91 98765 43210" : "e.g. +91 98765 43210"}
                             value={bookingPhone}
                             onChange={(e) => setBookingPhone(e.target.value)}
                             className="w-full bg-brand-ivory border border-brand-gold/30 rounded-none px-4 py-3 text-brand-maroon focus:outline-none focus:border-brand-maroon text-xs"
@@ -463,10 +474,10 @@ export default function ShopView({
                       </div>
 
                       <div className="space-y-1.5">
-                        <label htmlFor="video-booking-note" className="text-[10px] text-brand-maroon font-bold uppercase tracking-wider block">Preferred Occasion, Motifs or Time (Optional)</label>
+                        <label htmlFor="video-booking-note" className="text-[10px] text-brand-maroon font-bold uppercase tracking-wider block">{t("shop_video_note")}</label>
                         <textarea
                           rows={2}
-                          placeholder="e.g. Looking for a Maroon Katan Silk saree for wedding; free this Saturday evening."
+                          placeholder={language === "hi" ? "जैसे: शादी के लिए मैरून कतान सिल्क साड़ी चाहिए; इस शनिवार शाम को समय है।" : "e.g. Looking for a Maroon Katan Silk saree for wedding; free this Saturday evening."}
                           value={bookingNote}
                           onChange={(e) => setBookingNote(e.target.value)}
                           className="w-full bg-brand-ivory border border-brand-gold/30 rounded-none px-4 py-3 text-brand-maroon focus:outline-none focus:border-brand-maroon resize-none text-xs"
@@ -481,7 +492,7 @@ export default function ShopView({
                           className="flex-grow bg-brand-maroon hover:bg-brand-maroon/95 disabled:bg-brand-maroon/50 text-brand-ivory text-xs uppercase tracking-widest font-sans font-bold py-3.5 px-6 transition duration-300 shadow-md cursor-pointer text-center"
                           id="video-booking-submit-btn"
                         >
-                          {bookingLoading ? "Submitting Request..." : "Request Video Sitting"}
+                          {bookingLoading ? (language === "hi" ? "अनुरोध सबमिट हो रहा है..." : "Submitting Request...") : t("shop_video_btn")}
                         </button>
                         
                         <a
@@ -492,7 +503,7 @@ export default function ShopView({
                           id="video-booking-whatsapp-direct-btn"
                         >
                           <MessageSquare className="w-4 h-4 text-brand-gold" />
-                          <span>Chat Directly on WhatsApp</span>
+                          <span>{t("shop_video_direct")}</span>
                         </a>
                       </div>
                     </form>
@@ -538,7 +549,7 @@ export default function ShopView({
                         {/* Top Ribbon badges */}
                         {saree.isNew && (
                           <span className="absolute top-2.5 left-2.5 bg-brand-gold text-brand-ivory text-[8px] font-bold tracking-wider uppercase px-2 py-0.5">
-                            New Motif
+                            {t("shop_new_motif")}
                           </span>
                         )}
 
@@ -560,14 +571,14 @@ export default function ShopView({
                           className="absolute bottom-0 w-full bg-brand-maroon/90 text-brand-ivory text-[10px] tracking-widest uppercase py-3 translate-y-full group-hover:translate-y-0 transition-transform duration-300 font-sans hover:bg-brand-maroon cursor-pointer"
                           id={`shop-quickview-btn-${saree.id}`}
                         >
-                          Quick View
+                          {t("shop_quickview")}
                         </button>
                       </div>
 
                       {/* Name tags */}
                       <div className="p-4 bg-[#FDFBF7]">
                         <div className="text-[9px] text-brand-gold tracking-[0.1em] uppercase font-sans mb-1 flex items-center justify-between">
-                          <span>{saree.category}</span>
+                          <span>{t("cat_" + saree.category, saree.category)}</span>
                           <span className="text-[10px] font-medium flex items-center gap-1 text-brand-maroon/80 font-serif">
                             <Star className="w-2.5 h-2.5 fill-brand-gold text-brand-gold" /> {saree.rating}
                           </span>
@@ -581,7 +592,7 @@ export default function ShopView({
                         </h3>
 
                         <p className="text-[10px] text-brand-warm-gray mt-0.5 font-sans mb-3 select-none">
-                          {saree.weavingTechnique} • {saree.zariType}
+                          {t("weave_" + saree.weavingTechnique, saree.weavingTechnique)} • {t("zari_" + saree.zariType, saree.zariType)}
                         </p>
 
                         <div className="flex items-baseline space-x-2 border-t border-brand-gold/10 pt-2.5">
@@ -611,18 +622,18 @@ export default function ShopView({
           <div className="relative w-full max-w-xs bg-brand-ivory h-full shadow-2xl flex flex-col justify-between py-6 px-6 z-10 animate-[slide-in-right_0.3s_ease-out]">
             <div className="overflow-y-auto pr-2 pb-6">
               <div className="flex items-center justify-between mb-6 pb-2 border-b border-brand-gold/15">
-                <h3 className="serif-heading text-lg font-serif text-brand-maroon">Refine Sarees</h3>
+                <h3 className="serif-heading text-lg font-serif text-brand-maroon">{t("shop_refine")}</h3>
                 <button
                   onClick={handleResetFilters}
                   className="text-[9px] uppercase tracking-widest font-mono text-brand-warm-gray hover:text-brand-maroon"
                 >
-                  Reset
+                  {language === "hi" ? "रीसेट" : "Reset"}
                 </button>
               </div>
 
               {/* Saree Categories */}
               <div className="space-y-4 mb-8">
-                <h4 className="text-xs font-semibold tracking-wider text-brand-maroon uppercase">Categories</h4>
+                <h4 className="text-xs font-semibold tracking-wider text-brand-maroon uppercase">{t("shop_category")}</h4>
                 <div className="space-y-2">
                   {CATEGORIES.map((cat) => (
                     <button
@@ -633,7 +644,7 @@ export default function ShopView({
                       }}
                       className={`block text-xs font-light w-full text-left py-1 ${activeCategory === cat ? "text-brand-maroon font-bold" : "text-brand-warm-gray"}`}
                     >
-                      {cat}
+                      {t("cat_" + cat, cat)}
                     </button>
                   ))}
                 </div>
@@ -641,7 +652,7 @@ export default function ShopView({
 
               {/* Saree Zaris */}
               <div className="space-y-4 mb-8">
-                <h4 className="text-xs font-semibold tracking-wider text-brand-maroon uppercase">Zari Qualities</h4>
+                <h4 className="text-xs font-semibold tracking-wider text-brand-maroon uppercase">{t("shop_zari")}</h4>
                 <div className="space-y-2">
                   {ZARI_TYPES.map((zari) => (
                     <button
@@ -649,7 +660,7 @@ export default function ShopView({
                       onClick={() => setActiveZari(zari)}
                       className={`block text-xs font-light w-full text-left py-1 ${activeZari === zari ? "text-brand-maroon font-bold" : "text-brand-warm-gray"}`}
                     >
-                      {zari}
+                      {t("zari_" + zari, zari)}
                     </button>
                   ))}
                 </div>
@@ -657,7 +668,7 @@ export default function ShopView({
 
               {/* Saree Weaves */}
               <div className="space-y-4 mb-8">
-                <h4 className="text-xs font-semibold tracking-wider text-brand-maroon uppercase">Weaving Techniques</h4>
+                <h4 className="text-xs font-semibold tracking-wider text-brand-maroon uppercase">{t("shop_weave")}</h4>
                 <div className="space-y-2">
                   {WEAVING_TECHNIQUES.map((tech) => (
                     <button
@@ -665,7 +676,7 @@ export default function ShopView({
                       onClick={() => setActiveWeave(tech)}
                       className={`block text-xs font-light w-full text-left py-1 ${activeWeave === tech ? "text-brand-maroon font-bold" : "text-brand-warm-gray"}`}
                     >
-                      {tech}
+                      {t("weave_" + tech, tech)}
                     </button>
                   ))}
                 </div>
@@ -673,7 +684,7 @@ export default function ShopView({
 
               {/* Palette */}
               <div className="space-y-4">
-                <h4 className="text-xs font-semibold tracking-wider text-brand-maroon uppercase">Colors</h4>
+                <h4 className="text-xs font-semibold tracking-wider text-brand-maroon uppercase">{t("shop_color")}</h4>
                 <div className="space-y-2">
                   {COLORS.map((col) => (
                     <button
@@ -681,7 +692,7 @@ export default function ShopView({
                       onClick={() => setActiveColor(col)}
                       className={`block text-xs font-light w-full text-left py-1 ${activeColor === col ? "text-brand-maroon font-bold" : "text-brand-warm-gray"}`}
                     >
-                      {col}
+                      {t("color_" + col, col)}
                     </button>
                   ))}
                 </div>
@@ -692,7 +703,7 @@ export default function ShopView({
               onClick={() => setShowMobileFilters(false)}
               className="w-full bg-[#5B0E2D] text-brand-ivory text-xs uppercase tracking-widest py-3.5"
             >
-              Apply Refinements
+              {language === "hi" ? "फ़िल्टर लागू करें" : "Apply Refinements"}
             </button>
           </div>
         </div>

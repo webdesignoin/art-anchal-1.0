@@ -7,6 +7,7 @@ import React, { useState, FormEvent, useRef, useEffect } from "react";
 import { Search, Heart, ShoppingBag, Menu, X, User, LayoutDashboard, LogOut, ChevronDown } from "lucide-react";
 import { ViewState, Saree, CartItem } from "../types";
 import { supabase, isMock } from "../lib/supabase";
+import { useLanguage } from "../context/LanguageContext";
 
 interface NavbarProps {
   currentView: ViewState;
@@ -32,6 +33,7 @@ export default function Navbar({
   userSession,
   setUserSession,
 }: NavbarProps) {
+  const { language, setLanguage, t } = useLanguage();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchInp, setSearchInp] = useState("");
@@ -91,10 +93,10 @@ export default function Navbar({
   }, [totalCartItems]);
 
   const navLinks: { label: string; view: ViewState }[] = [
-    { label: "Shop", view: "shop" },
-    { label: "Collections", view: "collections" },
-    { label: "Stories", view: "artisan-stories" },
-    { label: "About", view: "about" }
+    { label: t("nav_shop"), view: "shop" },
+    { label: t("nav_collections"), view: "collections" },
+    { label: t("nav_artisans"), view: "artisan-stories" },
+    { label: t("nav_about"), view: "about" }
   ];
 
   const handleSearchSubmit = (e: FormEvent) => {
@@ -182,6 +184,21 @@ export default function Navbar({
 
           {/* ── Right: Action Icons ────────────────────────────────── */}
           <div className="flex-1 flex items-center justify-end space-x-5 sm:space-x-8">
+            
+            {/* Premium Language Switcher Toggle */}
+            <button
+              onClick={() => setLanguage(language === "en" ? "hi" : "en")}
+              className={`transition-all duration-300 cursor-pointer text-[10px] font-bold tracking-[0.2em] uppercase px-3 py-1 border rounded-full ${
+                isDarkGlass 
+                  ? 'border-brand-maroon/25 text-brand-maroon hover:border-brand-maroon hover:bg-brand-maroon hover:text-brand-ivory' 
+                  : 'border-brand-gold/30 text-brand-ivory hover:border-brand-gold hover:bg-brand-gold hover:text-brand-maroon'
+              }`}
+              title={language === "en" ? "हिंदी में बदलें" : "Switch to English"}
+              id="language-switcher-btn"
+            >
+              {language === "en" ? "हिंदी" : "EN"}
+            </button>
+
             <button
               ref={searchToggleRef}
               onClick={() => setIsSearchOpen(!isSearchOpen)}
@@ -241,14 +258,14 @@ export default function Navbar({
                       className="w-full flex items-center gap-4 px-6 py-4 text-left hover:bg-brand-sand transition group"
                     >
                       <User className="w-4 h-4 text-brand-gold group-hover:text-brand-maroon transition" />
-                      <span className="text-xs uppercase tracking-widest font-bold text-brand-maroon">My Dashboard</span>
+                      <span className="text-xs uppercase tracking-widest font-bold text-brand-maroon">{t("nav_dashboard")}</span>
                     </button>
                     <button
                       onClick={handleLogout}
                       className="w-full flex items-center gap-4 px-6 py-4 text-left hover:bg-brand-sand transition group border-t border-brand-gold/10"
                     >
                       <LogOut className="w-4 h-4 text-brand-warm-gray group-hover:text-brand-maroon transition" />
-                      <span className="text-xs uppercase tracking-widest font-bold text-brand-warm-gray group-hover:text-brand-maroon">Sign Out</span>
+                      <span className="text-xs uppercase tracking-widest font-bold text-brand-warm-gray group-hover:text-brand-maroon">{t("nav_logout")}</span>
                     </button>
                   </div>
                 </div>
@@ -373,12 +390,12 @@ export default function Navbar({
                   onClick={() => selectNavLink("login-register")}
                   className="flex items-center gap-3 text-xs tracking-[0.2em] uppercase font-bold text-brand-gold hover:text-brand-ivory transition"
                 >
-                  <User className="w-5 h-5" /> Sign In / Register
+                  <User className="w-5 h-5" /> {t("nav_login")}
                 </button>
               ) : (
                 <div className="space-y-6">
                   <div>
-                    <p className="text-[10px] uppercase tracking-[0.2em] text-brand-gold mb-1">Signed in as</p>
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-brand-gold mb-1">{language === "hi" ? "लॉग इन" : "Signed in as"}</p>
                     <p className="text-lg font-serif text-brand-ivory">{userSession.name}</p>
                   </div>
                   {userSession.is_admin ? (
@@ -386,21 +403,21 @@ export default function Navbar({
                       onClick={() => selectNavLink("admin-console")}
                       className="flex items-center gap-3 text-xs tracking-[0.2em] uppercase font-bold text-brand-warm-gray hover:text-brand-ivory transition"
                     >
-                      <LayoutDashboard className="w-5 h-5" /> Admin Console
+                      <LayoutDashboard className="w-5 h-5" /> {t("nav_admin")}
                     </button>
                   ) : (
                     <button
                       onClick={() => selectNavLink("user-profile")}
                       className="flex items-center gap-3 text-xs tracking-[0.2em] uppercase font-bold text-brand-warm-gray hover:text-brand-ivory transition"
                     >
-                      <User className="w-5 h-5" /> My Dashboard
+                      <User className="w-5 h-5" /> {t("nav_dashboard")}
                     </button>
                   )}
                   <button
                     onClick={handleLogout}
                     className="flex items-center gap-3 text-xs tracking-[0.2em] uppercase font-bold text-brand-warm-gray hover:text-brand-ivory transition"
                   >
-                    <LogOut className="w-5 h-5" /> Sign Out
+                    <LogOut className="w-5 h-5" /> {t("nav_logout")}
                   </button>
                 </div>
               )}

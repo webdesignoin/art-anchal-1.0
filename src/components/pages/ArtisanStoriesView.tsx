@@ -7,6 +7,7 @@ import { ViewState, Saree, Artisan } from "../../types";
 import { ArrowRight, MapPin, Scissors, Award, Clock } from "lucide-react";
 import ResponsiveImage from "../ResponsiveImage";
 import { useEffect } from "react";
+import { useLanguage } from "../../context/LanguageContext";
 
 interface ArtisanStoriesViewProps {
   setView: (view: ViewState) => void;
@@ -23,6 +24,7 @@ export default function ArtisanStoriesView({
   artisans,
   sarees,
 }: ArtisanStoriesViewProps) {
+  const { language, t } = useLanguage();
   const handleExploreArtisanWork = (sareeId?: string, category?: string) => {
     if (sareeId) {
       setSelectedSareeId(sareeId);
@@ -45,17 +47,17 @@ export default function ArtisanStoriesView({
 
   return (
     <>
-      <h1 className="sr-only">Artisan Stories – Art &amp; Anchal</h1>
+      <h1 className="sr-only">{t("artisan_header_title")}</h1>
       <div className="bg-[#FDFBF7] min-h-screen py-16 px-4 sm:px-6 lg:px-8 font-sans" id="artisan-stories-view">
         <div className="max-w-5xl mx-auto space-y-16">
 
           {/* Page Header */}
           <div className="text-center space-y-3">
-            <span className="text-[10px] tracking-[0.25em] uppercase text-brand-gold font-bold">The Authentic Loom Masterminds</span>
-            <h2 className="serif-heading text-3xl sm:text-5xl text-brand-maroon font-serif font-light leading-tight">Master Artisan Stories</h2>
+            <span className="text-[10px] tracking-[0.25em] uppercase text-brand-gold font-bold">{t("artisan_header_badge")}</span>
+            <h2 className="serif-heading text-3xl sm:text-5xl text-brand-maroon font-serif font-light leading-tight">{t("artisan_header_title")}</h2>
             <div className="w-16 h-0.5 bg-brand-gold mx-auto my-4"></div>
             <p className="text-xs sm:text-sm text-brand-warm-gray leading-relaxed max-w-2xl mx-auto font-light">
-              Every Banarasi saree is born from silent moments of loom coordination. Learn about the legacy handloom weavers preserving deep heritage in rural Varanasi cooperatives.
+              {t("artisan_header_desc")}
             </p>
           </div>
 
@@ -82,13 +84,13 @@ export default function ArtisanStoriesView({
                       />
                       {isLatest && (
                         <span className="absolute top-2 left-2 lg:top-3 lg:left-3 bg-[#5B0E2D] text-brand-ivory text-[8px] font-bold uppercase tracking-wider px-2 py-0.5 shadow-md">
-                          Spotlight
+                          {t("artisan_spotlight_badge")}
                         </span>
                       )}
                     </div>
 
                     <div className="hidden lg:block p-4 bg-brand-sand/30 border border-brand-gold/15 rounded-none text-center">
-                      <h4 className="text-[10px] text-brand-gold-dark font-sans tracking-wider uppercase font-bold mb-1">Weaving Specialty</h4>
+                      <h4 className="text-[10px] text-brand-gold-dark font-sans tracking-wider uppercase font-bold mb-1">{t("artisan_specialty_title")}</h4>
                       <p className="text-xs text-brand-maroon font-serif font-bold italic">{artisan.specialty}</p>
                     </div>
                   </div>
@@ -98,7 +100,7 @@ export default function ArtisanStoriesView({
                     <div className="space-y-1">
                       <h3 className="serif-heading text-lg sm:text-xl lg:text-3xl font-serif text-brand-maroon leading-tight">{artisan.name}</h3>
                       <p className="hidden lg:block text-xs text-brand-gold-dark uppercase tracking-widest font-sans font-semibold">
-                        Age: {artisan.age} • Village: {artisan.village} • {artisan.experienceYears} Years Loom Training
+                        {t("artisan_age")}: {artisan.age} • {t("artisan_village")}: {artisan.village} • {artisan.experienceYears} {t("artisan_experience")}
                       </p>
                       <p className="lg:hidden text-[9px] text-brand-warm-gray uppercase tracking-wider font-sans font-semibold truncate">
                         {artisan.village}
@@ -128,7 +130,7 @@ export default function ArtisanStoriesView({
                           </div>
                           <div className="overflow-hidden">
                             <span className="text-[8px] uppercase tracking-wider text-brand-gold font-sans block">
-                              Crafted by {artisan.name.split(" ")[0]}
+                              {language === "hi" ? `${artisan.name.split(" ")[0]} ${t("artisan_crafted_by")}` : `${t("artisan_crafted_by")} ${artisan.name.split(" ")[0]}`}
                             </span>
                             <h4 className="font-serif text-[11px] font-semibold text-brand-maroon truncate leading-tight">
                               {featuredSaree.name}
@@ -145,7 +147,7 @@ export default function ArtisanStoriesView({
                               className="text-[9px] uppercase tracking-wider text-brand-maroon underline font-sans font-semibold mt-1 hover:text-brand-gold cursor-pointer"
                               id={`artisan-saree-link-${featuredSaree.id}`}
                             >
-                              Explore Masterpiece Details
+                              {t("artisan_explore_details_btn")}
                             </button>
                           </div>
                         </div>
@@ -158,7 +160,7 @@ export default function ArtisanStoriesView({
                         className="border border-brand-gold hover:border-brand-maroon text-brand-maroon hover:bg-brand-sand text-xs tracking-widest uppercase font-semibold py-3.5 px-6 transition duration-300 font-sans text-center cursor-pointer"
                         id={`explore-coop-btn-desk-${artisan.id}`}
                       >
-                        Browse Loom Master Catalogue
+                        {t("artisan_browse_catalog_btn")}
                       </button>
                     </div>
 
@@ -168,7 +170,7 @@ export default function ArtisanStoriesView({
                           className="w-full border border-brand-gold/50 text-brand-maroon bg-brand-gold/10 text-[9px] tracking-widest uppercase font-bold py-2 px-2 text-center cursor-pointer"
                           id={`explore-coop-btn-mob-${artisan.id}`}
                         >
-                          View Work
+                          {t("artisan_view_work_btn")}
                         </button>
                     </div>
 

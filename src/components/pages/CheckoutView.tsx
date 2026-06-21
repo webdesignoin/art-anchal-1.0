@@ -7,6 +7,7 @@ import React, { useState, FormEvent, useEffect } from "react";
 import { ViewState, CartItem } from "../../types";
 import { CreditCard, ShieldCheck, CheckCircle, Truck, ShoppingBag, FileText, RefreshCw } from "lucide-react";
 import { supabase } from "../../lib/supabase";
+import { useLanguage } from "../../context/LanguageContext";
 
 interface CheckoutViewProps {
   cart: CartItem[];
@@ -29,6 +30,7 @@ const generateUUID = () => {
 };
 
 export default function CheckoutView({ cart, clearCart, setView, userSession, sessionReady = true }: CheckoutViewProps) {
+  const { language, t } = useLanguage();
   const [form, setForm] = useState({
     name: userSession?.name || "",
     email: userSession?.email || "",
@@ -166,31 +168,31 @@ export default function CheckoutView({ cart, clearCart, setView, userSession, se
 
   const validateForm = () => {
     const errors: Record<string, string> = {};
-    if (!form.name.trim()) errors.name = "Full name is required";
+    if (!form.name.trim()) errors.name = language === "hi" ? "पूरा नाम आवश्यक है" : "Full name is required";
     
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!form.email.trim()) {
-      errors.email = "Email address is required";
+      errors.email = language === "hi" ? "ईमेल पता आवश्यक है" : "Email address is required";
     } else if (!emailRegex.test(form.email)) {
-      errors.email = "Please enter a valid email address";
+      errors.email = language === "hi" ? "कृपया एक मान्य ईमेल पता दर्ज करें" : "Please enter a valid email address";
     }
 
     if (!form.phone.trim()) {
-      errors.phone = "Phone number is required";
+      errors.phone = language === "hi" ? "फोन नंबर आवश्यक है" : "Phone number is required";
     } else {
       const cleanPhone = form.phone.replace(/\D/g, "");
       if (cleanPhone.length < 10) {
-        errors.phone = "Please enter a valid 10-digit phone number";
+        errors.phone = language === "hi" ? "कृपया एक मान्य 10-अंकीय फोन नंबर दर्ज करें" : "Please enter a valid 10-digit phone number";
       }
     }
 
-    if (!form.address.trim()) errors.address = "Delivery address is required";
-    if (!form.city.trim()) errors.city = "City is required";
+    if (!form.address.trim()) errors.address = language === "hi" ? "डिलीवरी का पता आवश्यक है" : "Delivery address is required";
+    if (!form.city.trim()) errors.city = language === "hi" ? "शहर आवश्यक है" : "City is required";
     
     if (!form.zip.trim()) {
-      errors.zip = "ZIP/Postal code is required";
+      errors.zip = language === "hi" ? "पिन कोड आवश्यक है" : "ZIP/Postal code is required";
     } else if (form.zip.trim().length < 5) {
-      errors.zip = "Please enter a valid postal code";
+      errors.zip = language === "hi" ? "कृपया एक मान्य पिन कोड दर्ज करें" : "Please enter a valid postal code";
     }
 
     setValidationErrors(errors);
@@ -392,15 +394,15 @@ export default function CheckoutView({ cart, clearCart, setView, userSession, se
   const handleReturnHome = () => {
     setView("home");
     window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  // Show spinner while Supabase session is being restored on refresh
+  };  // Show spinner while Supabase session is being restored on refresh
   if (!internalSessionReady) {
     return (
       <div className="bg-[#FDFBF7] min-h-screen flex items-center justify-center">
         <div className="text-center space-y-4">
           <div className="w-10 h-10 border-2 border-brand-maroon/20 border-t-brand-maroon rounded-full animate-spin mx-auto" />
-          <p className="text-xs text-brand-warm-gray uppercase tracking-widest">Restoring your session…</p>
+          <p className="text-xs text-brand-warm-gray uppercase tracking-widest">
+            {language === "hi" ? "आपका सत्र पुनर्स्थापित किया जा रहा है..." : "Restoring your session…"}
+          </p>
         </div>
       </div>
     );
@@ -417,18 +419,25 @@ export default function CheckoutView({ cart, clearCart, setView, userSession, se
           <div className="space-y-2">
             <div className="inline-flex items-center gap-2 bg-[#E7F3EC] text-[#2E7D32] px-4 py-1.5 rounded-full border border-[#2E7D32]/20 mb-2">
               <CheckCircle className="w-4 h-4" />
-              <span className="text-[10px] tracking-[0.1em] uppercase font-bold">Payment Complete</span>
+              <span className="text-[10px] tracking-[0.1em] uppercase font-bold">
+                {language === "hi" ? "भुगतान पूर्ण" : "Payment Complete"}
+              </span>
             </div>
-            <h2 className="serif-heading text-3xl text-brand-maroon font-serif leading-tight">Order Placed Successfully!</h2>
+            <h2 className="serif-heading text-3xl text-brand-maroon font-serif leading-tight">
+              {t("checkout_success_title", "Order Confirmed!")}
+            </h2>
             <p className="text-xs text-brand-warm-gray leading-relaxed font-light">
-              Your order is registered in our Varanasi cooperative guild database under ID: <strong className="font-mono text-brand-maroon">{generatedOrderId}</strong>
+              {language === "hi"
+                ? "आपका ऑर्डर हमारे वाराणसी सहकारी गिल्ड डेटाबेस में आईडी के तहत पंजीकृत है: "
+                : "Your order is registered in our Varanasi cooperative guild database under ID: "}
+              <strong className="font-mono text-brand-maroon">{generatedOrderId}</strong>
             </p>
           </div>
 
           <div className="bg-brand-ivory border border-brand-gold/15 p-6 text-left space-y-5">
             <h4 className="font-semibold text-brand-maroon uppercase text-[10px] tracking-wider flex items-center gap-1 pb-2 border-b border-brand-gold/10">
               <Truck className="w-3.5 h-3.5 text-brand-gold" />
-              Next Steps
+              {language === "hi" ? "अगले कदम" : "Next Steps"}
             </h4>
             
             <div className="relative pl-6 space-y-6">
@@ -440,8 +449,12 @@ export default function CheckoutView({ cart, clearCart, setView, userSession, se
                 <div className="absolute -left-6 top-0.5 w-4 h-4 rounded-full bg-[#E7F3EC] border border-[#2E7D32] flex items-center justify-center z-10">
                   <CheckCircle className="w-2.5 h-2.5 text-[#2E7D32]" />
                 </div>
-                <h5 className="text-[11px] font-bold text-brand-maroon uppercase tracking-wider mb-1">Order Confirmed & Paid</h5>
-                <p className="text-[10px] text-brand-warm-gray leading-relaxed">Payment has been verified and securely processed.</p>
+                <h5 className="text-[11px] font-bold text-brand-maroon uppercase tracking-wider mb-1">
+                  {language === "hi" ? "ऑर्डर की पुष्टि और भुगतान" : "Order Confirmed & Paid"}
+                </h5>
+                <p className="text-[10px] text-brand-warm-gray leading-relaxed">
+                  {language === "hi" ? "भुगतान सत्यापित और सुरक्षित रूप से संसाधित हो गया है।" : "Payment has been verified and securely processed."}
+                </p>
               </div>
 
               {/* Step 2 */}
@@ -449,9 +462,13 @@ export default function CheckoutView({ cart, clearCart, setView, userSession, se
                 <div className="absolute -left-[24px] top-0.5 w-4 h-4 rounded-full bg-brand-ivory border-2 border-brand-gold flex items-center justify-center z-10">
                   <div className="w-1.5 h-1.5 bg-brand-gold rounded-full animate-pulse"></div>
                 </div>
-                <h5 className="text-[11px] font-bold text-brand-maroon uppercase tracking-wider mb-1">Waiting for shipment details</h5>
+                <h5 className="text-[11px] font-bold text-brand-maroon uppercase tracking-wider mb-1">
+                  {language === "hi" ? "शिपमेंट विवरण की प्रतीक्षा है" : "Waiting for shipment details"}
+                </h5>
                 <p className="text-[10px] text-brand-warm-gray leading-relaxed">
-                  Our tailoring division is coordinating custom stitching. Dispatch inside climate-controlled cedar boxes will start within 3-5 days. You will receive tracking links via email/WhatsApp once shipped.
+                  {language === "hi"
+                    ? "हमारा सिलाई विभाग कस्टम सिलाई का समन्वय कर रहा है। जलवायु-नियंत्रित देवदार के बक्से में 3-5 दिनों में शिपमेंट शुरू हो जाएगा। शिप होने के बाद आपको ईमेल/व्हाट्सएप के माध्यम से ट्रैकिंग लिंक प्राप्त होगा।"
+                    : "Our tailoring division is coordinating custom stitching. Dispatch inside climate-controlled cedar boxes will start within 3-5 days. You will receive tracking links via email/WhatsApp once shipped."}
                 </p>
               </div>
             </div>
@@ -463,7 +480,7 @@ export default function CheckoutView({ cart, clearCart, setView, userSession, se
               className="bg-brand-maroon hover:bg-[#3E061E] text-brand-ivory text-xs tracking-widest uppercase py-4 px-10 transition duration-300 font-semibold cursor-pointer shadow-md"
               id="success-return-home-btn"
             >
-              Continue Heritage Journey
+              {language === "hi" ? "विरासत यात्रा जारी रखें" : "Continue Heritage Journey"}
             </button>
           </div>
         </div>
@@ -477,8 +494,12 @@ export default function CheckoutView({ cart, clearCart, setView, userSession, se
         
         {/* Header */}
         <div className="text-center space-y-2 pb-8 border-b border-brand-gold/15">
-          <span className="text-[10px] tracking-[0.25em] uppercase text-brand-gold font-bold">Secure Gateway</span>
-          <h1 className="serif-heading text-3xl sm:text-4.5xl text-brand-maroon font-serif font-light">Curated Checkout</h1>
+          <span className="text-[10px] tracking-[0.25em] uppercase text-brand-gold font-bold">
+            {language === "hi" ? "सुरक्षित गेटवे" : "Secure Gateway"}
+          </span>
+          <h1 className="serif-heading text-3xl sm:text-4.5xl text-brand-maroon font-serif font-light">
+            {t("checkout_title", "Curated Checkout")}
+          </h1>
         </div>
 
         {/* Zero items check */}
@@ -487,13 +508,15 @@ export default function CheckoutView({ cart, clearCart, setView, userSession, se
             <div className="w-16 h-16 rounded-full bg-brand-sand mx-auto flex items-center justify-center text-brand-maroon/60">
               <ShoppingBag className="w-8 h-8 stroke-[1.2]" />
             </div>
-            <h3 className="serif-heading text-xl text-brand-maroon">No sarees currently in bag</h3>
+            <h3 className="serif-heading text-xl text-brand-maroon">
+              {language === "hi" ? "बैग में वर्तमान में कोई साड़ी नहीं है" : "No sarees currently in bag"}
+            </h3>
             <button
               onClick={() => setView("shop")}
               className="bg-brand-maroon text-brand-ivory text-xs tracking-widest uppercase py-3.5 px-8 cursor-pointer font-semibold shadow-md"
               id="empty-checkout-explore-btn"
             >
-              Return to Catalog
+              {language === "hi" ? "कैटलॉग पर लौटें" : "Return to Catalog"}
             </button>
           </div>
         ) : (
@@ -506,12 +529,14 @@ export default function CheckoutView({ cart, clearCart, setView, userSession, se
               {/* Shipping form */}
               <div className="bg-[#FAF7F2] border border-brand-gold/25 p-6 sm:p-8 space-y-4">
                 <h3 className="serif-heading text-xl font-serif text-brand-maroon tracking-wide pb-2 border-b border-brand-gold/15">
-                  Insured Delivery Coordinates
+                  {t("checkout_shipping_details", "Insured Delivery Coordinates")}
                 </h3>
 
                 {savedAddresses.length > 0 && (
                   <div className="mb-6">
-                    <p className="text-[10px] text-brand-maroon font-bold uppercase tracking-wider mb-3">Use a Saved Address</p>
+                    <p className="text-[10px] text-brand-maroon font-bold uppercase tracking-wider mb-3">
+                      {language === "hi" ? "सहेजे गए पते का उपयोग करें" : "Use a Saved Address"}
+                    </p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {savedAddresses.map((addr) => (
                         <button
@@ -530,7 +555,9 @@ export default function CheckoutView({ cart, clearCart, setView, userSession, se
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <label htmlFor="shipping-name" className="text-[10px] text-brand-maroon font-bold uppercase tracking-wider block">Full Name</label>
+                    <label htmlFor="shipping-name" className="text-[10px] text-brand-maroon font-bold uppercase tracking-wider block font-sans">
+                      {language === "hi" ? "पूरा नाम" : "Full Name"}
+                    </label>
                     <input
                       type="text"
                       value={form.name}
@@ -543,7 +570,9 @@ export default function CheckoutView({ cart, clearCart, setView, userSession, se
                     )}
                   </div>
                   <div className="space-y-1.5">
-                    <label htmlFor="shipping-email" className="text-[10px] text-brand-maroon font-bold uppercase tracking-wider block">Email Address</label>
+                    <label htmlFor="shipping-email" className="text-[10px] text-brand-maroon font-bold uppercase tracking-wider block font-sans">
+                      {t("checkout_email", "Email Address")}
+                    </label>
                     <input
                       type="email"
                       value={form.email}
@@ -558,8 +587,10 @@ export default function CheckoutView({ cart, clearCart, setView, userSession, se
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="space-y-1.5">
-                    <label htmlFor="shipping-phone" className="text-[10px] text-brand-maroon font-bold uppercase tracking-wider block">Phone Number</label>
+                  <div className="space-y-1.5 font-sans">
+                    <label htmlFor="shipping-phone" className="text-[10px] text-brand-maroon font-bold uppercase tracking-wider block font-sans">
+                      {t("checkout_phone", "WhatsApp Phone Number")}
+                    </label>
                     <input
                       type="tel"
                       placeholder="e.g. 9876543210"
@@ -573,7 +604,9 @@ export default function CheckoutView({ cart, clearCart, setView, userSession, se
                     )}
                   </div>
                   <div className="space-y-1.5 font-sans">
-                    <label htmlFor="shipping-city" className="text-[10px] text-brand-maroon font-bold uppercase tracking-wider block">City</label>
+                    <label htmlFor="shipping-city" className="text-[10px] text-brand-maroon font-bold uppercase tracking-wider block font-sans">
+                      {t("checkout_city", "City")}
+                    </label>
                     <input
                       type="text"
                       value={form.city}
@@ -586,7 +619,9 @@ export default function CheckoutView({ cart, clearCart, setView, userSession, se
                     )}
                   </div>
                   <div className="space-y-1.5 font-sans">
-                    <label htmlFor="shipping-zip" className="text-[10px] text-brand-maroon font-bold uppercase tracking-wider block">Zip / Postal Code</label>
+                    <label htmlFor="shipping-zip" className="text-[10px] text-brand-maroon font-bold uppercase tracking-wider block font-sans">
+                      {t("checkout_zip", "Zip / Postal Code")}
+                    </label>
                     <input
                       type="text"
                       value={form.zip}
@@ -600,14 +635,20 @@ export default function CheckoutView({ cart, clearCart, setView, userSession, se
                   </div>
                 </div>
 
-                <div className="space-y-1.5">
-                  <label htmlFor="shipping-address" className="text-[10px] text-brand-maroon font-bold uppercase tracking-wider block">Insured Delivery Address</label>
+                <div className="space-y-1.5 font-sans">
+                  <label htmlFor="shipping-address" className="text-[10px] text-brand-maroon font-bold uppercase tracking-wider block font-sans">
+                    {language === "hi" ? "डिलीवरी का पता" : "Insured Delivery Address"}
+                  </label>
                   <input
                     type="text"
                     value={form.address}
                     onChange={(e) => handleInputChange("address", e.target.value)}
                     className={`w-full bg-brand-ivory border ${validationErrors.address ? 'border-[#B64545]' : 'border-brand-gold/30'} rounded-none px-4 py-3 placeholder-brand-warm-gray/50`}
-                    placeholder="Street Address, Apartment number, landmarks..."
+                    placeholder={
+                      language === "hi"
+                        ? "सड़क का पता, मकान/फ्लैट नंबर, लैंडमार्क..."
+                        : "Street Address, Apartment number, landmarks..."
+                    }
                     id="shipping-address"
                   />
                   {validationErrors.address && (
@@ -619,16 +660,24 @@ export default function CheckoutView({ cart, clearCart, setView, userSession, se
               {/* Heavy gold sewing sizing parameters (Trigger ONLY if activated blouse stich) */}
               <div className="bg-[#FAF7F2] border border-brand-gold/25 p-6 sm:p-8 space-y-4">
                 <h3 className="serif-heading text-xl font-serif text-brand-maroon tracking-wide pb-2 border-b border-brand-gold/15 flex items-center justify-between">
-                  <span>Custom Blouse Stitching Charters</span>
-                  <span className="text-[9px] uppercase tracking-widest font-mono text-brand-gold font-normal">Optional Sittings</span>
+                  <span>
+                    {language === "hi" ? "कस्टम ब्लाउज़ सिलाई चार्टर" : "Custom Blouse Stitching Charters"}
+                  </span>
+                  <span className="text-[9px] uppercase tracking-widest font-mono text-brand-gold font-normal">
+                    {language === "hi" ? "वैकल्पिक" : "Optional Sittings"}
+                  </span>
                 </h3>
                 <p className="text-[11px] text-brand-warm-gray leading-relaxed">
-                  Provide estimated dimensions in inches below. Our tailoring studio near Varanasi coordinates directly before cutting the heavy raw silk brocade material.
+                  {language === "hi"
+                    ? "नीचे इंच में अनुमानित माप प्रदान करें। वाराणसी के पास हमारा सिलाई स्टूडियो सीधे कपड़े काटने से पहले समन्वय करता है।"
+                    : "Provide estimated dimensions in inches below. Our tailoring studio near Varanasi coordinates directly before cutting the heavy raw silk brocade material."}
                 </p>
 
                 <div className="grid grid-cols-3 gap-4">
-                  <div className="space-y-1.5">
-                    <label htmlFor="size-bust" className="text-[9px] text-brand-maroon/90 font-bold uppercase tracking-wider block">Bust Size (inches)</label>
+                  <div className="space-y-1.5 font-sans">
+                    <label htmlFor="size-bust" className="text-[9px] text-brand-maroon/90 font-bold uppercase tracking-wider block">
+                      {language === "hi" ? "बस्ट का आकार (इंच)" : "Bust Size (inches)"}
+                    </label>
                     <input
                       type="text"
                       placeholder="e.g. 34"
@@ -638,8 +687,10 @@ export default function CheckoutView({ cart, clearCart, setView, userSession, se
                       id="size-bust"
                     />
                   </div>
-                  <div className="space-y-1.5">
-                    <label htmlFor="size-waist" className="text-[9px] text-brand-maroon/90 font-bold uppercase tracking-wider block">Waist Size (inches)</label>
+                  <div className="space-y-1.5 font-sans">
+                    <label htmlFor="size-waist" className="text-[9px] text-brand-maroon/90 font-bold uppercase tracking-wider block">
+                      {language === "hi" ? "कमर का आकार (इंच)" : "Waist Size (inches)"}
+                    </label>
                     <input
                       type="text"
                       placeholder="e.g. 28"
@@ -649,8 +700,10 @@ export default function CheckoutView({ cart, clearCart, setView, userSession, se
                       id="size-waist"
                     />
                   </div>
-                  <div className="space-y-1.5">
-                    <label htmlFor="size-shoulder" className="text-[9px] text-brand-maroon/90 font-bold uppercase tracking-wider block">Shoulder Width (inches)</label>
+                  <div className="space-y-1.5 font-sans">
+                    <label htmlFor="size-shoulder" className="text-[9px] text-brand-maroon/90 font-bold uppercase tracking-wider block">
+                      {language === "hi" ? "कंधे की चौड़ाई (इंच)" : "Shoulder Width (inches)"}
+                    </label>
                     <input
                       type="text"
                       placeholder="e.g. 14"
@@ -666,7 +719,7 @@ export default function CheckoutView({ cart, clearCart, setView, userSession, se
               {/* Payment gateways selection */}
               <div className="bg-[#FAF7F2] border border-brand-gold/25 p-6 sm:p-8 space-y-4">
                 <h3 className="serif-heading text-xl font-serif text-brand-maroon tracking-wide pb-2 border-b border-brand-gold/15">
-                  Sovereign India Payment Protocol
+                  {t("checkout_payment_method", "Sovereign India Payment Protocol")}
                 </h3>
 
                 <div className="space-y-3">
@@ -681,7 +734,11 @@ export default function CheckoutView({ cart, clearCart, setView, userSession, se
                     />
                     <div className="flex items-center space-x-2 text-xs">
                       <CreditCard className="w-4 h-4 text-brand-gold-dark" />
-                      <span>Insured Credit / Debit Cards (International gateway)</span>
+                      <span>
+                        {language === "hi"
+                          ? "सुरक्षित क्रेडिट / डेबिट कार्ड (अंतरराष्ट्रीय गेटवे)"
+                          : "Insured Credit / Debit Cards (International gateway)"}
+                      </span>
                     </div>
                   </label>
 
@@ -695,8 +752,12 @@ export default function CheckoutView({ cart, clearCart, setView, userSession, se
                       className="accent-brand-maroon cursor-pointer"
                     />
                     <div className="flex items-center space-x-2 text-xs">
-                      <div className="bg-brand-gold/10 px-1.5 py-0.5 rounded-sm text-[9px] font-bold text-brand-gold-dark border border-brand-gold/20">UPI</div>
-                      <span>UPI Direct Transfer (Indian gateways)</span>
+                      <div className="bg-brand-gold/10 px-1.5 py-0.5 rounded-sm text-[9px] font-bold text-brand-gold-dark border border-brand-gold/20 font-sans">UPI</div>
+                      <span>
+                        {language === "hi"
+                          ? "यूपीआई डायरेक्ट ट्रांसफर (भारतीय गेटवे)"
+                          : "UPI Direct Transfer (Indian gateways)"}
+                      </span>
                     </div>
                   </label>
                 </div>
@@ -712,18 +773,26 @@ export default function CheckoutView({ cart, clearCart, setView, userSession, se
               <button
                 type="submit"
                 disabled={processing}
-                className="w-full bg-brand-maroon hover:bg-[#3E061E] disabled:bg-brand-maroon/50 text-brand-ivory text-xs tracking-widest uppercase font-bold py-5 transition duration-300 shadow-md flex items-center justify-center space-x-2 cursor-pointer"
+                className="w-full bg-brand-maroon hover:bg-[#3E061E] disabled:bg-brand-maroon/50 text-brand-ivory text-xs tracking-widest uppercase font-bold py-5 transition duration-300 shadow-md flex items-center justify-center space-x-2 cursor-pointer font-sans"
                 id="place-order-submit-btn"
               >
                 {processing ? (
                   <>
                     <RefreshCw className="w-4 h-4 animate-spin text-brand-gold" />
-                    <span>Engaging Secure Varanasi Handloom Ledger...</span>
+                    <span>
+                      {language === "hi"
+                        ? "सुरक्षित वाराणसी हथकरघा बहीखाता संलग्न कर रहा है..."
+                        : "Engaging Secure Varanasi Handloom Ledger..."}
+                    </span>
                   </>
                 ) : (
                   <>
                     <ShieldCheck className="w-4 h-4" />
-                    <span>Authorize Insured Order ({formattedTotal})</span>
+                    <span>
+                      {language === "hi"
+                        ? `ऑर्डर अधिकृत करें (${formattedTotal})`
+                        : `Authorize Insured Order (${formattedTotal})`}
+                    </span>
                   </>
                 )}
               </button>
@@ -733,7 +802,7 @@ export default function CheckoutView({ cart, clearCart, setView, userSession, se
             {/* Right Block: Order Ledger & Saree List Summary */}
             <aside className="lg:col-span-5 bg-brand-sand/30 border border-brand-gold/25 p-6 space-y-6">
               <h3 className="serif-heading text-lg font-serif text-brand-maroon pb-2.5 border-b border-brand-gold/15 font-semibold">
-                Bespoke Order Ledger
+                {t("checkout_cart_summary", "Bespoke Order Ledger")}
               </h3>
 
               {/* Item lists */}
@@ -755,15 +824,17 @@ export default function CheckoutView({ cart, clearCart, setView, userSession, se
                           referrerPolicy="no-referrer"
                         />
                       </div>
-                      <div className="flex-1 overflow-hidden">
+                      <div className="flex-1 overflow-hidden font-sans">
                         <h4 className="font-serif text-[13px] font-semibold text-brand-maroon truncate leading-tight">
                           {item.saree.name}
                         </h4>
                         <span className="text-[10px] text-brand-gold block mt-0.5">
-                          Volume: {item.quantity} • {item.saree.weavingTechnique}
+                          {language === "hi"
+                            ? `मात्रा: ${item.quantity} • ${t("weave_" + item.saree.weavingTechnique, item.saree.weavingTechnique)}`
+                            : `Volume: ${item.quantity} • ${t("weave_" + item.saree.weavingTechnique, item.saree.weavingTechnique)}`}
                         </span>
                         <span className="text-[10px] text-brand-maroon font-mono font-bold block mt-1">
-                          Price: {itemPricing}
+                          {language === "hi" ? `कीमत: ${itemPricing}` : `Price: ${itemPricing}`}
                         </span>
                       </div>
                     </div>
@@ -774,15 +845,17 @@ export default function CheckoutView({ cart, clearCart, setView, userSession, se
               {/* Aggregations */}
               <div className="space-y-3 pt-2 text-brand-maroon text-xs">
                 <div className="flex justify-between">
-                  <span>Saree Order Aggregate</span>
+                  <span>{language === "hi" ? "साड़ी ऑर्डर कुल" : "Saree Order Aggregate"}</span>
                   <span className="font-mono">{formattedTotal}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Insured Global Packing</span>
-                  <span className="font-mono text-brand-gold uppercase tracking-[0.05em] font-bold">Complimentary</span>
+                  <span>{language === "hi" ? "सुरक्षित वैश्विक पैकिंग" : "Insured Global Packing"}</span>
+                  <span className="font-mono text-brand-gold uppercase tracking-[0.05em] font-bold">
+                    {language === "hi" ? "मुफ़्त" : "Complimentary"}
+                  </span>
                 </div>
                 <div className="flex justify-between border-t border-brand-maroon/10 pt-3.5 text-base font-serif font-bold">
-                  <span>Secured Grand Total:</span>
+                  <span>{language === "hi" ? "सुरक्षित कुल योग:" : "Secured Grand Total:"}</span>
                   <span className="font-mono text-brand-maroon">{formattedTotal}</span>
                 </div>
               </div>
@@ -790,10 +863,12 @@ export default function CheckoutView({ cart, clearCart, setView, userSession, se
               <div className="bg-brand-ivory border border-brand-gold/15 p-4 space-y-3 text-[11px] text-brand-warm-gray leading-relaxed">
                 <h4 className="font-semibold text-brand-maroon uppercase text-[9px] tracking-widest flex items-center gap-1.5 font-sans">
                   <FileText className="w-3.5 h-3.5 text-brand-gold" />
-                  Weaver Direct Agreement
+                  {language === "hi" ? "बुनकर प्रत्यक्ष समझौता" : "Weaver Direct Agreement"}
                 </h4>
                 <p>
-                  Art&Anchal guarantees this order directly engages master registered weavers inside rural Varanasi borders. You will receive an official lab certificate containing precious metal purity analysis with the physical shipment.
+                  {language === "hi"
+                    ? "आर्ट एंड आंचल गारंटी देता है कि यह ऑर्डर सीधे वाराणसी के ग्रामीण क्षेत्रों के पंजीकृत मास्टर बुनकरों को काम देता है। आपको भौतिक शिपमेंट के साथ कीमती धातु की शुद्धता विश्लेषण वाला एक आधिकारिक लैब प्रमाणपत्र प्राप्त होगा।"
+                    : "Art&Anchal guarantees this order directly engages master registered weavers inside rural Varanasi borders. You will receive an official lab certificate containing precious metal purity analysis with the physical shipment."}
                 </p>
               </div>
 

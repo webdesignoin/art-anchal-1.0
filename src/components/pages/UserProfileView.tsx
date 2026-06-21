@@ -11,6 +11,7 @@ import {
   LogOut, ArrowRight, Settings, CheckCircle, Truck, Tag, Award, 
   ShoppingBag, Sparkles, ChevronRight, X, Calendar, Share2, Printer
 } from "lucide-react";
+import { useLanguage } from "../../context/LanguageContext";
 
 interface UserProfileViewProps {
   userSession: { id?: string; name: string; email: string; is_admin?: boolean; phone?: string } | null;
@@ -49,6 +50,7 @@ export default function UserProfileView({
   setSelectedSareeId,
   sessionReady = true,
 }: UserProfileViewProps) {
+  const { language, t } = useLanguage();
   const [activeTab, setActiveTab] = useState<TabType>("profile");
   const [loading, setLoading] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -77,7 +79,8 @@ export default function UserProfileView({
       return;
     }
     fetchProfileData();
-    fetchOrders();
+    // Only re-fetch orders when the orders tab is opened
+    if (activeTab === "orders") fetchOrders();
   }, [userSession?.id, activeTab, sessionReady]);
 
   const fetchProfileData = async () => {
@@ -104,9 +107,14 @@ export default function UserProfileView({
     setOrdersLoading(true);
     try {
       if (!userSession?.id) return;
+      // Filter by profile_id so each user only sees their own orders.
+      // RLS on the orders table provides the backend guard; this adds a
+      // client-side filter so the query returns the right rows even in
+      // environments where RLS isn't fully configured yet.
       const { data, error } = await supabase
         .from("orders")
         .select("*, items:order_items(*)")
+        .eq("profile_id", userSession.id)
         .order("created_at", { ascending: false });
 
       if (error) console.warn("fetchOrders error:", error.message);
@@ -318,12 +326,12 @@ export default function UserProfileView({
           {/* Sidebar Navigation */}
           <aside className="w-full lg:w-56 shrink-0 bg-white border border-brand-gold/15 p-4 rounded-lg shadow-sm space-y-1">
             {[
-              { id: "profile", label: "Profile Settings", icon: Settings },
-              { id: "orders", label: "Acquisitions", icon: Package },
-              { id: "wishlist", label: "Curated Wishlist", icon: Heart },
-              { id: "coupons", label: "Coupons & Rewards", icon: Tag },
-              { id: "payment", label: "Bespoke Payment", icon: CreditCard },
-              { id: "updates", label: "Dispatch Feed", icon: Bell }
+              { id: "profile", label: t("profile_tab_settings"), icon: Settings },
+              { id: "orders", label: t("profile_tab_acquisitions"), icon: Package },
+              { id: "wishlist", label: t("profile_tab_wishlist"), icon: Heart },
+              { id: "coupons", label: t("profile_tab_coupons"), icon: Tag },
+              { id: "payment", label: t("profile_tab_payment"), icon: CreditCard },
+              { id: "updates", label: t("profile_tab_updates"), icon: Bell }
             ].map(tab => {
               const Icon = tab.icon;
               return (
@@ -351,8 +359,8 @@ export default function UserProfileView({
               <div className="space-y-6 animate-fade-in">
                 <div className="bg-white border border-brand-gold/15 p-6 rounded-lg shadow-sm space-y-6">
                   <div>
-                    <h2 className="font-serif text-2xl text-brand-maroon font-light">Guild Profile Settings</h2>
-                    <p className="text-xs text-brand-warm-gray mt-0.5">Manage your contact information and loom coordination preferences.</p>
+                    <h2 className="font-serif text-2xl text-brand-maroon font-light">{t("profile_heading_settings")}</h2>
+                    <p className="text-xs text-brand-warm-gray mt-0.5">{t("profile_desc_settings")}</p>
                   </div>
 
                   <form onSubmit={handleProfileSave} className="space-y-4">
@@ -413,8 +421,8 @@ export default function UserProfileView({
                 {/* Address Book */}
                 <div className="bg-white border border-brand-gold/15 p-6 rounded-lg shadow-sm space-y-6">
                   <div>
-                    <h2 className="font-serif text-2xl text-brand-maroon font-light">Saved Delivery Destinations</h2>
-                    <p className="text-xs text-brand-warm-gray mt-0.5">Manage your dispatch coordinates for swift custom weavers checkouts.</p>
+                    <h2 className="font-serif text-2xl text-brand-maroon font-light">{t("profile_heading_addresses")}</h2>
+                    <p className="text-xs text-brand-warm-gray mt-0.5">{t("profile_desc_addresses")}</p>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -471,7 +479,7 @@ export default function UserProfileView({
             {activeTab === "orders" && (
               <div className="space-y-6 animate-fade-in">
                 <div>
-                  <h2 className="font-serif text-2xl text-brand-maroon font-light">Heritage Acquisitions</h2>
+                  <h2 className="font-serif text-2xl text-brand-maroon font-light">{t("profile_heading_acquisitions")}</h2>
                   <p className="text-xs text-brand-warm-gray mt-0.5">Track your pending looms and complete history of acquired heirlooms.</p>
                 </div>
 
@@ -607,7 +615,7 @@ export default function UserProfileView({
                                   <p className="text-brand-maroon">
                                     Method: <span className="font-bold uppercase">{order.payment_mode}</span>
                                   </p>
-                                  {order.tracking_number && (
+                                  {order.tracking_number && (order.status === "shipped" || order.status === "delivered") && (
                                     <p className="text-brand-maroon">
                                       Carrier: <span className="font-bold">{order.shipping_carrier || "SpeedPost"}</span> • AWB: <span className="font-mono font-bold bg-brand-sand/30 px-1 py-0.5 rounded">{order.tracking_number}</span>
                                     </p>
@@ -631,7 +639,7 @@ export default function UserProfileView({
             {activeTab === "wishlist" && (
               <div className="space-y-6 animate-fade-in">
                 <div>
-                  <h2 className="font-serif text-2xl text-brand-maroon font-light">Bespoke Wishlist</h2>
+                  <h2 className="font-serif text-2xl text-brand-maroon font-light">{t("profile_heading_wishlist")}</h2>
                   <p className="text-xs text-brand-warm-gray mt-0.5">Curate and save your preferred handloom masterpieces for future reservations.</p>
                 </div>
 
@@ -679,7 +687,7 @@ export default function UserProfileView({
             {activeTab === "coupons" && (
               <div className="space-y-6 animate-fade-in">
                 <div>
-                  <h2 className="font-serif text-2xl text-brand-maroon font-light">Guild Benefits & Coupons</h2>
+                  <h2 className="font-serif text-2xl text-brand-maroon font-light">{t("profile_heading_coupons")}</h2>
                   <p className="text-xs text-brand-warm-gray mt-0.5">Apply coupon codes during payment for weaver matches and privilege savings.</p>
                 </div>
 
@@ -743,7 +751,7 @@ export default function UserProfileView({
             {activeTab === "payment" && (
               <div className="space-y-6 animate-fade-in">
                 <div>
-                  <h2 className="font-serif text-2xl text-brand-maroon font-light">Payment Preferences</h2>
+                  <h2 className="font-serif text-2xl text-brand-maroon font-light">{t("profile_heading_payment")}</h2>
                   <p className="text-xs text-brand-warm-gray mt-0.5">Secure, vaulted transactions powered by Razorpay checkout networks.</p>
                 </div>
 
@@ -774,7 +782,7 @@ export default function UserProfileView({
             {activeTab === "updates" && (
               <div className="space-y-6 animate-fade-in">
                 <div>
-                  <h2 className="font-serif text-2xl text-brand-maroon font-light">Dispatch Feed & Loom Alerts</h2>
+                  <h2 className="font-serif text-2xl text-brand-maroon font-light">{t("profile_heading_updates")}</h2>
                   <p className="text-xs text-brand-warm-gray mt-0.5">Real-time alerts directly from the Varanasi weavers regarding packaging and dispatch.</p>
                 </div>
 

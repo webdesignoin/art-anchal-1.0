@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { ViewState, Collection } from "../../types";
 import { ArrowRight, Compass, Library, Sparkles } from "lucide-react";
+import { useLanguage } from "../../context/LanguageContext";
 
 interface CollectionsViewProps {
   setView: (view: ViewState) => void;
@@ -10,6 +11,7 @@ interface CollectionsViewProps {
 
 export default function CollectionsView({ setView, setSelectedCategory, collections }: CollectionsViewProps) {
   const observerRef = useRef<IntersectionObserver | null>(null);
+  const { language, t } = useLanguage();
 
   useEffect(() => {
     observerRef.current = new IntersectionObserver((entries) => {
@@ -40,13 +42,13 @@ export default function CollectionsView({ setView, setSelectedCategory, collecti
         {/* Editorial Header */}
         <div className="text-center space-y-6 max-w-3xl mx-auto animate-on-scroll opacity-0 translate-y-24 transition-all duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)]">
           <span className="inline-block py-2 px-5 border border-brand-gold/40 text-brand-gold text-[10px] font-bold uppercase tracking-[0.3em] rounded-full shadow-[0_0_15px_rgba(232,195,158,0.2)]">
-            Virasat Collections
+            {t("collections_header_badge")}
           </span>
-          <h1 className="serif-heading text-4xl sm:text-6xl text-[#FDFBF7] font-serif font-light leading-tight">
-            The <span className="text-brand-gold italic">Gharana</span> Editions
+          <h1 className={`serif-heading ${language === 'hi' ? 'text-3xl sm:text-5xl' : 'text-4xl sm:text-6xl'} text-[#FDFBF7] font-serif font-light leading-tight`}>
+            {t("collections_header_title")}
           </h1>
           <p className="text-sm sm:text-base text-brand-gold/70 leading-relaxed font-light max-w-xl mx-auto">
-            Exploring the distinct motifs and weaving families of Banaras. From the classic Katan to the royal Shikargah, preserving the golden epochs of Indian textiles.
+            {t("collections_header_desc")}
           </p>
         </div>
 
@@ -56,6 +58,25 @@ export default function CollectionsView({ setView, setSelectedCategory, collecti
             const isEven = index % 2 === 0;
             // Map the collection to the shop's filtering category. Defaults to "Katan Silk" for unmapped ones for the demo.
             const mappedCategory = col.slug === "royal-katan-heritage" ? "Katan Silk" : col.slug === "shikargah-chronicles" ? "Shikargah" : "Tanchoi";
+
+            const collectionNameKeyMap: Record<string, string> = {
+              "The Royal Katan Heritage": "collection_name_the_royal_katan_heritage",
+              "Ethereal Organza": "collection_name_ethereal_organza",
+              "Shikargah Chronicles": "collection_name_shikargah_chronicles",
+              "Vintage Tissue Silk": "collection_name_vintage_tissue_silk",
+              "The Kadwa Masterpieces": "collection_name_the_kadwa_masterpieces",
+              "Tanchoi Illusions": "collection_name_tanchoi_illusions",
+            };
+            const collectionTaglineKeyMap: Record<string, string> = {
+              "Purest silk, timeless grace": "collection_tagline_purest_silk",
+              "Feather-light modern elegance": "collection_tagline_feather_light",
+              "Tales of the royal hunt": "collection_tagline_tales_royal_hunt",
+              "Woven with liquid gold": "collection_tagline_liquid_gold",
+              "Embossed artistry": "collection_tagline_embossed_artistry",
+              "Subtle shadows, infinite depth": "collection_tagline_subtle_shadows",
+            };
+            const translatedColName = t(collectionNameKeyMap[col.name] ?? col.name);
+            const translatedTagline = t(collectionTaglineKeyMap[col.tagline] ?? col.tagline);
 
             return (
               <div
@@ -68,7 +89,7 @@ export default function CollectionsView({ setView, setSelectedCategory, collecti
                   <div className="relative aspect-[3/4] overflow-hidden rounded-xl border border-brand-gold/30 shadow-lg lg:shadow-2xl bg-[#2A0815]">
                     <img
                       src={col.coverImage}
-                      alt={col.name}
+                      alt={translatedColName}
                       className="w-full h-full object-cover lg:scale-105 transition-transform duration-1000 lg:group-hover:scale-100"
                       referrerPolicy="no-referrer"
                       onError={(e) => {
@@ -78,7 +99,7 @@ export default function CollectionsView({ setView, setSelectedCategory, collecti
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-[#1C050E]/90 lg:from-[#1C050E]/80 via-transparent to-transparent opacity-80 lg:opacity-60 transition-opacity duration-700 lg:group-hover:opacity-40"></div>
                     <div className="absolute top-2 left-2 lg:top-4 lg:left-4 bg-[#1C050E]/90 border border-brand-gold/50 px-2 lg:px-4 py-1 lg:py-1.5 text-brand-gold text-[8px] lg:text-[10px] uppercase tracking-widest font-mono rounded-sm backdrop-blur-sm shadow-lg">
-                      Vol {String(index + 1).padStart(2, '0')}
+                      {language === "hi" ? "भाग" : "Vol"} {String(index + 1).padStart(2, '0')}
                     </div>
                   </div>
                 </div>
@@ -90,15 +111,15 @@ export default function CollectionsView({ setView, setSelectedCategory, collecti
                     <div>
                       <div className="hidden lg:flex items-center space-x-2 text-[10px] text-brand-gold font-sans font-bold uppercase tracking-widest mb-6">
                         <Sparkles className="w-4 h-4 text-brand-gold animate-pulse" />
-                        <span>Varanasi Archive Series</span>
+                        <span>{language === "hi" ? "वाराणसी ऐतिहासिक श्रृंखला" : "Varanasi Archive Series"}</span>
                       </div>
 
                       <h2 className="serif-heading text-lg sm:text-2xl lg:text-5xl text-[#FDFBF7] font-serif leading-tight mb-2 lg:mb-4 lg:group-hover:text-brand-gold transition-colors duration-500 line-clamp-2 lg:line-clamp-none">
-                        {col.name}
+                        {translatedColName}
                       </h2>
 
                       <p className="hidden lg:block text-sm sm:text-base text-brand-gold italic font-serif leading-relaxed mb-6">
-                        &ldquo;{col.tagline}&rdquo;
+                        &ldquo;{translatedTagline}&rdquo;
                       </p>
 
                       <p className="hidden lg:block text-sm text-brand-warm-gray/90 leading-relaxed font-light font-sans text-justify mb-8">
@@ -108,13 +129,13 @@ export default function CollectionsView({ setView, setSelectedCategory, collecti
                       <div className="hidden lg:block bg-[#1C050E]/60 border border-brand-gold/20 p-5 rounded-lg space-y-3 font-sans mb-8 transition-colors duration-500 group-hover:border-brand-gold/40">
                         <h4 className="text-[11px] uppercase tracking-wider text-brand-gold font-bold flex items-center space-x-1.5">
                           <Library className="w-3.5 h-3.5" />
-                          <span>Archive Technical Sheet</span>
+                          <span>{language === "hi" ? "ऐतिहासिक बुनाई विवरण" : "Archive Technical Sheet"}</span>
                         </h4>
                         <ul className="grid grid-cols-2 gap-y-3 gap-x-4 text-[11px] text-brand-warm-gray/80">
-                          <li className="flex items-center space-x-2"><span className="w-1 h-1 rounded-full bg-brand-gold"></span><span>Warp: Pure Mulberry</span></li>
-                          <li className="flex items-center space-x-2"><span className="w-1 h-1 rounded-full bg-brand-gold"></span><span>Weft: Zari / Resham</span></li>
-                          <li className="flex items-center space-x-2"><span className="w-1 h-1 rounded-full bg-brand-gold"></span><span>Heritage Craft</span></li>
-                          <li className="flex items-center space-x-2"><span className="w-1 h-1 rounded-full bg-brand-gold"></span><span>Certified Purity</span></li>
+                          <li className="flex items-center space-x-2"><span className="w-1 h-1 rounded-full bg-brand-gold"></span><span>{language === "hi" ? "ताना: शुद्ध शहतूत" : "Warp: Pure Mulberry"}</span></li>
+                          <li className="flex items-center space-x-2"><span className="w-1 h-1 rounded-full bg-brand-gold"></span><span>{language === "hi" ? "बाना: जरी / रेशम" : "Weft: Zari / Resham"}</span></li>
+                          <li className="flex items-center space-x-2"><span className="w-1 h-1 rounded-full bg-brand-gold"></span><span>{language === "hi" ? "विरासत कलाकृतियाँ" : "Heritage Craft"}</span></li>
+                          <li className="flex items-center space-x-2"><span className="w-1 h-1 rounded-full bg-brand-gold"></span><span>{language === "hi" ? "प्रमाणित शुद्धता" : "Certified Purity"}</span></li>
                         </ul>
                       </div>
                     </div>
@@ -125,7 +146,7 @@ export default function CollectionsView({ setView, setSelectedCategory, collecti
                         className="group/btn relative w-full lg:w-auto overflow-hidden bg-brand-gold lg:bg-brand-gold text-[#1C050E] text-[10px] lg:text-xs tracking-widest lg:tracking-[0.2em] uppercase font-sans py-3 lg:py-4 px-4 lg:px-8 font-bold flex items-center justify-center space-x-2 lg:space-x-3 rounded-sm transition-all duration-300 lg:hover:shadow-[0_0_20px_rgba(232,195,158,0.4)] cursor-pointer"
                         id={`lookbook-select-${col.id}`}
                       >
-                        <span className="relative z-10">Explore</span>
+                        <span className="relative z-10">{t("collections_explore_btn")}</span>
                         <ArrowRight className="w-3 h-3 lg:w-4 lg:h-4 relative z-10 transform transition-transform lg:group-hover/btn:translate-x-1" />
                         <div className="hidden lg:block absolute inset-0 h-full w-full bg-white/20 transform -translate-x-full group-hover/btn:translate-x-0 transition-transform duration-500 ease-out"></div>
                       </button>
