@@ -1033,7 +1033,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
       <div className="min-h-screen bg-[#FDFBF7] flex items-center justify-center px-4">
         <div className="max-w-sm w-full bg-[#FAF7F2] border border-brand-gold/25 p-10 text-center space-y-5">
           <Lock className="w-10 h-10 text-brand-maroon mx-auto stroke-[1.2]" />
-          <h2 className="font-serif text-2xl text-brand-maroon font-light">{tAdmin("Restricted Area")}</h2>
+          <h2 className="font-serif text-3xl text-brand-maroon font-light">{tAdmin("Restricted Area")}</h2>
           <p className="text-xs text-brand-warm-gray leading-relaxed">{tAdmin("Administrator credentials required.")}</p>
           <button onClick={() => setView("login-register")}
             className="w-full bg-brand-maroon text-[#FDFBF7] text-xs uppercase tracking-widest py-3.5 font-bold">
@@ -1770,7 +1770,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
             <div className="space-y-5 animate-fade-in print:hidden">
               <div className="flex justify-between items-center">
                 <div>
-                  <h2 className="font-serif text-2xl text-brand-maroon font-light">{tAdmin("Saree Catalog & Stock")}</h2>
+                  <h2 className="font-serif text-3xl text-brand-maroon font-light">{tAdmin("Saree Catalog & Stock")}</h2>
                   <p className="text-xs text-brand-warm-gray mt-0.5">
                     {dbSarees.filter(s => s.is_active !== false).length} {language === "hi" ? "आइटम इन्वेंटरी में" : "items in inventory"}
                   </p>
@@ -1943,7 +1943,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
             <div className="space-y-5 animate-fade-in print:hidden">
               <div className="flex justify-between items-center">
                 <div>
-                  <h2 className="font-serif text-2xl text-brand-maroon font-light">{tAdmin("CRM Customer Pipeline")}</h2>
+                  <h2 className="font-serif text-3xl text-brand-maroon font-light">{tAdmin("CRM Customer Pipeline")}</h2>
                   <p className="text-xs text-brand-warm-gray mt-0.5">{dbLeads.length} {language === "hi" ? "कुल लीड्स" : "total leads"}</p>
                 </div>
                 <button onClick={() => setIsNewLeadModalOpen(true)}
@@ -2101,7 +2101,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
           {activeTab === "pos" && !activeInvoice && (
             <div className="space-y-5 animate-fade-in print:hidden">
               <div>
-                <h2 className="font-serif text-2xl text-brand-maroon font-light">{language === "hi" ? "शोरूम बिल बनाएं" : "Generate Showroom Bill"}</h2>
+                <h2 className="font-serif text-3xl text-brand-maroon font-light">{language === "hi" ? "शोरूम बिल बनाएं" : "Generate Showroom Bill"}</h2>
                 <p className="text-xs text-brand-warm-gray mt-0.5">{language === "hi" ? "स्वचालित स्टॉक कटौती के साथ पीओएस बिलिंग" : "POS billing with automatic stock deduction"}</p>
               </div>
 
@@ -2353,7 +2353,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
             <div className="space-y-5 animate-fade-in print:hidden">
               <div className="flex justify-between items-center">
                 <div>
-                  <h2 className="font-serif text-2xl text-brand-maroon font-light">{language === "hi" ? "ऑर्डर्स का इतिहास" : "Order History"}</h2>
+                  <h2 className="font-serif text-3xl text-brand-maroon font-light">{language === "hi" ? "ऑर्डर्स का इतिहास" : "Order History"}</h2>
                   <p className="text-xs text-brand-warm-gray mt-0.5">{dbOrders.length} {language === "hi" ? "कुल ऑर्डर्स" : "total orders"}</p>
                 </div>
                 <div className="relative">

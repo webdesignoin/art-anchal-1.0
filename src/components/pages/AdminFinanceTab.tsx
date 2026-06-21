@@ -468,7 +468,7 @@ export default function AdminFinanceTab({
       )}
 
       <div>
-        <h2 className="font-serif text-2xl text-brand-maroon font-light">{t("admin_finance_title")}</h2>
+        <h2 className="font-serif text-3xl text-brand-maroon font-light">{t("admin_finance_title")}</h2>
         <p className="text-xs text-brand-warm-gray mt-0.5">{t("admin_finance_desc")}</p>
       </div>
 

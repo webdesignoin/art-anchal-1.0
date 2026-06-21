@@ -134,7 +134,7 @@ export default function AdminHRTab({ dbEmployees, dbAttendance, dbProfiles, dbEx
 
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="font-serif text-2xl text-brand-maroon font-light">{t("admin_hr_title")}</h2>
+          <h2 className="font-serif text-3xl text-brand-maroon font-light">{t("admin_hr_title")}</h2>
           <p className="text-xs text-brand-warm-gray mt-0.5">{t("admin_hr_desc")}</p>
         </div>
         <button onClick={() => setIsEmployeeModalOpen(true)}
