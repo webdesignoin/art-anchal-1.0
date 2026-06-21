@@ -196,7 +196,7 @@ export default function AdminVendorsTab({ dbPurchases, dbDues, dbDuePayments = [
                     <Users className="w-5 h-5 text-brand-gold-dark" />
                   </div>
                   <div>
-                    <h3 className="font-serif text-lg font-bold text-brand-maroon">{vendor.name}</h3>
+                    <h3 className="font-serif text-sm font-bold text-brand-maroon">{vendor.name}</h3>
                     <p className="text-[10px] uppercase font-bold text-brand-warm-gray tracking-wider">
                       {vendor.purchases.length} {tVendor("Purchases")} • {vendor.dues.length} {tVendor("Ledger Entries")}
                     </p>
@@ -206,15 +206,15 @@ export default function AdminVendorsTab({ dbPurchases, dbDues, dbDuePayments = [
                 <div className="flex items-center gap-6 text-right">
                   <div className="hidden sm:block">
                     <p className="text-[10px] uppercase text-brand-warm-gray font-bold">{tVendor("Total Biz Value")}</p>
-                    <p className="font-mono text-sm text-brand-maroon">₹{vendor.totalPurchased.toLocaleString("en-IN")}</p>
+                    <p className="font-mono text-xs text-brand-maroon">₹{vendor.totalPurchased.toLocaleString("en-IN")}</p>
                   </div>
                   <div className="hidden sm:block">
                     <p className="text-[10px] uppercase text-emerald-700 font-bold">{tVendor("Total Paid")}</p>
-                    <p className="font-mono text-sm text-emerald-700">₹{vendor.totalPaid.toLocaleString("en-IN")}</p>
+                    <p className="font-mono text-xs text-emerald-700">₹{vendor.totalPaid.toLocaleString("en-IN")}</p>
                   </div>
                   <div>
                     <p className="text-[10px] uppercase text-red-700 font-bold">{tVendor("Currently Owe")}</p>
-                    <p className="font-mono text-base font-bold text-red-700">₹{vendor.totalOwed.toLocaleString("en-IN")}</p>
+                    <p className="font-mono text-sm font-bold text-red-700">₹{vendor.totalOwed.toLocaleString("en-IN")}</p>
                   </div>
                   {expandedVendor === vendor.name ? <ChevronUp className="w-5 h-5 text-brand-warm-gray" /> : <ChevronDown className="w-5 h-5 text-brand-warm-gray" />}
                 </div>

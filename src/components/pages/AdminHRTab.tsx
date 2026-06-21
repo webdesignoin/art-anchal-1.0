@@ -149,7 +149,7 @@ export default function AdminHRTab({ dbEmployees, dbAttendance, dbProfiles, dbEx
         <div className="bg-[#FAF7F2] border border-brand-gold/15 rounded-lg overflow-hidden flex flex-col max-h-[600px]">
           <div className="px-5 py-4 border-b border-brand-gold/15 flex items-center gap-2 bg-[#1C050E] text-[#F9F5F0]">
             <Users className="w-4 h-4 text-brand-gold" />
-            <h3 className="font-serif text-lg font-semibold">{tHR("Staff Directory")}</h3>
+            <h3 className="font-serif text-xs font-bold uppercase tracking-wider text-brand-gold">{tHR("Staff Directory")}</h3>
           </div>
           <div className="overflow-y-auto p-5 space-y-3 flex-1">
             {dbEmployees.length === 0 ? (
@@ -158,7 +158,7 @@ export default function AdminHRTab({ dbEmployees, dbAttendance, dbProfiles, dbEx
               dbEmployees.map(emp => (
                 <div key={emp.id} className="flex justify-between items-center border border-brand-gold/20 p-4 rounded-lg bg-white shadow-sm gap-2">
                   <div>
-                    <p className="font-serif font-bold text-brand-maroon text-sm hover:underline cursor-pointer flex items-center gap-1.5" onClick={() => setViewingEmployee(emp)}>
+                    <p className="font-serif font-bold text-brand-maroon text-xs hover:underline cursor-pointer flex items-center gap-1.5" onClick={() => setViewingEmployee(emp)}>
                       {emp.name}
                       <span className="text-[9px] font-sans font-normal border border-brand-maroon/20 px-1 py-0.2 rounded text-brand-maroon/80 bg-brand-sand/15">{tHR("View Stats")}</span>
                     </p>
@@ -185,7 +185,7 @@ export default function AdminHRTab({ dbEmployees, dbAttendance, dbProfiles, dbEx
           <div className="px-5 py-4 border-b border-brand-gold/15 flex justify-between items-center bg-[#1C050E] text-[#F9F5F0]">
             <div className="flex items-center gap-2">
               <Clock className="w-4 h-4 text-brand-gold" />
-              <h3 className="font-serif text-lg font-semibold">{tHR("Daily Attendance")}</h3>
+              <h3 className="font-serif text-xs font-bold uppercase tracking-wider text-brand-gold">{tHR("Daily Attendance")}</h3>
             </div>
             <input type="date" value={attendanceDate} onChange={(e) => setAttendanceDate(e.target.value)}
               className="bg-brand-ivory text-brand-maroon text-xs px-2 py-1 font-mono outline-none rounded" />
@@ -198,7 +198,7 @@ export default function AdminHRTab({ dbEmployees, dbAttendance, dbProfiles, dbEx
                 const status = getAttendanceForDate(emp.id);
                 return (
                   <div key={emp.id} className="flex flex-col sm:flex-row justify-between sm:items-center border border-brand-gold/20 p-4 rounded-lg bg-white shadow-sm gap-3">
-                    <p className="font-serif font-bold text-brand-maroon text-sm min-w-[120px] hover:underline cursor-pointer" onClick={() => setViewingEmployee(emp)}>{emp.name}</p>
+                    <p className="font-serif font-bold text-brand-maroon text-xs min-w-[120px] hover:underline cursor-pointer" onClick={() => setViewingEmployee(emp)}>{emp.name}</p>
                     <div className="flex gap-1.5 flex-wrap">
                       {[
                         { id: "present", label: "Present", color: "bg-emerald-100 text-emerald-800 border-emerald-300" },

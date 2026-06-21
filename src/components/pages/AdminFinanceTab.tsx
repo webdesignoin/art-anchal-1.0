@@ -496,7 +496,7 @@ export default function AdminFinanceTab({
 
       {/* Expense Categories Breakdown */}
       <div className="bg-[#FAF7F2] border border-brand-gold/15 rounded-lg p-5">
-        <h3 className="font-serif text-sm font-semibold mb-3">{tFinance("Categorized Spending")}</h3>
+        <h3 className="font-serif text-xs font-bold uppercase tracking-wider text-brand-maroon mb-3">{tFinance("Categorized Spending")}</h3>
         <div className="flex flex-wrap gap-4">
           <div className="border-l-2 border-brand-maroon pl-3">
             <p className="text-[9px] uppercase text-brand-warm-gray font-bold">{tFinance("Inventory Paid")}</p>
@@ -510,13 +510,13 @@ export default function AdminFinanceTab({
           ))}
         </div>
       </div>
-
+ 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         {/* Expenses List */}
         <div className="bg-[#FAF7F2] border border-brand-gold/15 rounded-lg overflow-hidden flex flex-col h-[500px]">
           <div className="px-5 py-3 border-b border-brand-gold/15 flex justify-between items-center bg-[#1C050E] text-[#F9F5F0]">
-            <h3 className="font-serif text-base font-semibold">{tFinance("Expenses")}</h3>
+            <h3 className="font-serif text-xs font-bold uppercase tracking-wider text-brand-gold">{tFinance("Expenses")}</h3>
             <button onClick={() => setIsExpenseModalOpen(true)} className="text-brand-gold hover:text-white transition"><Plus className="w-4 h-4"/></button>
           </div>
           <div className="overflow-y-auto p-4 space-y-3 flex-1">
@@ -535,11 +535,11 @@ export default function AdminFinanceTab({
               ))}
           </div>
         </div>
-
+ 
         {/* Purchases List */}
         <div className="bg-[#FAF7F2] border border-brand-gold/15 rounded-lg overflow-hidden flex flex-col h-[500px]">
           <div className="px-5 py-3 border-b border-brand-gold/15 flex justify-between items-center bg-[#1C050E] text-[#F9F5F0]">
-            <h3 className="font-serif text-base font-semibold">{tFinance("Purchases")}</h3>
+            <h3 className="font-serif text-xs font-bold uppercase tracking-wider text-brand-gold">{tFinance("Purchases")}</h3>
             <button onClick={() => setIsPurchaseModalOpen(true)} className="text-brand-gold hover:text-white transition"><Plus className="w-4 h-4"/></button>
           </div>
           <div className="overflow-y-auto p-4 space-y-3 flex-1">
@@ -567,11 +567,11 @@ export default function AdminFinanceTab({
               })}
           </div>
         </div>
-
+ 
         {/* Dues List */}
         <div className="bg-[#FAF7F2] border border-brand-gold/15 rounded-lg overflow-hidden flex flex-col h-[500px]">
           <div className="px-5 py-3 border-b border-brand-gold/15 flex justify-between items-center bg-[#1C050E] text-[#F9F5F0]">
-            <h3 className="font-serif text-base font-semibold">{tFinance("Ledger (Installments)")}</h3>
+            <h3 className="font-serif text-xs font-bold uppercase tracking-wider text-brand-gold">{tFinance("Ledger (Installments)")}</h3>
             <button onClick={() => setIsDueModalOpen(true)} className="text-brand-gold hover:text-white transition"><Plus className="w-4 h-4"/></button>
           </div>
           <div className="overflow-y-auto p-4 space-y-3 flex-1">
