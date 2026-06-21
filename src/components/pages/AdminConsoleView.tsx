@@ -14,7 +14,8 @@ import {
   TrendingUp, Printer, ArrowLeft, CheckCircle, RefreshCw, Lock,
   Sparkles, Package, AlertTriangle, X, Check, ChevronRight, ChevronLeft, Menu,
   LayoutDashboard, MessageSquare, Minus, Search, IndianRupee,
-  ShieldCheck, Tag, Upload, Edit2, Archive, Phone, Download, UserPlus, Image as ImageIcon, CreditCard, HelpCircle, LogOut, MoreHorizontal, Globe
+  ShieldCheck, Tag, Upload, Edit2, Archive, Phone, Download, UserPlus, Image as ImageIcon, CreditCard, HelpCircle, LogOut, MoreHorizontal, Globe,
+  CalendarDays, ChevronDown, ChevronUp
 } from "lucide-react";
 
 import AdminHRTab from "./AdminHRTab";
@@ -332,6 +333,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
   const [openFinanceExpenseModal, setOpenFinanceExpenseModal] = useState(false);
   const [startDate, setStartDate] = useState(getFirstDayOfMonth());
   const [endDate, setEndDate] = useState(getTodayDateString());
+  const [isDateRangeOpen, setIsDateRangeOpen] = useState(false);
 
   // Scroll to top when activeTab changes
   useEffect(() => {
@@ -1207,6 +1209,20 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
           <span className="text-[8px] uppercase tracking-wider">{tAdmin("Orders")}</span>
         </button>
 
+        {/* Date Range Filter Button */}
+        <button
+          onClick={() => setIsDateRangeOpen(prev => !prev)}
+          className={`flex flex-col items-center gap-1 py-1 px-3 relative transition-all ${
+            isDateRangeOpen ? "text-brand-gold scale-105 font-bold" : "text-white/50"
+          }`}
+        >
+          <CalendarDays className="w-5 h-5" />
+          <span className="text-[8px] uppercase tracking-wider">{tAdmin("Filter")}</span>
+          {(startDate !== getFirstDayOfMonth() || endDate !== getTodayDateString()) && (
+            <span className="absolute top-0.5 right-2 w-2 h-2 bg-brand-gold rounded-full" />
+          )}
+        </button>
+
         {/* More Menu */}
         <button
           onClick={() => setIsMoreMenuOpen(prev => !prev)}
@@ -1389,6 +1405,28 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
             {!isSidebarCollapsed && <span>{tAdmin("Sync Data")}</span>}
           </button>
+          {/* Date Range Filter button (desktop sidebar) */}
+          <button
+            onClick={() => setIsDateRangeOpen(prev => !prev)}
+            className={`w-full flex items-center justify-center gap-2 border text-xs py-2.5 rounded-lg transition ${
+              isDateRangeOpen
+                ? "bg-brand-gold/20 border-brand-gold/40 text-brand-gold"
+                : "border-white/15 text-white/60 hover:text-white"
+            } ${
+              isSidebarCollapsed ? "px-0" : ""
+            }`}
+            title={tAdmin("Date Range")}
+          >
+            <CalendarDays className="w-3.5 h-3.5" />
+            {!isSidebarCollapsed && (
+              <span className="flex items-center gap-1.5">
+                {tAdmin("Date Range")}
+                {(startDate !== getFirstDayOfMonth() || endDate !== getTodayDateString()) && (
+                  <span className="w-1.5 h-1.5 bg-brand-gold rounded-full" />
+                )}
+              </span>
+            )}
+          </button>
           <button onClick={() => setView("home")}
             className="w-full flex items-center justify-center gap-2 text-white/50 hover:text-white text-xs py-2 transition"
             title={tAdmin("Back to Store")}
@@ -1413,46 +1451,80 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
         </div>
       </aside>
 
+      {/* ── DATE RANGE FLOATING PANEL ────────────────────────────────────── */}
+      {isDateRangeOpen && (
+        <>
+          {/* Backdrop to close on outside click */}
+          <div
+            className="fixed inset-0 z-[199] print:hidden"
+            onClick={() => setIsDateRangeOpen(false)}
+          />
+          {/* Floating panel — anchors bottom-left on mobile (above bottom nav), top-left on desktop (below sidebar header) */}
+          <div className="fixed z-[200] bottom-16 left-2 right-2 sm:bottom-auto sm:top-20 sm:left-4 sm:right-auto lg:left-[calc(var(--sidebar-w,16rem)+1rem)] lg:top-4 print:hidden">
+            <div className="bg-[#1C050E] border border-brand-gold/30 rounded-2xl shadow-2xl p-5 w-full sm:w-72 animate-slide-up">
+              {/* Header */}
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <CalendarDays className="w-4 h-4 text-brand-gold" />
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-brand-gold">{tAdmin("Date Range")}</span>
+                </div>
+                <button onClick={() => setIsDateRangeOpen(false)} className="text-white/40 hover:text-white transition p-1">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Inputs */}
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <label className="text-[9px] uppercase font-bold text-white/40 tracking-wider block">{tAdmin("From")}</label>
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="w-full bg-white/10 border border-white/15 text-white px-3 py-2 text-xs focus:outline-none focus:border-brand-gold font-mono rounded-lg"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[9px] uppercase font-bold text-white/40 tracking-wider block">{tAdmin("To")}</label>
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="w-full bg-white/10 border border-white/15 text-white px-3 py-2 text-xs focus:outline-none focus:border-brand-gold font-mono rounded-lg"
+                  />
+                </div>
+              </div>
+
+              {/* Active range preview */}
+              <p className="text-[10px] text-white/30 font-mono mt-3 text-center">
+                {startDate} → {endDate}
+              </p>
+
+              {/* Actions */}
+              <div className="flex gap-2 mt-4">
+                {(startDate !== getFirstDayOfMonth() || endDate !== getTodayDateString()) && (
+                  <button
+                    onClick={() => { setStartDate(getFirstDayOfMonth()); setEndDate(getTodayDateString()); }}
+                    className="flex-1 text-[9px] uppercase font-bold tracking-wider text-brand-gold border border-brand-gold/30 py-2 rounded-lg hover:bg-brand-gold/10 transition"
+                  >
+                    {tAdmin("Reset")}
+                  </button>
+                )}
+                <button
+                  onClick={() => setIsDateRangeOpen(false)}
+                  className="flex-1 text-[9px] uppercase font-bold tracking-wider bg-brand-gold text-[#1C050E] py-2 rounded-lg hover:bg-brand-gold/90 transition"
+                >
+                  {tAdmin("Apply")}
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
       {/* ── MAIN CONTENT ─────────────────────────────────────────────────── */}
       <main className="flex-1 overflow-auto">
 
-        {/* Global Date Filter Bar */}
-        <div className="bg-[#FAF7F2] border-b border-brand-gold/15 px-6 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 print:hidden sticky top-0 z-[30] shadow-sm">
-          <div className="flex items-center gap-2">
-            <span className="text-[9px] font-bold uppercase tracking-wider text-[#FAF7F2] bg-brand-maroon px-2 py-1 rounded">
-              {tAdmin("Active Date Range")}
-            </span>
-            <span className="text-[11px] text-brand-warm-gray hidden sm:inline">
-              {tAdmin("Filtering Overview, Catalog, Orders, and Finance & Ledger by date")}
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <input 
-              type="date" 
-              value={startDate} 
-              onChange={(e) => setStartDate(e.target.value)} 
-              className="bg-white border border-brand-gold/20 px-2.5 py-1.5 text-xs focus:outline-none focus:border-brand-maroon font-mono rounded"
-            />
-            <span className="text-xs text-brand-warm-gray">{tAdmin("to")}</span>
-            <input 
-              type="date" 
-              value={endDate} 
-              onChange={(e) => setEndDate(e.target.value)} 
-              className="bg-white border border-brand-gold/20 px-2.5 py-1.5 text-xs focus:outline-none focus:border-brand-maroon font-mono rounded"
-            />
-            {(startDate !== getFirstDayOfMonth() || endDate !== getTodayDateString()) && (
-              <button 
-                onClick={() => {
-                  setStartDate(getFirstDayOfMonth());
-                  setEndDate(getTodayDateString());
-                }}
-                className="text-[9px] font-bold uppercase tracking-wider text-brand-maroon hover:underline ml-2 bg-brand-gold/15 px-2.5 py-1 rounded transition"
-              >
-                {tAdmin("Reset")}
-              </button>
-            )}
-          </div>
-        </div>
 
         {/* Feedback toast */}
         {feedback && (
@@ -2112,7 +2184,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                   {/* Step 1: Customer */}
                   <div className="bg-[#FAF7F2] border border-brand-gold/20 rounded-lg p-5 space-y-4">
                     <div className="flex justify-between items-center border-b border-brand-gold/10 pb-3">
-                      <h3 className="font-serif text-base text-brand-maroon font-semibold">
+                      <h3 className="font-serif text-xs font-bold uppercase tracking-wider text-brand-maroon">
                         <span className="text-brand-gold mr-1.5">1.</span> {language === "hi" ? "ग्राहक" : "Customer"}
                       </h3>
                       <button onClick={() => setIsNewProfileModalOpen(true)}
@@ -2171,7 +2243,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
 
                   {/* Step 2: Products */}
                   <div className="bg-[#FAF7F2] border border-brand-gold/20 rounded-lg p-5 space-y-4">
-                    <h3 className="font-serif text-base text-brand-maroon font-semibold border-b border-brand-gold/10 pb-3">
+                    <h3 className="font-serif text-xs font-bold uppercase tracking-wider text-brand-maroon border-b border-brand-gold/10 pb-3">
                       <span className="text-brand-gold mr-1.5">2.</span> {language === "hi" ? "साड़ी चुनें" : "Select Sarees"}
                     </h3>
                     <div className="relative">
@@ -2221,7 +2293,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
 
                   {/* Step 3: Notes */}
                   <div className="bg-[#FAF7F2] border border-brand-gold/20 rounded-lg p-5 space-y-2">
-                    <h3 className="font-serif text-base text-brand-maroon font-semibold">
+                    <h3 className="font-serif text-xs font-bold uppercase tracking-wider text-brand-maroon">
                       <span className="text-brand-gold mr-1.5">3.</span> {language === "hi" ? "बिल विवरण/नोट्स (वैकल्पिक)" : "Bill Notes (optional)"}
                     </h3>
                     <textarea rows={2} value={posNotes} onChange={e => setPosNotes(e.target.value)}
@@ -2233,7 +2305,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                 {/* Right: Cart + Checkout */}
                 <div className="lg:col-span-5">
                   <div className="bg-[#FAF7F2] border border-brand-gold/20 rounded-lg p-5 space-y-5 sticky top-6">
-                    <h3 className="font-serif text-base text-brand-maroon font-semibold border-b border-brand-gold/10 pb-3">
+                    <h3 className="font-serif text-xs font-bold uppercase tracking-wider text-brand-maroon border-b border-brand-gold/10 pb-3">
                       {language === "hi" ? "बिलिंग कार्ट" : "Billing Cart"}
                     </h3>
 

@@ -224,11 +224,15 @@ export default function AdminHRTab({ dbEmployees, dbAttendance, dbProfiles, dbEx
       </div>
 
       {isEmployeeModalOpen && (
-        <div className="fixed inset-0 z-[100] bg-[#1C050E]/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={() => setIsEmployeeModalOpen(false)}>
-          <div className="bg-[#FAF7F2] max-w-md w-full border-t sm:border border-brand-gold/30 rounded-t-3xl sm:rounded-lg shadow-2xl p-5 sm:p-6 max-h-[92vh] sm:max-h-[90vh] overflow-y-auto animate-slide-up relative" onClick={(e) => e.stopPropagation()}>
-            <div className="w-12 h-1.5 bg-brand-gold/20 rounded-full mx-auto sm:hidden mb-1"></div>
-            <h3 className="font-serif text-2xl text-brand-maroon mb-6 font-light">{tHR("Add New Employee")}</h3>
-            <form onSubmit={handleAddEmployee} className="space-y-4">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-brand-maroon/40 backdrop-blur-sm" onClick={() => setIsEmployeeModalOpen(false)}>
+          <div className="relative w-full max-w-md bg-[#FDFBF7] border-t sm:border border-brand-gold/25 rounded-t-3xl sm:rounded-lg shadow-2xl animate-slide-up flex flex-col max-h-[92vh] sm:max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
+            {/* Header */}
+            <div className="flex justify-between items-center px-5 sm:px-6 pt-5 pb-3 border-b border-brand-gold/15 flex-shrink-0">
+              <h3 className="font-serif text-xl text-brand-maroon">{tHR("Add New Employee")}</h3>
+              <button onClick={() => setIsEmployeeModalOpen(false)} className="text-brand-warm-gray hover:text-brand-maroon transition"><X className="w-5 h-5" /></button>
+            </div>
+            <form onSubmit={handleAddEmployee} className="flex flex-col flex-1 min-h-0">
+              <div className="overflow-y-auto flex-1 px-5 sm:px-6 py-4 space-y-4">
               
               {/* User profile dropdown search */}
               <div className="space-y-1 relative">
@@ -314,11 +318,13 @@ export default function AdminHRTab({ dbEmployees, dbAttendance, dbProfiles, dbEx
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t border-brand-gold/15 mt-6">
+              </div>
+              {/* Sticky footer */}
+              <div className="flex justify-end gap-3 px-5 sm:px-6 pt-4 pb-20 lg:pb-4 border-t border-brand-gold/15 bg-[#FDFBF7] flex-shrink-0">
                 <button type="button" onClick={() => setIsEmployeeModalOpen(false)}
-                  className="text-brand-warm-gray uppercase text-[10px] font-bold px-4 py-2 hover:text-brand-maroon transition">{tHR("Cancel")}</button>
+                  className="text-brand-warm-gray uppercase tracking-wider text-[10px] font-bold px-4 py-2.5 hover:text-brand-maroon transition">{tHR("Cancel")}</button>
                 <button type="submit"
-                  className="bg-brand-maroon text-brand-ivory uppercase tracking-widest text-[10px] font-bold px-5 py-3 hover:bg-brand-maroon/90 transition shadow">
+                  className="bg-brand-maroon text-brand-ivory uppercase tracking-widest text-[10px] font-bold px-6 py-3 hover:bg-brand-maroon/90 transition shadow">
                   {tHR("Save Employee")}
                 </button>
               </div>

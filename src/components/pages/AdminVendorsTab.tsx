@@ -1,6 +1,6 @@
 import React, { useState, FormEvent } from "react";
 import { supabase } from "../../lib/supabase";
-import { Users, Package, DollarSign, ChevronDown, ChevronUp, CreditCard, CheckCircle } from "lucide-react";
+import { Users, Package, DollarSign, ChevronDown, ChevronUp, CreditCard, CheckCircle, X } from "lucide-react";
 import { useLanguage } from "../../context/LanguageContext";
 
 export default function AdminVendorsTab({ dbPurchases, dbDues, dbDuePayments = [], fetchAllData }: { dbPurchases: any[], dbDues: any[], dbDuePayments: any[], fetchAllData: () => void }) {
@@ -312,26 +312,35 @@ export default function AdminVendorsTab({ dbPurchases, dbDues, dbDuePayments = [
       </div>
 
       {isPaymentModalOpen && selectedDue && (
-        <div className="fixed inset-0 z-[100] bg-[#1C050E]/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
-          <div className="bg-[#FAF7F2] max-w-sm w-full border-t sm:border border-brand-gold/30 rounded-t-3xl sm:rounded-lg p-5 sm:p-6 shadow-2xl max-h-[92vh] sm:max-h-[90vh] overflow-y-auto animate-slide-up">
-            <div className="w-12 h-1.5 bg-brand-gold/20 rounded-full mx-auto sm:hidden mb-1"></div>
-            <h3 className="font-serif text-xl text-brand-maroon mb-2">{tVendor("Log Vendor Payment")}</h3>
-            <p className="text-xs text-brand-warm-gray mb-4">
-              {language === 'hi' ? 'सप्लायर/व्यापारी को भुगतान: ' : 'Paying supplier/entity: '}
-              <span className="font-bold text-brand-maroon">{selectedDue.entity_name}</span>
-            </p>
-            <div className="bg-white border border-brand-gold/15 p-3 rounded mb-4 text-xs font-mono">
-              <div className="flex justify-between"><span>{tVendor("Total due:")}</span> <span>₹{selectedDue.total_amount}</span></div>
-              <div className="flex justify-between"><span>{tVendor("Paid so far:")}</span> <span>₹{selectedDue.amount_paid}</span></div>
-              <div className="flex justify-between font-bold text-red-600 border-t pt-1 mt-1"><span>{tVendor("Remaining:")}</span> <span>₹{selectedDue.total_amount - selectedDue.amount_paid}</span></div>
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-brand-maroon/40 backdrop-blur-sm" onClick={() => { setIsPaymentModalOpen(false); setSelectedDue(null); }}>
+          <div className="relative w-full max-w-sm bg-[#FDFBF7] border-t sm:border border-brand-gold/25 rounded-t-3xl sm:rounded-lg shadow-2xl animate-slide-up flex flex-col max-h-[92vh] sm:max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center px-5 sm:px-6 pt-5 pb-3 border-b border-brand-gold/15 flex-shrink-0">
+              <h3 className="font-serif text-xl text-brand-maroon">{tVendor("Log Vendor Payment")}</h3>
+              <button onClick={() => { setIsPaymentModalOpen(false); setSelectedDue(null); }} className="text-brand-warm-gray hover:text-brand-maroon transition"><X className="w-5 h-5" /></button>
             </div>
-            
-            <form onSubmit={handleMakePayment} className="space-y-3">
-              <input type="date" required value={paymentForm.payment_date} onChange={e => setPaymentForm({...paymentForm, payment_date: e.target.value})} className="w-full bg-white border border-brand-gold/20 p-2 text-xs" />
-              <input type="number" min="1" max={selectedDue.total_amount - selectedDue.amount_paid} required placeholder={tVendor("Amount to Pay (₹)")} value={paymentForm.amount_paid || ""} onChange={e => setPaymentForm({...paymentForm, amount_paid: Number(e.target.value)})} className="w-full bg-white border border-brand-gold/20 p-2 text-xs" />
-              <div className="flex justify-end gap-2 pt-2">
-                <button type="button" onClick={() => { setIsPaymentModalOpen(false); setSelectedDue(null); }} className="text-xs uppercase font-bold px-3 text-brand-warm-gray hover:text-brand-maroon">{tVendor("Cancel")}</button>
-                <button type="submit" className="bg-emerald-600 text-white text-xs uppercase font-bold px-4 py-2 hover:bg-emerald-700">{tVendor("Confirm Payment")}</button>
+            <form onSubmit={handleMakePayment} className="flex flex-col flex-1 min-h-0">
+              <div className="overflow-y-auto flex-1 px-5 sm:px-6 py-4 space-y-3">
+                <p className="text-xs text-brand-warm-gray">
+                  {language === 'hi' ? 'सप्लायर/व्यापारी को भुगतान: ' : 'Paying supplier/entity: '}
+                  <span className="font-bold text-brand-maroon">{selectedDue.entity_name}</span>
+                </p>
+                <div className="bg-white border border-brand-gold/15 p-3 rounded text-xs font-mono space-y-1">
+                  <div className="flex justify-between"><span>{tVendor("Total due:")}</span> <span>₹{selectedDue.total_amount.toLocaleString("en-IN")}</span></div>
+                  <div className="flex justify-between"><span>{tVendor("Paid so far:")}</span> <span>₹{selectedDue.amount_paid.toLocaleString("en-IN")}</span></div>
+                  <div className="flex justify-between font-bold text-red-600 border-t pt-1 mt-1"><span>{tVendor("Remaining:")}</span> <span>₹{(selectedDue.total_amount - selectedDue.amount_paid).toLocaleString("en-IN")}</span></div>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase font-bold block text-brand-maroon">{tVendor("Payment Date")}</label>
+                  <input type="date" required value={paymentForm.payment_date} onChange={e => setPaymentForm({...paymentForm, payment_date: e.target.value})} className="w-full bg-white border border-brand-gold/20 p-2 text-xs" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase font-bold block text-brand-maroon">{tVendor("Amount to Pay (₹)")}</label>
+                  <input type="number" min="1" max={selectedDue.total_amount - selectedDue.amount_paid} required placeholder={tVendor("Amount to Pay (₹)")} value={paymentForm.amount_paid || ""} onChange={e => setPaymentForm({...paymentForm, amount_paid: Number(e.target.value)})} className="w-full bg-white border border-brand-gold/20 p-2 text-xs focus:outline-none font-mono" />
+                </div>
+              </div>
+              <div className="flex justify-end gap-3 px-5 sm:px-6 pt-4 pb-20 lg:pb-4 border-t border-brand-gold/15 bg-[#FDFBF7] flex-shrink-0">
+                <button type="button" onClick={() => { setIsPaymentModalOpen(false); setSelectedDue(null); }} className="text-brand-warm-gray uppercase tracking-wider text-[10px] font-bold px-4 py-2.5 hover:text-brand-maroon transition">{tVendor("Cancel")}</button>
+                <button type="submit" className="bg-emerald-700 text-white uppercase tracking-widest text-[10px] font-bold px-6 py-3 hover:bg-emerald-800 transition shadow">{tVendor("Confirm Payment")}</button>
               </div>
             </form>
           </div>

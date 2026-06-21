@@ -610,95 +610,85 @@ export default function AdminFinanceTab({
 
       {/* --- MODALS --- */}
       {isExpenseModalOpen && (
-        <div className="fixed inset-0 z-[100] bg-[#1C050E]/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={() => setIsExpenseModalOpen(false)}>
-          <div className="bg-[#FAF7F2] max-w-sm w-full border-t sm:border border-brand-gold/30 rounded-t-3xl sm:rounded-lg p-5 sm:p-6 max-h-[92vh] sm:max-h-[90vh] overflow-y-auto animate-slide-up" onClick={(e) => e.stopPropagation()}>
-            <div className="w-12 h-1.5 bg-brand-gold/20 rounded-full mx-auto sm:hidden mb-1"></div>
-            <h3 className="font-serif text-xl text-brand-maroon mb-4">{tFinance("Log General Expense")}</h3>
-            <form onSubmit={handleAddExpense} className="space-y-3">
-              <input type="date" required value={expenseForm.date} onChange={e => setExpenseForm({...expenseForm, date: e.target.value})} className="w-full bg-white border border-brand-gold/20 p-2 text-xs" />
-              
-              {/* Category Searchable Dropdown */}
-              <div className="space-y-1 relative">
-                <label className="text-[10px] uppercase font-bold block text-brand-maroon">{tFinance("Expense Category *")}</label>
-                <input
-                  type="text"
-                  required
-                  placeholder={tFinance("Type or select category...")}
-                  value={expenseForm.category}
-                  onChange={(e) => {
-                    const cat = e.target.value;
-                    setExpenseForm({ ...expenseForm, category: cat });
-                    setIsCategoryDropdownOpen(true);
-                    if (cat !== "Salary") {
-                      setSelectedEmployeeId("");
-                    }
-                  }}
-                  onFocus={() => setIsCategoryDropdownOpen(true)}
-                  onBlur={() => {
-                    setTimeout(() => setIsCategoryDropdownOpen(false), 200);
-                  }}
-                  className="w-full bg-white border border-brand-gold/20 p-2 text-xs focus:outline-none focus:border-brand-maroon"
-                />
-                {isCategoryDropdownOpen && (
-                  <div className="absolute left-0 right-0 z-50 bg-white border border-brand-gold/20 shadow-lg max-h-36 overflow-y-auto mt-1 divide-y divide-brand-gold/10 rounded">
-                    {Array.from(new Set(["Operational", "Salary", "Marketing", "Rent/Utilities", "Other", ...dbExpenses.map(e => e.category).filter(Boolean)]))
-                      .filter(c => c.toLowerCase().includes(expenseForm.category.toLowerCase()))
-                      .map(cat => (
-                        <div
-                          key={cat}
-                          onMouseDown={() => {
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-brand-maroon/40 backdrop-blur-sm" onClick={() => setIsExpenseModalOpen(false)}>
+          <div className="relative w-full max-w-sm bg-[#FDFBF7] border-t sm:border border-brand-gold/25 rounded-t-3xl sm:rounded-lg shadow-2xl animate-slide-up flex flex-col max-h-[92vh] sm:max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
+            {/* Header */}
+            <div className="flex justify-between items-center px-5 sm:px-6 pt-5 pb-3 border-b border-brand-gold/15 flex-shrink-0">
+              <h3 className="font-serif text-xl text-brand-maroon">{tFinance("Log General Expense")}</h3>
+              <button onClick={() => setIsExpenseModalOpen(false)} className="text-brand-warm-gray hover:text-brand-maroon transition"><X className="w-5 h-5" /></button>
+            </div>
+            <form onSubmit={handleAddExpense} className="flex flex-col flex-1 min-h-0">
+              <div className="overflow-y-auto flex-1 px-5 sm:px-6 py-4 space-y-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase font-bold block text-brand-maroon">{tFinance("Purchase Date")}</label>
+                  <input type="date" required value={expenseForm.date} onChange={e => setExpenseForm({...expenseForm, date: e.target.value})} className="w-full bg-white border border-brand-gold/20 p-2 text-xs" />
+                </div>
+
+                {/* Category Searchable Dropdown */}
+                <div className="space-y-1 relative">
+                  <label className="text-[10px] uppercase font-bold block text-brand-maroon">{tFinance("Expense Category *")}</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder={tFinance("Type or select category...")}
+                    value={expenseForm.category}
+                    onChange={(e) => {
+                      const cat = e.target.value;
+                      setExpenseForm({ ...expenseForm, category: cat });
+                      setIsCategoryDropdownOpen(true);
+                      if (cat !== "Salary") setSelectedEmployeeId("");
+                    }}
+                    onFocus={() => setIsCategoryDropdownOpen(true)}
+                    onBlur={() => { setTimeout(() => setIsCategoryDropdownOpen(false), 200); }}
+                    className="w-full bg-white border border-brand-gold/20 p-2 text-xs focus:outline-none focus:border-brand-maroon"
+                  />
+                  {isCategoryDropdownOpen && (
+                    <div className="absolute left-0 right-0 z-50 bg-white border border-brand-gold/20 shadow-lg max-h-36 overflow-y-auto mt-1 divide-y divide-brand-gold/10 rounded">
+                      {Array.from(new Set(["Operational", "Salary", "Marketing", "Rent/Utilities", "Other", ...dbExpenses.map(e => e.category).filter(Boolean)]))
+                        .filter(c => c.toLowerCase().includes(expenseForm.category.toLowerCase()))
+                        .map(cat => (
+                          <div key={cat} onMouseDown={() => {
                             setExpenseForm({ ...expenseForm, category: cat });
                             setIsCategoryDropdownOpen(false);
-                            if (cat === "Salary" && dbEmployees.length > 0) {
-                              handleEmployeeChange(dbEmployees[0].id);
-                            } else {
-                              setSelectedEmployeeId("");
-                            }
-                          }}
-                          className="px-3 py-2 text-xs hover:bg-brand-sand/50 cursor-pointer text-brand-maroon font-semibold"
-                        >
-                          {tFinance(cat)}
+                            if (cat === "Salary" && dbEmployees.length > 0) handleEmployeeChange(dbEmployees[0].id);
+                            else setSelectedEmployeeId("");
+                          }} className="px-3 py-2 text-xs hover:bg-brand-sand/50 cursor-pointer text-brand-maroon font-semibold">
+                            {tFinance(cat)}
+                          </div>
+                        ))}
+                      {expenseForm.category && !["Operational", "Salary", "Marketing", "Rent/Utilities", "Other", ...dbExpenses.map(e => e.category).filter(Boolean)].some(c => c.toLowerCase() === expenseForm.category.toLowerCase()) && (
+                        <div className="px-3 py-2 text-xs text-brand-warm-gray bg-brand-sand/35 font-bold italic">
+                          {tFinance("+ Create Category:")} "{expenseForm.category}"
                         </div>
-                      ))}
-                    {expenseForm.category && !["Operational", "Salary", "Marketing", "Rent/Utilities", "Other", ...dbExpenses.map(e => e.category).filter(Boolean)].some(c => c.toLowerCase() === expenseForm.category.toLowerCase()) && (
-                      <div className="px-3 py-2 text-xs text-brand-warm-gray bg-brand-sand/35 font-bold italic">
-                        {tFinance("+ Create Category:")} "{expenseForm.category}"
-                      </div>
-                    )}
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {expenseForm.category === "Salary" && (
+                  <div className="space-y-1">
+                    <label className="text-[10px] uppercase font-bold block text-brand-maroon">{tFinance("Select Staff Member *")}</label>
+                    <select required value={selectedEmployeeId} onChange={e => handleEmployeeChange(e.target.value)} className="w-full bg-white border border-brand-gold/20 p-2 text-xs focus:outline-none">
+                      <option value="" disabled>{tFinance("-- Select Employee --")}</option>
+                      {dbEmployees.map(emp => (<option key={emp.id} value={emp.id}>{emp.name} ({tFinance(emp.role)})</option>))}
+                    </select>
                   </div>
                 )}
-              </div>
 
-              {expenseForm.category === "Salary" && (
                 <div className="space-y-1">
-                  <label className="text-[10px] uppercase font-bold block text-brand-maroon">{tFinance("Select Staff Member *")}</label>
-                  <select
-                    required
-                    value={selectedEmployeeId}
-                    onChange={e => handleEmployeeChange(e.target.value)}
-                    className="w-full bg-white border border-brand-gold/20 p-2 text-xs focus:outline-none"
-                  >
-                    <option value="" disabled>{tFinance("-- Select Employee --")}</option>
-                    {dbEmployees.map(emp => (
-                      <option key={emp.id} value={emp.id}>{emp.name} ({tFinance(emp.role)})</option>
-                    ))}
-                  </select>
+                  <label className="text-[10px] uppercase font-bold block text-brand-maroon">{tFinance("Amount (₹)")}</label>
+                  <input type="number" min="1" required placeholder={tFinance("Amount (₹)")} value={expenseForm.amount || ""} onChange={e => setExpenseForm({...expenseForm, amount: Number(e.target.value)})} className="w-full bg-white border border-brand-gold/20 p-2 text-xs focus:outline-none font-mono" />
                 </div>
-              )}
 
-              <div className="space-y-1">
-                <label className="text-[10px] uppercase font-bold block text-brand-maroon">{tFinance("Amount (₹)")}</label>
-                <input type="number" min="1" required placeholder={tFinance("Amount (₹)")} value={expenseForm.amount || ""} onChange={e => setExpenseForm({...expenseForm, amount: Number(e.target.value)})} className="w-full bg-white border border-brand-gold/20 p-2 text-xs focus:outline-none font-mono" />
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase font-bold block text-brand-maroon">{tFinance("Description")}</label>
+                  <input type="text" required placeholder={tFinance("Description")} value={expenseForm.description} onChange={e => setExpenseForm({...expenseForm, description: e.target.value})} className="w-full bg-white border border-brand-gold/20 p-2 text-xs focus:outline-none" />
+                </div>
               </div>
-
-              <div className="space-y-1">
-                <label className="text-[10px] uppercase font-bold block text-brand-maroon">{tFinance("Description")}</label>
-                <input type="text" required placeholder={tFinance("Description")} value={expenseForm.description} onChange={e => setExpenseForm({...expenseForm, description: e.target.value})} className="w-full bg-white border border-brand-gold/20 p-2 text-xs focus:outline-none" />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2">
-                <button type="button" onClick={() => setIsExpenseModalOpen(false)} className="text-xs uppercase font-bold px-3 text-brand-warm-gray hover:text-brand-maroon">{tFinance("Cancel")}</button>
-                <button type="submit" className="bg-brand-maroon text-white text-xs uppercase font-bold px-4 py-2">{tFinance("Save")}</button>
+              {/* Sticky footer */}
+              <div className="flex justify-end gap-3 px-5 sm:px-6 pt-4 pb-20 lg:pb-4 border-t border-brand-gold/15 bg-[#FDFBF7] flex-shrink-0">
+                <button type="button" onClick={() => setIsExpenseModalOpen(false)} className="text-brand-warm-gray uppercase tracking-wider text-[10px] font-bold px-4 py-2.5 hover:text-brand-maroon transition">{tFinance("Cancel")}</button>
+                <button type="submit" className="bg-brand-maroon text-brand-ivory uppercase tracking-widest text-[10px] font-bold px-6 py-3 hover:bg-brand-maroon/90 transition shadow">{tFinance("Save")}</button>
               </div>
             </form>
           </div>
@@ -706,11 +696,19 @@ export default function AdminFinanceTab({
       )}
 
       {isPurchaseModalOpen && (
-        <div className="fixed inset-0 z-[100] bg-[#1C050E]/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={() => setIsPurchaseModalOpen(false)}>
-          <div className="bg-[#FAF7F2] max-w-2xl w-full border-t sm:border border-brand-gold/30 rounded-t-3xl sm:rounded-lg p-5 sm:p-6 max-h-[92vh] sm:max-h-[90vh] overflow-y-auto animate-slide-up" onClick={(e) => e.stopPropagation()}>
-            <div className="w-12 h-1.5 bg-brand-gold/20 rounded-full mx-auto sm:hidden mb-1"></div>
-            <h3 className="font-serif text-xl text-brand-maroon mb-4">{tFinance("Log Inventory Purchase")}</h3>
-            <form onSubmit={handleAddPurchase} className="space-y-4">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-brand-maroon/40 backdrop-blur-sm" onClick={() => setIsPurchaseModalOpen(false)}>
+          <div
+            className="relative w-full max-w-2xl bg-[#FDFBF7] border-t sm:border border-brand-gold/25 rounded-t-3xl sm:rounded-lg shadow-2xl animate-slide-up flex flex-col max-h-[92vh] sm:max-h-[90vh]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center px-5 sm:px-6 pt-5 pb-3 border-b border-brand-gold/15 flex-shrink-0">
+              <h3 className="font-serif text-xl text-brand-maroon">{tFinance("Log Inventory Purchase")}</h3>
+              <button onClick={() => setIsPurchaseModalOpen(false)} className="text-brand-warm-gray hover:text-brand-maroon transition">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={handleAddPurchase} className="flex flex-col flex-1 min-h-0">
+              <div className="overflow-y-auto flex-1 px-5 sm:px-6 py-4 space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <label className="text-[10px] uppercase font-bold block text-brand-maroon">{tFinance("Purchase Date")}</label>
@@ -774,7 +772,7 @@ export default function AdminFinanceTab({
                   </button>
                 </div>
 
-                <div className="space-y-3 max-h-[350px] overflow-y-auto pr-1">
+                <div className="space-y-3">
                   {purchaseLineItems.map((item, idx) => (
                     <div key={idx} className="border border-brand-gold/15 p-3 rounded bg-white relative space-y-2">
                       <div className="flex justify-between items-center border-b border-brand-gold/10 pb-1.5">
@@ -890,10 +888,17 @@ export default function AdminFinanceTab({
                   </p>
                 )
               )}
-              
-              <div className="flex justify-end gap-2 pt-2 border-t border-brand-gold/15">
-                <button type="button" onClick={() => setIsPurchaseModalOpen(false)} className="text-xs uppercase font-bold px-3 text-brand-warm-gray hover:text-brand-maroon">{tFinance("Cancel")}</button>
-                <button type="submit" className="bg-brand-maroon text-white text-xs uppercase font-bold px-4 py-2 hover:bg-brand-maroon/90 transition shadow">{tFinance("Save Purchase")}</button>
+              </div>
+              {/* Sticky footer — always visible */}
+              <div className="flex justify-end gap-3 px-5 sm:px-6 pt-4 pb-20 lg:pb-4 border-t border-brand-gold/15 bg-[#FDFBF7] flex-shrink-0">
+                <button type="button" onClick={() => setIsPurchaseModalOpen(false)}
+                  className="text-brand-warm-gray uppercase tracking-wider text-[10px] font-bold px-4 py-2.5 hover:text-brand-maroon transition">
+                  {tFinance("Cancel")}
+                </button>
+                <button type="submit"
+                  className="bg-brand-maroon text-brand-ivory uppercase tracking-widest text-[10px] font-bold px-6 py-3 hover:bg-brand-maroon/90 transition shadow flex items-center gap-2">
+                  {tFinance("Save Purchase")}
+                </button>
               </div>
             </form>
           </div>
@@ -901,22 +906,41 @@ export default function AdminFinanceTab({
       )}
 
       {isDueModalOpen && (
-        <div className="fixed inset-0 z-[100] bg-[#1C050E]/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={() => setIsDueModalOpen(false)}>
-          <div className="bg-[#FAF7F2] max-w-sm w-full border-t sm:border border-brand-gold/30 rounded-t-3xl sm:rounded-lg p-5 sm:p-6 max-h-[92vh] sm:max-h-[90vh] overflow-y-auto animate-slide-up" onClick={(e) => e.stopPropagation()}>
-            <div className="w-12 h-1.5 bg-brand-gold/20 rounded-full mx-auto sm:hidden mb-1"></div>
-            <h3 className="font-serif text-xl text-brand-maroon mb-4">{tFinance("Manual Ledger Entry")}</h3>
-            <form onSubmit={handleAddDue} className="space-y-3">
-              <select value={dueForm.due_type} onChange={e => setDueForm({...dueForm, due_type: e.target.value})} className="w-full bg-white border border-brand-gold/20 p-2 text-xs font-bold text-brand-maroon">
-                <option value="payable">{tFinance("PAYABLE (Money you owe)")}</option>
-                <option value="receivable">{tFinance("RECEIVABLE (Money owed to you)")}</option>
-              </select>
-              <input type="text" required placeholder={tFinance("Entity / Person Name")} value={dueForm.entity_name} onChange={e => setDueForm({...dueForm, entity_name: e.target.value})} className="w-full bg-white border border-brand-gold/20 p-2 text-xs" />
-              <input type="number" min="0" required placeholder={tFinance("Total Amount (₹)")} value={dueForm.total_amount || ""} onChange={e => setDueForm({...dueForm, total_amount: Number(e.target.value)})} className="w-full bg-white border border-brand-gold/20 p-2 text-xs" />
-              <input type="number" min="0" placeholder={tFinance("Amount Already Paid (₹)")} value={dueForm.amount_paid || ""} onChange={e => setDueForm({...dueForm, amount_paid: Number(e.target.value)})} className="w-full bg-white border border-brand-gold/20 p-2 text-xs" />
-              <input type="date" value={dueForm.due_date} onChange={e => setDueForm({...dueForm, due_date: e.target.value})} className="w-full bg-white border border-brand-gold/20 p-2 text-xs" />
-              <div className="flex justify-end gap-2 pt-2">
-                <button type="button" onClick={() => setIsDueModalOpen(false)} className="text-xs uppercase font-bold px-3 text-brand-warm-gray hover:text-brand-maroon">{tFinance("Cancel")}</button>
-                <button type="submit" className="bg-brand-maroon text-white text-xs uppercase font-bold px-4 py-2">{tFinance("Save")}</button>
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-brand-maroon/40 backdrop-blur-sm" onClick={() => setIsDueModalOpen(false)}>
+          <div className="relative w-full max-w-sm bg-[#FDFBF7] border-t sm:border border-brand-gold/25 rounded-t-3xl sm:rounded-lg shadow-2xl animate-slide-up flex flex-col max-h-[92vh] sm:max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center px-5 sm:px-6 pt-5 pb-3 border-b border-brand-gold/15 flex-shrink-0">
+              <h3 className="font-serif text-xl text-brand-maroon">{tFinance("Manual Ledger Entry")}</h3>
+              <button onClick={() => setIsDueModalOpen(false)} className="text-brand-warm-gray hover:text-brand-maroon transition"><X className="w-5 h-5" /></button>
+            </div>
+            <form onSubmit={handleAddDue} className="flex flex-col flex-1 min-h-0">
+              <div className="overflow-y-auto flex-1 px-5 sm:px-6 py-4 space-y-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase font-bold block text-brand-maroon">{tFinance("Entry Type")}</label>
+                  <select value={dueForm.due_type} onChange={e => setDueForm({...dueForm, due_type: e.target.value})} className="w-full bg-white border border-brand-gold/20 p-2 text-xs font-bold text-brand-maroon">
+                    <option value="payable">{tFinance("PAYABLE (Money you owe)")}</option>
+                    <option value="receivable">{tFinance("RECEIVABLE (Money owed to you)")}</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase font-bold block text-brand-maroon">{tFinance("Entity / Person Name")}</label>
+                  <input type="text" required placeholder={tFinance("Entity / Person Name")} value={dueForm.entity_name} onChange={e => setDueForm({...dueForm, entity_name: e.target.value})} className="w-full bg-white border border-brand-gold/20 p-2 text-xs focus:outline-none focus:border-brand-maroon" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase font-bold block text-brand-maroon">{tFinance("Total Amount (₹)")}</label>
+                  <input type="number" min="0" required placeholder={tFinance("Total Amount (₹)")} value={dueForm.total_amount || ""} onChange={e => setDueForm({...dueForm, total_amount: Number(e.target.value)})} className="w-full bg-white border border-brand-gold/20 p-2 text-xs focus:outline-none font-mono" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase font-bold block text-brand-maroon">{tFinance("Amount Already Paid (₹)")}</label>
+                  <input type="number" min="0" placeholder={tFinance("Amount Already Paid (₹)")} value={dueForm.amount_paid || ""} onChange={e => setDueForm({...dueForm, amount_paid: Number(e.target.value)})} className="w-full bg-white border border-brand-gold/20 p-2 text-xs focus:outline-none font-mono" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase font-bold block text-brand-maroon">{tFinance("Due Date")}</label>
+                  <input type="date" value={dueForm.due_date} onChange={e => setDueForm({...dueForm, due_date: e.target.value})} className="w-full bg-white border border-brand-gold/20 p-2 text-xs" />
+                </div>
+              </div>
+              <div className="flex justify-end gap-3 px-5 sm:px-6 pt-4 pb-20 lg:pb-4 border-t border-brand-gold/15 bg-[#FDFBF7] flex-shrink-0">
+                <button type="button" onClick={() => setIsDueModalOpen(false)} className="text-brand-warm-gray uppercase tracking-wider text-[10px] font-bold px-4 py-2.5 hover:text-brand-maroon transition">{tFinance("Cancel")}</button>
+                <button type="submit" className="bg-brand-maroon text-brand-ivory uppercase tracking-widest text-[10px] font-bold px-6 py-3 hover:bg-brand-maroon/90 transition shadow">{tFinance("Save")}</button>
               </div>
             </form>
           </div>
@@ -924,29 +948,36 @@ export default function AdminFinanceTab({
       )}
 
       {isPaymentModalOpen && selectedDue && (
-        <div className="fixed inset-0 z-[100] bg-[#1C050E]/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
-          <div className="bg-[#FAF7F2] max-w-sm w-full border-t sm:border border-brand-gold/30 rounded-t-3xl sm:rounded-lg p-5 sm:p-6 shadow-2xl max-h-[92vh] sm:max-h-[90vh] overflow-y-auto animate-slide-up">
-            <div className="w-12 h-1.5 bg-brand-gold/20 rounded-full mx-auto sm:hidden mb-1"></div>
-            <h3 className="font-serif text-xl text-brand-maroon mb-2">{tFinance("Log Payment")}</h3>
-            <p className="text-xs text-brand-warm-gray mb-4">
-              {language === "hi" ? (
-                selectedDue.due_type === 'payable' ? `${selectedDue.entity_name} को भुगतान किया जा रहा है` : `${selectedDue.entity_name} से प्राप्त किया जा रहा है`
-              ) : (
-                selectedDue.due_type === 'payable' ? `Paying ${selectedDue.entity_name}` : `Receiving from ${selectedDue.entity_name}`
-              )}
-            </p>
-            <div className="bg-white border border-brand-gold/15 p-3 rounded mb-4 text-xs font-mono">
-              <div className="flex justify-between"><span>{tFinance("Total due:")}</span> <span>₹{selectedDue.total_amount}</span></div>
-              <div className="flex justify-between"><span>{tFinance("Paid so far:")}</span> <span>₹{selectedDue.amount_paid}</span></div>
-              <div className="flex justify-between font-bold text-red-600 border-t pt-1 mt-1"><span>{tFinance("Remaining:")}</span> <span>₹{selectedDue.total_amount - selectedDue.amount_paid}</span></div>
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-brand-maroon/40 backdrop-blur-sm" onClick={() => { setIsPaymentModalOpen(false); setSelectedDue(null); }}>
+          <div className="relative w-full max-w-sm bg-[#FDFBF7] border-t sm:border border-brand-gold/25 rounded-t-3xl sm:rounded-lg shadow-2xl animate-slide-up flex flex-col max-h-[92vh] sm:max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center px-5 sm:px-6 pt-5 pb-3 border-b border-brand-gold/15 flex-shrink-0">
+              <h3 className="font-serif text-xl text-brand-maroon">{tFinance("Log Payment")}</h3>
+              <button onClick={() => { setIsPaymentModalOpen(false); setSelectedDue(null); }} className="text-brand-warm-gray hover:text-brand-maroon transition"><X className="w-5 h-5" /></button>
             </div>
-            
-            <form onSubmit={handleMakePayment} className="space-y-3">
-              <input type="date" required value={paymentForm.payment_date} onChange={e => setPaymentForm({...paymentForm, payment_date: e.target.value})} className="w-full bg-white border border-brand-gold/20 p-2 text-xs" />
-              <input type="number" min="0" max={selectedDue.total_amount - selectedDue.amount_paid} required placeholder={tFinance("Amount to Pay (₹)")} value={paymentForm.amount_paid || ""} onChange={e => setPaymentForm({...paymentForm, amount_paid: Number(e.target.value)})} className="w-full bg-white border border-brand-gold/20 p-2 text-xs" />
-              <div className="flex justify-end gap-2 pt-2">
-                <button type="button" onClick={() => { setIsPaymentModalOpen(false); setSelectedDue(null); }} className="text-xs uppercase font-bold px-3 text-brand-warm-gray hover:text-brand-maroon">{tFinance("Cancel")}</button>
-                <button type="submit" className="bg-emerald-600 text-white text-xs uppercase font-bold px-4 py-2 hover:bg-emerald-700">{tFinance("Confirm Payment")}</button>
+            <form onSubmit={handleMakePayment} className="flex flex-col flex-1 min-h-0">
+              <div className="overflow-y-auto flex-1 px-5 sm:px-6 py-4 space-y-3">
+                <p className="text-xs text-brand-warm-gray">
+                  {language === "hi"
+                    ? (selectedDue.due_type === 'payable' ? `${selectedDue.entity_name} को भुगतान किया जा रहा है` : `${selectedDue.entity_name} से प्राप्त किया जा रहा है`)
+                    : (selectedDue.due_type === 'payable' ? `Paying ${selectedDue.entity_name}` : `Receiving from ${selectedDue.entity_name}`)}
+                </p>
+                <div className="bg-white border border-brand-gold/15 p-3 rounded text-xs font-mono space-y-1">
+                  <div className="flex justify-between"><span>{tFinance("Total due:")}</span> <span>₹{selectedDue.total_amount.toLocaleString("en-IN")}</span></div>
+                  <div className="flex justify-between"><span>{tFinance("Paid so far:")}</span> <span>₹{selectedDue.amount_paid.toLocaleString("en-IN")}</span></div>
+                  <div className="flex justify-between font-bold text-red-600 border-t pt-1 mt-1"><span>{tFinance("Remaining:")}</span> <span>₹{(selectedDue.total_amount - selectedDue.amount_paid).toLocaleString("en-IN")}</span></div>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase font-bold block text-brand-maroon">{tFinance("Payment Date")}</label>
+                  <input type="date" required value={paymentForm.payment_date} onChange={e => setPaymentForm({...paymentForm, payment_date: e.target.value})} className="w-full bg-white border border-brand-gold/20 p-2 text-xs" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase font-bold block text-brand-maroon">{tFinance("Amount to Pay (₹)")}</label>
+                  <input type="number" min="0" max={selectedDue.total_amount - selectedDue.amount_paid} required placeholder={tFinance("Amount to Pay (₹)")} value={paymentForm.amount_paid || ""} onChange={e => setPaymentForm({...paymentForm, amount_paid: Number(e.target.value)})} className="w-full bg-white border border-brand-gold/20 p-2 text-xs focus:outline-none font-mono" />
+                </div>
+              </div>
+              <div className="flex justify-end gap-3 px-5 sm:px-6 pt-4 pb-20 lg:pb-4 border-t border-brand-gold/15 bg-[#FDFBF7] flex-shrink-0">
+                <button type="button" onClick={() => { setIsPaymentModalOpen(false); setSelectedDue(null); }} className="text-brand-warm-gray uppercase tracking-wider text-[10px] font-bold px-4 py-2.5 hover:text-brand-maroon transition">{tFinance("Cancel")}</button>
+                <button type="submit" className="bg-emerald-700 text-white uppercase tracking-widest text-[10px] font-bold px-6 py-3 hover:bg-emerald-800 transition shadow">{tFinance("Confirm Payment")}</button>
               </div>
             </form>
           </div>
