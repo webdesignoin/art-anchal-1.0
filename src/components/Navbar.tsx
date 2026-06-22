@@ -147,22 +147,22 @@ export default function Navbar({
             : "bg-transparent border-transparent py-6 shadow-none"
         }`}
       >
-        <div className="max-w-[90rem] mx-auto px-6 sm:px-10 lg:px-14 flex items-center justify-between">
+        <div className="max-w-[90rem] mx-auto px-6 sm:px-10 lg:px-14 flex items-center justify-between gap-4 sm:gap-6 lg:gap-8">
           
           {/* ── Left: Logo ─────────────────────────────────────────── */}
-          <div className="flex-1 flex items-center justify-start">
+          <div className="flex-1 flex items-center justify-start min-w-max">
             <button
               onClick={() => selectNavLink("home")}
               className="group cursor-pointer focus:outline-none flex flex-col"
             >
-              <h1 className={`serif-heading font-light tracking-wide transition-all duration-500 ${isDarkGlass ? 'text-2xl sm:text-3xl text-brand-maroon' : 'text-3xl sm:text-4xl text-brand-ivory drop-shadow-md'}`}>
+              <h1 className={`serif-heading font-light tracking-wide transition-all duration-500 ${isDarkGlass ? 'text-xl sm:text-2xl lg:text-3xl text-brand-maroon' : 'text-2xl sm:text-3xl lg:text-4xl text-brand-ivory drop-shadow-md'}`}>
                 Art<span className={`font-serif italic font-normal ${isDarkGlass ? 'text-brand-gold' : 'text-brand-gold drop-shadow-md'}`}>&</span>Anchal
               </h1>
             </button>
           </div>
 
           {/* ── Center: Main Navigation Links ──────────────────────── */}
-          <nav className="hidden lg:flex flex-1 items-center justify-center space-x-12">
+          <nav className="hidden lg:flex flex-1 items-center justify-center space-x-6 xl:space-x-12 min-w-max">
             {navLinks.map((link) => (
               <button
                 key={link.label}
@@ -183,7 +183,7 @@ export default function Navbar({
           </nav>
 
           {/* ── Right: Action Icons ────────────────────────────────── */}
-          <div className="flex-1 flex items-center justify-end space-x-5 sm:space-x-8">
+          <div className="flex-1 flex items-center justify-end space-x-4 sm:space-x-6 lg:space-x-8 min-w-max">
             
             {/* Premium Language Switcher Toggle */}
             <button

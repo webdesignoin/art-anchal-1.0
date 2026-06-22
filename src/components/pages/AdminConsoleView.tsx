@@ -2215,26 +2215,46 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                   </table>
                 </div>
                 {/* Mobile Card Grid */}
-                <div className="grid grid-cols-1 gap-4 p-4 lg:hidden">
+                <div className="grid grid-cols-1 gap-3 p-4 lg:hidden">
                   {paginatedCatalogSarees.map(s => {
                     const stock = s.stock_quantity ?? 0;
                     const stockColor = stock <= 0 ? "text-red-700 bg-red-50" : stock <= 2 ? "text-amber-700 bg-amber-50" : "text-emerald-700 bg-emerald-50";
                     return (
-                      <div key={s.id} className="glass-card p-4 flex flex-col space-y-2">
-                        <div className="flex items-center gap-3">
-                          <img src={s.images?.[0]} alt="" className="w-12 h-12 object-cover rounded" />
-                          <div>
-                            <p className="font-serif font-semibold text-sm text-brand-maroon">{s.name}</p>
-                            <p className="text-xs text-brand-warm-gray">{s.weaving_technique}</p>
+                      <div key={s.id} className="glass-card p-3 flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0 flex-grow">
+                          <div className="w-12 h-16 bg-brand-sand overflow-hidden border border-brand-gold/20 flex-shrink-0 rounded">
+                            {s.images?.[0] ? (
+                              <img src={s.images[0]} alt="" className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-[10px] text-brand-warm-gray/40">No img</div>
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-serif font-semibold text-sm text-brand-maroon truncate">{s.name}</p>
+                            <p className="text-[10px] text-brand-warm-gray truncate">{s.weaving_technique}</p>
+                            <div className="flex items-center gap-2 mt-1 flex-wrap">
+                              <span className="font-mono font-bold text-xs">₹{Number(s.price).toLocaleString("en-IN")}</span>
+                              <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${stockColor}`}>
+                                {stock <= 0 ? tAdmin("Out of Stock") : (language === "hi" ? `${stock} पीस` : `${stock} pcs`)}
+                              </span>
+                            </div>
                           </div>
                         </div>
-                        <p className="font-mono font-bold">₹{Number(s.price).toLocaleString("en-IN")}</p>
-                        <span className={`inline-block text-[10px] font-bold px-2.5 py-1 rounded-full ${stockColor}`}>
-                          {stock <= 0 ? tAdmin("Out of Stock") : (language === "hi" ? `${stock} पीस` : `${stock} pcs`)}
-                        </span>
-                        <div className="flex gap-2">
-                          <button onClick={() => handleOpenEditSaree(s)} className="text-brand-gold-dark hover:text-brand-maroon transition" title={tAdmin("Edit")}><Edit className="w-4 h-4"/></button>
-                          <button onClick={() => handleDeleteSaree(s.id)} className="text-red-600 hover:text-red-800 transition" title={language === "hi" ? "हटाएं" : "Remove"}><Trash2 className="w-4 h-4"/></button>
+                        <div className="flex items-center gap-1 flex-shrink-0 pl-2 border-l border-brand-gold/10">
+                          <button
+                            onClick={() => handleOpenEditSaree(s)}
+                            className="p-2 text-brand-gold-dark hover:text-brand-maroon hover:bg-brand-sand/50 rounded transition"
+                            title={tAdmin("Edit")}
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteSaree(s.id)}
+                            className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition"
+                            title={language === "hi" ? "हटाएं" : "Remove"}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
                         </div>
                       </div>
                     );
