@@ -549,9 +549,10 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
   const totalPurchasesPaid = filteredDbPurchases.reduce((sum, p) => sum + Number(p.amount_paid ?? 0), 0);
   const netProfit = totalRevenue - totalExpenses - totalPurchasesPaid;
 
-  // Consolidated Daybook transaction feed
+  // Consolidated Daybook transaction feed (today only)
+  const todayStr = new Date().toDateString();
   const daybookTransactions = [
-    ...filteredDbOrders.map(o => ({
+    ...dbOrders.map(o => ({
       id: o.id,
       type: "Sale",
       number: o.invoice_number || `SAL-${o.id.slice(0, 5).toUpperCase()}`,
@@ -562,7 +563,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
       colorClass: o.is_paid ? "bg-emerald-100 text-emerald-800 border-emerald-200" : "bg-red-100 text-red-800 border-red-200",
       mode: o.payment_mode.toUpperCase(),
     })),
-    ...filteredDbPurchases.map(p => ({
+    ...dbPurchases.map(p => ({
       id: p.id,
       type: "Purchase",
       number: `PUR-${p.id.slice(0, 5).toUpperCase()}`,
@@ -573,7 +574,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
       colorClass: p.status === "paid" ? "bg-emerald-100 text-emerald-800 border-emerald-200" : p.status === "partially_paid" ? "bg-amber-100 text-amber-800 border-amber-200" : "bg-red-100 text-red-800 border-red-200",
       mode: "BANK",
     })),
-    ...filteredDbExpenses.map(e => ({
+    ...dbExpenses.map(e => ({
       id: e.id,
       type: "Expense",
       number: `EXP-${e.id.slice(0, 5).toUpperCase()}`,
@@ -585,6 +586,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
       mode: "CASH",
     }))
   ]
+    .filter(tx => tx.date && new Date(tx.date).toDateString() === todayStr)
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, 8);
 
