@@ -2628,7 +2628,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                                           return { ...i, quantity: val };
                                         }));
                                       }}
-                                      className="w-full lg:w-14 text-center font-mono text-xs font-bold py-1.5 bg-brand-ivory border border-brand-gold/15 rounded focus:outline-none focus:border-brand-maroon"
+                                      className="w-full lg:w-14 text-center font-mono text-xs font-bold py-1.5 bg-brand-ivory border border-brand-gold/15 rounded focus:outline-none focus:border-brand-maroon hide-spin"
                                     />
                                     <button 
                                       type="button"
