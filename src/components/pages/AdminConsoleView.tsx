@@ -148,6 +148,47 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
         "Amount": "रकम",
         "No transactions recorded for this period.": "इस अवधि के लिए कोई लेनदेन दर्ज नहीं है।",
 
+        // Date Range Filter
+        "Date Range": "तिथि सीमा",
+        "Filter": "फ़िल्टर",
+        "From": "से",
+        "To": "तक",
+        "Apply": "लागू करें",
+        "Custom": "कस्टम",
+
+        // Revenue & Profit Cards
+        "Total Revenue": "कुल राजस्व",
+        "All paid orders in date range": "तिथि सीमा में सभी भुगतान किए गए ऑर्डर",
+        "Calculation Breakdown": "गणना विवरण",
+        "No sales in this period": "इस अवधि में कोई बिक्री नहीं",
+        "Total": "कुल",
+        "Net Profit / Loss": "शुद्ध लाभ / हानि",
+        "Revenue − Expenses − Purchases": "राजस्व − खर्च − खरीद",
+        "Total Revenue (Sales)": "कुल राजस्व (बिक्री)",
+        "Total Expenses": "कुल खर्च",
+        "Total Purchases Paid": "कुल खरीद भुगतान",
+        "Net Profit": "शुद्ध लाभ",
+        "Net Loss": "शुद्ध हानि",
+        "View Full Finance Ledger →": "पूरा वित्त बही खाता देखें →",
+
+        // Expandable KPI Cards
+        "Tap to view": "विवरण देखें",
+        "No pending receivables": "कोई लंबित प्राप्य नहीं",
+        "Go to Ledger →": "बही खाता पर जाएं →",
+        "Outstanding Payables": "बकाया देनदारियाँ",
+        "No pending payables": "कोई लंबित देनदारी नहीं",
+        "Go to Vendors →": "व्यापारी पृष्ठ पर जाएं →",
+        "Physical showroom cash": "शोरूम में नकद राशि",
+        "Cash Sales (Inflow)": "नकद बिक्री (आवक)",
+        "Expenses (Outflow)": "खर्च (जावक)",
+        "Net Cash": "शुद्ध नकद",
+        "View Expenses →": "खर्च देखें →",
+        "Online/UPI/Ledger": "ऑनलाइन / यूपीआई / बैंक",
+        "Online/Card/UPI Sales": "ऑनलाइन / कार्ड / यूपीआई बिक्री",
+        "Purchase Payments": "खरीद भुगतान",
+        "Net Bank": "शुद्ध बैंक बैलेंस",
+        "View Purchases →": "खरीद देखें →",
+
         // Catalog & Inventory tab
         "Saree Catalog & Stock": "साड़ी कैटलॉग और स्टॉक",
         "Catalog & Inventory CMS": "कैटलॉग और इन्वेंटरी प्रबंधन",
@@ -282,7 +323,6 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
         "Customer Details": "ग्राहक का विवरण",
         "Billed Items": "बिल किए गए आइटम",
         "Price": "कीमत",
-        "Total": "कुल",
         "Subtotal": "उपयोग (Subtotal)",
         "Tax / GST": "टैक्स / जीएसटी",
         "Discount": "छूट (Discount)",
@@ -334,6 +374,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
   const [startDate, setStartDate] = useState(getFirstDayOfMonth());
   const [endDate, setEndDate] = useState(getTodayDateString());
   const [isDateRangeOpen, setIsDateRangeOpen] = useState(false);
+  const [expandedKpi, setExpandedKpi] = useState<string | null>(null);
 
   // Scroll to top when activeTab changes
   useEffect(() => {
@@ -501,6 +542,10 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
   const bankBalance = baseBankBalance
     + filteredDbOrders.filter(o => o.is_paid && ["online", "card", "upi", "bank_transfer"].includes(o.payment_mode)).reduce((sum, o) => sum + Number(o.total ?? 0), 0)
     - filteredDbPurchases.reduce((sum, p) => sum + Number(p.amount_paid ?? 0), 0);
+
+  const totalExpenses = filteredDbExpenses.reduce((sum, e) => sum + Number(e.amount ?? 0), 0);
+  const totalPurchasesPaid = filteredDbPurchases.reduce((sum, p) => sum + Number(p.amount_paid ?? 0), 0);
+  const netProfit = totalRevenue - totalExpenses - totalPurchasesPaid;
 
   // Consolidated Daybook transaction feed
   const daybookTransactions = [
@@ -1598,26 +1643,236 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                 </div>
               </div>
 
-              {/* Vyapar Transaction Summary Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-                {[
-                  { label: tAdmin("To Collect (Receivables)"), value: `₹${totalReceivables.toLocaleString("en-IN")}`, subtitle: tAdmin("Customer unpaid dues"), icon: IndianRupee, color: "text-amber-700", bg: "bg-amber-500/10 border-amber-500/15" },
-                  { label: tAdmin("To Pay (Payables)"), value: `₹${totalPayables.toLocaleString("en-IN")}`, subtitle: tAdmin("Vendor outstanding dues"), icon: CreditCard, color: "text-rose-700", bg: "bg-rose-500/10 border-rose-500/15" },
-                  { label: tAdmin("Cash in Hand"), value: `₹${cashInHand.toLocaleString("en-IN")}`, subtitle: tAdmin("Physical showroom cash float"), icon: IndianRupee, color: "text-emerald-700", bg: "bg-emerald-500/10 border-emerald-500/15" },
-                  { label: tAdmin("Bank Balance"), value: `₹${bankBalance.toLocaleString("en-IN")}`, subtitle: tAdmin("Online/UPI/Ledger balance"), icon: TrendingUp, color: "text-sky-700", bg: "bg-sky-500/10 border-sky-500/15" },
-                ].map((card) => (
-                  <div key={card.label} className="bg-[#FAF7F2] border border-brand-gold/15 rounded-xl p-5 shadow-sm hover:shadow-md transition-all duration-300 flex items-center justify-between group">
+
+              {/* ── Revenue & Profit Hero Cards ─────────────────────────── */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                {/* Total Revenue */}
+                <div
+                  className="bg-[#1C050E] border border-brand-gold/25 rounded-xl p-5 shadow-lg cursor-pointer hover:shadow-xl transition-all duration-300"
+                  onClick={() => setExpandedKpi(expandedKpi === "revenue" ? null : "revenue")}
+                >
+                  <div className="flex items-center justify-between">
                     <div className="space-y-1.5">
-                      <p className="text-[10px] uppercase tracking-wider text-brand-warm-gray font-bold font-sans">{card.label}</p>
-                      <p className={`font-serif text-2xl font-bold ${card.color}`}>{card.value}</p>
-                      <p className="text-[9px] text-brand-warm-gray italic font-sans">{card.subtitle}</p>
+                      <p className="text-[10px] uppercase tracking-widest text-brand-gold font-bold">{tAdmin("Total Revenue")}</p>
+                      <p className="font-serif text-3xl font-bold text-white">₹{totalRevenue.toLocaleString("en-IN")}</p>
+                      <p className="text-[9px] text-white/40">{tAdmin("All paid orders in date range")}</p>
                     </div>
-                    <div className={`w-10 h-10 rounded-xl ${card.bg} border flex items-center justify-center transition-all duration-300 group-hover:scale-110`}>
-                      <card.icon className={`w-5 h-5 ${card.color}`} />
+                    <div className="w-12 h-12 rounded-xl bg-brand-gold/15 border border-brand-gold/30 flex items-center justify-center">
+                      <TrendingUp className="w-6 h-6 text-brand-gold" />
                     </div>
                   </div>
-                ))}
+                  {expandedKpi === "revenue" && (
+                    <div className="mt-4 pt-4 border-t border-white/10 space-y-2 max-h-52 overflow-y-auto">
+                      <p className="text-[9px] uppercase font-bold text-brand-gold tracking-wider mb-2">{tAdmin("Calculation Breakdown")}</p>
+                      {filteredDbOrders.length > 0 ? filteredDbOrders.map(o => (
+                        <div key={o.id} className="flex justify-between text-[10px] py-1.5 border-b border-white/5 last:border-0">
+                          <span className="text-white/60 truncate max-w-[60%]">{o.invoice_number || `SAL-${o.id.slice(0,5)}`} · {o.customer_name}</span>
+                          <span className={`font-mono font-bold ${o.is_paid ? "text-emerald-400" : "text-red-400"}`}>+₹{Number(o.total ?? 0).toLocaleString("en-IN")}</span>
+                        </div>
+                      )) : <p className="text-[10px] text-white/30 italic">{tAdmin("No sales in this period")}</p>}
+                      <div className="flex justify-between text-xs pt-2 border-t border-brand-gold/20 font-bold">
+                        <span className="text-brand-gold">{tAdmin("Total")}</span>
+                        <span className="text-white font-mono">₹{totalRevenue.toLocaleString("en-IN")}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Net Profit */}
+                <div
+                  className={`border rounded-xl p-5 shadow-lg cursor-pointer hover:shadow-xl transition-all duration-300 ${
+                    netProfit >= 0 ? "bg-emerald-900/80 border-emerald-500/25" : "bg-rose-900/80 border-rose-500/25"
+                  }`}
+                  onClick={() => setExpandedKpi(expandedKpi === "profit" ? null : "profit")}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1.5">
+                      <p className={`text-[10px] uppercase tracking-widest font-bold ${netProfit >= 0 ? "text-emerald-400" : "text-rose-400"}`}>{tAdmin("Net Profit / Loss")}</p>
+                      <p className="font-serif text-3xl font-bold text-white">₹{netProfit.toLocaleString("en-IN")}</p>
+                      <p className="text-[9px] text-white/40">{tAdmin("Revenue − Expenses − Purchases")}</p>
+                    </div>
+                    <div className={`w-12 h-12 rounded-xl border flex items-center justify-center ${
+                      netProfit >= 0 ? "bg-emerald-500/15 border-emerald-500/30" : "bg-rose-500/15 border-rose-500/30"
+                    }`}>
+                      <IndianRupee className={`w-6 h-6 ${netProfit >= 0 ? "text-emerald-400" : "text-rose-400"}`} />
+                    </div>
+                  </div>
+                  {expandedKpi === "profit" && (
+                    <div className="mt-4 pt-4 border-t border-white/10 space-y-1.5">
+                      <p className="text-[9px] uppercase font-bold text-brand-gold tracking-wider mb-2">{tAdmin("Calculation Breakdown")}</p>
+                      <div className="flex justify-between text-[10px]">
+                        <span className="text-white/60">{tAdmin("Total Revenue (Sales)")}</span>
+                        <span className="text-emerald-400 font-mono font-bold">+₹{totalRevenue.toLocaleString("en-IN")}</span>
+                      </div>
+                      <div className="flex justify-between text-[10px]">
+                        <span className="text-white/60">{tAdmin("Total Expenses")}</span>
+                        <span className="text-rose-400 font-mono font-bold">−₹{totalExpenses.toLocaleString("en-IN")}</span>
+                      </div>
+                      <div className="flex justify-between text-[10px]">
+                        <span className="text-white/60">{tAdmin("Total Purchases Paid")}</span>
+                        <span className="text-rose-400 font-mono font-bold">−₹{totalPurchasesPaid.toLocaleString("en-IN")}</span>
+                      </div>
+                      <div className="flex justify-between text-xs pt-2 mt-1 border-t border-white/15 font-bold">
+                        <span className={netProfit >= 0 ? "text-emerald-400" : "text-rose-400"}>{netProfit >= 0 ? tAdmin("Net Profit") : tAdmin("Net Loss")}</span>
+                        <span className="text-white font-mono">₹{netProfit.toLocaleString("en-IN")}</span>
+                      </div>
+                      <button onClick={(e) => { e.stopPropagation(); setActiveTab("finance"); }} className="w-full mt-3 text-[9px] uppercase font-bold tracking-wider text-brand-gold border border-brand-gold/30 py-2 rounded-lg hover:bg-brand-gold/10 transition text-center">
+                        {tAdmin("View Full Finance Ledger →")}
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
+
+              {/* ── Vyapar Transaction Summary Cards (Expandable) ─────── */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                {/* To Collect (Receivables) */}
+                <div
+                  className={`bg-[#FAF7F2] border rounded-xl shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer ${expandedKpi === "receivables" ? "border-amber-500/30 ring-1 ring-amber-500/20" : "border-brand-gold/15"}`}
+                  onClick={() => setExpandedKpi(expandedKpi === "receivables" ? null : "receivables")}
+                >
+                  <div className="p-5 flex items-center justify-between">
+                    <div className="space-y-1.5">
+                      <p className="text-[10px] uppercase tracking-wider text-brand-warm-gray font-bold">{tAdmin("To Collect (Receivables)")}</p>
+                      <p className="font-serif text-2xl font-bold text-amber-700">₹{totalReceivables.toLocaleString("en-IN")}</p>
+                      <p className="text-[9px] text-brand-warm-gray italic">{tAdmin("Customer unpaid dues")} · <span className="text-amber-600 not-italic font-bold">{tAdmin("Tap to view")}</span></p>
+                    </div>
+                    <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/15 flex items-center justify-center">
+                      <IndianRupee className="w-5 h-5 text-amber-700" />
+                    </div>
+                  </div>
+                  {expandedKpi === "receivables" && (
+                    <div className="px-5 pb-5 space-y-2 border-t border-amber-500/15">
+                      <p className="text-[9px] uppercase font-bold text-amber-700 tracking-wider pt-3 mb-1">{tAdmin("Pending Receivables")}</p>
+                      {filteredDbDues.filter(d => d.due_type === "receivable" && d.status === "pending").length > 0
+                        ? filteredDbDues.filter(d => d.due_type === "receivable" && d.status === "pending").map(d => (
+                          <div key={d.id} className="flex justify-between text-[10px] py-1.5 border-b border-brand-gold/5 last:border-0">
+                            <span className="text-brand-maroon font-semibold truncate max-w-[55%]">{d.entity_name}</span>
+                            <span className="font-mono font-bold text-amber-700">₹{Number((d.total_amount ?? 0) - (d.amount_paid ?? 0)).toLocaleString("en-IN")}</span>
+                          </div>
+                        ))
+                        : <p className="text-[10px] text-brand-warm-gray italic py-2">{tAdmin("No pending receivables")}</p>
+                      }
+                      <button onClick={(e) => { e.stopPropagation(); setActiveTab("finance"); }} className="w-full mt-2 text-[9px] uppercase font-bold tracking-wider text-brand-maroon border border-brand-gold/20 py-2 rounded-lg hover:bg-brand-gold/10 transition">
+                        {tAdmin("Go to Ledger →")}
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* To Pay (Payables) */}
+                <div
+                  className={`bg-[#FAF7F2] border rounded-xl shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer ${expandedKpi === "payables" ? "border-rose-500/30 ring-1 ring-rose-500/20" : "border-brand-gold/15"}`}
+                  onClick={() => setExpandedKpi(expandedKpi === "payables" ? null : "payables")}
+                >
+                  <div className="p-5 flex items-center justify-between">
+                    <div className="space-y-1.5">
+                      <p className="text-[10px] uppercase tracking-wider text-brand-warm-gray font-bold">{tAdmin("To Pay (Payables)")}</p>
+                      <p className="font-serif text-2xl font-bold text-rose-700">₹{totalPayables.toLocaleString("en-IN")}</p>
+                      <p className="text-[9px] text-brand-warm-gray italic">{tAdmin("Vendor outstanding dues")} · <span className="text-rose-600 not-italic font-bold">{tAdmin("Tap to view")}</span></p>
+                    </div>
+                    <div className="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/15 flex items-center justify-center">
+                      <CreditCard className="w-5 h-5 text-rose-700" />
+                    </div>
+                  </div>
+                  {expandedKpi === "payables" && (
+                    <div className="px-5 pb-5 space-y-2 border-t border-rose-500/15">
+                      <p className="text-[9px] uppercase font-bold text-rose-700 tracking-wider pt-3 mb-1">{tAdmin("Outstanding Payables")}</p>
+                      {filteredDbDues.filter(d => d.due_type === "payable" && d.status === "pending").length > 0
+                        ? filteredDbDues.filter(d => d.due_type === "payable" && d.status === "pending").map(d => (
+                          <div key={d.id} className="flex justify-between text-[10px] py-1.5 border-b border-brand-gold/5 last:border-0">
+                            <span className="text-brand-maroon font-semibold truncate max-w-[55%]">{d.entity_name}</span>
+                            <span className="font-mono font-bold text-rose-700">₹{Number((d.total_amount ?? 0) - (d.amount_paid ?? 0)).toLocaleString("en-IN")}</span>
+                          </div>
+                        ))
+                        : <p className="text-[10px] text-brand-warm-gray italic py-2">{tAdmin("No pending payables")}</p>
+                      }
+                      <button onClick={(e) => { e.stopPropagation(); setActiveTab("vendors"); }} className="w-full mt-2 text-[9px] uppercase font-bold tracking-wider text-brand-maroon border border-brand-gold/20 py-2 rounded-lg hover:bg-brand-gold/10 transition">
+                        {tAdmin("Go to Vendors →")}
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Cash in Hand */}
+                <div
+                  className={`bg-[#FAF7F2] border rounded-xl shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer ${expandedKpi === "cash" ? "border-emerald-500/30 ring-1 ring-emerald-500/20" : "border-brand-gold/15"}`}
+                  onClick={() => setExpandedKpi(expandedKpi === "cash" ? null : "cash")}
+                >
+                  <div className="p-5 flex items-center justify-between">
+                    <div className="space-y-1.5">
+                      <p className="text-[10px] uppercase tracking-wider text-brand-warm-gray font-bold">{tAdmin("Cash in Hand")}</p>
+                      <p className={`font-serif text-2xl font-bold ${cashInHand >= 0 ? "text-emerald-700" : "text-rose-700"}`}>₹{cashInHand.toLocaleString("en-IN")}</p>
+                      <p className="text-[9px] text-brand-warm-gray italic">{tAdmin("Physical showroom cash")} · <span className="text-emerald-600 not-italic font-bold">{tAdmin("Tap to view")}</span></p>
+                    </div>
+                    <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/15 flex items-center justify-center">
+                      <IndianRupee className="w-5 h-5 text-emerald-700" />
+                    </div>
+                  </div>
+                  {expandedKpi === "cash" && (
+                    <div className="px-5 pb-5 space-y-1.5 border-t border-emerald-500/15">
+                      <p className="text-[9px] uppercase font-bold text-emerald-700 tracking-wider pt-3 mb-1">{tAdmin("Calculation Breakdown")}</p>
+                      <div className="flex justify-between text-[10px]">
+                        <span className="text-brand-warm-gray">{tAdmin("Cash Sales (Inflow)")}</span>
+                        <span className="font-mono font-bold text-emerald-700">
+                          +₹{filteredDbOrders.filter(o => o.is_paid && o.payment_mode === "cash").reduce((sum, o) => sum + Number(o.total ?? 0), 0).toLocaleString("en-IN")}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-[10px]">
+                        <span className="text-brand-warm-gray">{tAdmin("Expenses (Outflow)")}</span>
+                        <span className="font-mono font-bold text-rose-600">−₹{totalExpenses.toLocaleString("en-IN")}</span>
+                      </div>
+                      <div className="flex justify-between text-xs pt-2 mt-1 border-t border-brand-gold/15 font-bold">
+                        <span className="text-brand-maroon">{tAdmin("Net Cash")}</span>
+                        <span className="font-mono">₹{cashInHand.toLocaleString("en-IN")}</span>
+                      </div>
+                      <button onClick={(e) => { e.stopPropagation(); setActiveTab("finance"); }} className="w-full mt-2 text-[9px] uppercase font-bold tracking-wider text-brand-maroon border border-brand-gold/20 py-2 rounded-lg hover:bg-brand-gold/10 transition">
+                        {tAdmin("View Expenses →")}
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Bank Balance */}
+                <div
+                  className={`bg-[#FAF7F2] border rounded-xl shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer ${expandedKpi === "bank" ? "border-sky-500/30 ring-1 ring-sky-500/20" : "border-brand-gold/15"}`}
+                  onClick={() => setExpandedKpi(expandedKpi === "bank" ? null : "bank")}
+                >
+                  <div className="p-5 flex items-center justify-between">
+                    <div className="space-y-1.5">
+                      <p className="text-[10px] uppercase tracking-wider text-brand-warm-gray font-bold">{tAdmin("Bank Balance")}</p>
+                      <p className={`font-serif text-2xl font-bold ${bankBalance >= 0 ? "text-sky-700" : "text-rose-700"}`}>₹{bankBalance.toLocaleString("en-IN")}</p>
+                      <p className="text-[9px] text-brand-warm-gray italic">{tAdmin("Online/UPI/Ledger")} · <span className="text-sky-600 not-italic font-bold">{tAdmin("Tap to view")}</span></p>
+                    </div>
+                    <div className="w-10 h-10 rounded-xl bg-sky-500/10 border border-sky-500/15 flex items-center justify-center">
+                      <TrendingUp className="w-5 h-5 text-sky-700" />
+                    </div>
+                  </div>
+                  {expandedKpi === "bank" && (
+                    <div className="px-5 pb-5 space-y-1.5 border-t border-sky-500/15">
+                      <p className="text-[9px] uppercase font-bold text-sky-700 tracking-wider pt-3 mb-1">{tAdmin("Calculation Breakdown")}</p>
+                      <div className="flex justify-between text-[10px]">
+                        <span className="text-brand-warm-gray">{tAdmin("Online/Card/UPI Sales")}</span>
+                        <span className="font-mono font-bold text-emerald-700">
+                          +₹{filteredDbOrders.filter(o => o.is_paid && ["online","card","upi","bank_transfer"].includes(o.payment_mode)).reduce((sum, o) => sum + Number(o.total ?? 0), 0).toLocaleString("en-IN")}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-[10px]">
+                        <span className="text-brand-warm-gray">{tAdmin("Purchase Payments")}</span>
+                        <span className="font-mono font-bold text-rose-600">−₹{totalPurchasesPaid.toLocaleString("en-IN")}</span>
+                      </div>
+                      <div className="flex justify-between text-xs pt-2 mt-1 border-t border-brand-gold/15 font-bold">
+                        <span className="text-brand-maroon">{tAdmin("Net Bank")}</span>
+                        <span className="font-mono">₹{bankBalance.toLocaleString("en-IN")}</span>
+                      </div>
+                      <button onClick={(e) => { e.stopPropagation(); setActiveTab("finance"); }} className="w-full mt-2 text-[9px] uppercase font-bold tracking-wider text-brand-maroon border border-brand-gold/20 py-2 rounded-lg hover:bg-brand-gold/10 transition">
+                        {tAdmin("View Purchases →")}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
 
               {/* Comparison chart (Sales vs Purchases) */}
               <div className="bg-[#FAF7F2] border border-brand-gold/15 rounded-xl p-5 shadow-sm space-y-4">
@@ -2314,53 +2569,107 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                     ) : (
                       <div className="space-y-4">
                         {/* Items */}
-                        <div className="space-y-3 max-h-60 overflow-y-auto">
+                        <div className="space-y-3 max-h-72 overflow-y-auto">
                           {posCart.map(item => (
-                            <div key={item.saree.id} className="flex gap-3 items-center">
-                              <div className="flex-1 min-w-0">
-                                <p className="font-serif font-semibold text-xs text-brand-maroon truncate">{item.saree.name}</p>
-                                <div className="flex items-center gap-1 mt-0.5">
-                                  <span className="text-[9px] uppercase text-brand-warm-gray/70 font-semibold">₹</span>
+                            <div key={item.saree.id} className="bg-white border border-brand-gold/10 rounded-lg p-3.5 space-y-3">
+                              {/* Row 1: Name + Remove */}
+                              <div className="flex items-start justify-between gap-2">
+                                <p className="font-serif font-semibold text-xs text-brand-maroon leading-tight flex-1 min-w-0 truncate">{item.saree.name}</p>
+                                <button onClick={() => setPosCart(c => c.filter(i => i.saree.id !== item.saree.id))}
+                                  className="text-red-400 hover:text-red-600 transition flex-shrink-0 p-0.5">
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+
+                              {/* Row 2: Price + Qty + Line Total (stacked on mobile, inline on lg) */}
+                              <div className="flex flex-col lg:grid lg:grid-cols-3 gap-3 lg:gap-2">
+                                {/* Price */}
+                                <div className="space-y-1">
+                                  <label className="text-[10px] uppercase font-bold text-brand-warm-gray tracking-wider block">
+                                    {language === "hi" ? "कीमत (₹)" : "Price (₹)"}
+                                  </label>
                                   <input 
                                     type="number" 
                                     min="0"
                                     value={item.customPrice ?? item.saree.price}
                                     onChange={e => handlePOSPriceChange(item.saree.id, Number(e.target.value))}
-                                    className="w-16 bg-white border border-brand-gold/15 px-1 py-0.5 text-[10px] font-mono text-brand-maroon focus:outline-none focus:border-brand-maroon font-bold rounded"
+                                    className="w-full bg-brand-ivory border border-brand-gold/15 px-2.5 py-1.5 text-xs font-mono text-brand-maroon focus:outline-none focus:border-brand-maroon font-bold rounded"
                                   />
                                   {item.customPrice !== undefined && item.customPrice !== item.saree.price && (
-                                    <span className="text-[9px] line-through text-brand-warm-gray/50 font-mono ml-1">₹{item.saree.price}</span>
+                                    <span className="text-[8px] line-through text-brand-warm-gray/50 font-mono block mt-0.5">MRP ₹{item.saree.price}</span>
                                   )}
                                 </div>
+
+                                {/* Quantity */}
+                                <div className="space-y-1">
+                                  <label className="text-[10px] uppercase font-bold text-brand-warm-gray tracking-wider block">
+                                    {language === "hi" ? "मात्रा" : "Qty"}
+                                  </label>
+                                  <div className="flex items-center gap-1.5">
+                                    <button 
+                                      type="button"
+                                      onClick={() => handlePOSQty(item.saree.id, -1)}
+                                      className="w-8 h-8 border border-brand-gold/30 flex items-center justify-center hover:bg-brand-maroon hover:text-white transition rounded flex-shrink-0 text-base font-bold text-brand-maroon select-none">
+                                      -
+                                    </button>
+                                    <input 
+                                      type="number"
+                                      min="1"
+                                      max={item.saree.stock_quantity ?? 999}
+                                      value={item.quantity || ""}
+                                      onChange={e => {
+                                        const val = e.target.value === "" ? 0 : Number(e.target.value);
+                                        setPosCart(prev => prev.map(i => i.saree.id === item.saree.id ? { ...i, quantity: val } : i));
+                                      }}
+                                      onBlur={() => {
+                                        setPosCart(prev => prev.map(i => {
+                                          if (i.saree.id !== item.saree.id) return i;
+                                          const val = Math.max(1, Math.min(i.saree.stock_quantity ?? 999, i.quantity || 1));
+                                          return { ...i, quantity: val };
+                                        }));
+                                      }}
+                                      className="w-full lg:w-14 text-center font-mono text-xs font-bold py-1.5 bg-brand-ivory border border-brand-gold/15 rounded focus:outline-none focus:border-brand-maroon"
+                                    />
+                                    <button 
+                                      type="button"
+                                      onClick={() => handlePOSQty(item.saree.id, 1)}
+                                      className="w-8 h-8 border border-brand-gold/30 flex items-center justify-center hover:bg-brand-maroon hover:text-white transition rounded flex-shrink-0 text-base font-bold text-brand-maroon select-none">
+                                      +
+                                    </button>
+                                  </div>
+                                </div>
+
+                                {/* Line Total (mobile only row) */}
+                                <div className="flex items-center justify-between border-t border-brand-gold/10 pt-2 mt-1 lg:hidden">
+                                  <span className="text-[10px] uppercase font-bold text-brand-warm-gray tracking-wider">
+                                    {language === "hi" ? "कुल" : "Total"}
+                                  </span>
+                                  <span className="font-mono font-bold text-xs text-brand-maroon">
+                                    ₹{Number((item.customPrice ?? item.saree.price) * item.quantity).toLocaleString("en-IN")}
+                                  </span>
+                                </div>
+
+                                {/* Line Total (desktop only column) */}
+                                <div className="hidden lg:flex items-end justify-end col-span-1 pb-1">
+                                  <p className="font-mono font-bold text-xs text-brand-maroon">
+                                    {language === "hi" ? "कुल: " : "Total: "}₹{Number((item.customPrice ?? item.saree.price) * item.quantity).toLocaleString("en-IN")}
+                                  </p>
+                                </div>
                               </div>
-                              <div className="flex items-center gap-1.5 flex-shrink-0">
-                                <button onClick={() => handlePOSQty(item.saree.id, -1)}
-                                  className="w-6 h-6 border border-brand-gold/30 flex items-center justify-center hover:bg-brand-maroon hover:text-white transition rounded">
-                                  <Minus className="w-3 h-3" />
-                                </button>
-                                <span className="w-6 text-center font-mono text-xs font-bold">{item.quantity}</span>
-                                <button onClick={() => handlePOSQty(item.saree.id, 1)}
-                                  className="w-6 h-6 border border-brand-gold/30 flex items-center justify-center hover:bg-brand-maroon hover:text-white transition rounded">
-                                  <Plus className="w-3 h-3" />
-                                </button>
-                              </div>
-                              <p className="font-mono font-bold text-xs w-20 text-right">₹{Number((item.customPrice ?? item.saree.price) * item.quantity).toLocaleString("en-IN")}</p>
-                              <button onClick={() => setPosCart(c => c.filter(i => i.saree.id !== item.saree.id))}
-                                className="text-red-500 hover:text-red-700 transition">
-                                <X className="w-3.5 h-3.5" />
-                              </button>
                             </div>
                           ))}
                         </div>
 
                         {/* Discount */}
-                        <div className="flex items-center gap-2 border-t border-brand-gold/10 pt-3">
-                          <Tag className="w-3.5 h-3.5 text-brand-warm-gray flex-shrink-0" />
-                          <span className="text-[10px] uppercase font-bold text-brand-warm-gray">{language === "hi" ? "छूट (₹)" : "Discount (₹)"}</span>
+                        <div className="border-t border-brand-gold/10 pt-3 space-y-1">
+                          <label className="text-[10px] uppercase font-bold text-brand-warm-gray tracking-wider block">
+                            <Tag className="w-3 h-3 inline-block mr-1 -mt-0.5" />
+                            {language === "hi" ? "छूट (₹)" : "Discount (₹)"}
+                          </label>
                           <input type="number" min={0} max={posSubtotal} value={posDiscount || ""}
                             onChange={e => setPosDiscount(Number(e.target.value))}
                             placeholder="0"
-                            className="ml-auto w-24 bg-brand-ivory border border-brand-gold/20 px-2 py-1.5 text-xs font-mono text-right focus:outline-none" />
+                            className="w-full bg-brand-ivory border border-brand-gold/20 px-3 py-2 text-xs font-mono focus:outline-none focus:border-brand-maroon rounded" />
                         </div>
 
                         {/* Totals */}
