@@ -170,6 +170,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
         "Net Profit": "शुद्ध लाभ",
         "Net Loss": "शुद्ध हानि",
         "View Full Finance Ledger →": "पूरा वित्त बही खाता देखें →",
+        "View More Orders →": "और ऑर्डर देखें →",
 
         // Expandable KPI Cards
         "Tap to view": "विवरण देखें",
@@ -1662,14 +1663,29 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                     </div>
                   </div>
                   {expandedKpi === "revenue" && (
-                    <div className="mt-4 pt-4 border-t border-white/10 space-y-2 max-h-52 overflow-y-auto">
+                    <div className="mt-4 pt-4 border-t border-white/10 space-y-2">
                       <p className="text-[9px] uppercase font-bold text-brand-gold tracking-wider mb-2">{tAdmin("Calculation Breakdown")}</p>
-                      {filteredDbOrders.length > 0 ? filteredDbOrders.map(o => (
-                        <div key={o.id} className="flex justify-between text-[10px] py-1.5 border-b border-white/5 last:border-0">
-                          <span className="text-white/60 truncate max-w-[60%]">{o.invoice_number || `SAL-${o.id.slice(0,5)}`} · {o.customer_name}</span>
-                          <span className={`font-mono font-bold ${o.is_paid ? "text-emerald-400" : "text-red-400"}`}>+₹{Number(o.total ?? 0).toLocaleString("en-IN")}</span>
+                      <div className="space-y-2 max-h-40 overflow-y-auto">
+                        {filteredDbOrders.length > 0 ? filteredDbOrders.slice(0, 3).map(o => (
+                          <div key={o.id} className="flex justify-between text-[10px] py-1.5 border-b border-white/5 last:border-0">
+                            <span className="text-white/60 truncate max-w-[60%]">{o.invoice_number || `SAL-${o.id.slice(0,5)}`} · {o.customer_name}</span>
+                            <span className={`font-mono font-bold ${o.is_paid ? "text-emerald-400" : "text-red-400"}`}>+₹{Number(o.total ?? 0).toLocaleString("en-IN")}</span>
+                          </div>
+                        )) : <p className="text-[10px] text-white/30 italic">{tAdmin("No sales in this period")}</p>}
+                      </div>
+                      {filteredDbOrders.length > 3 && (
+                        <div className="pt-1 text-left">
+                          <span
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActiveTab("orders");
+                            }}
+                            className="text-[10px] font-bold text-brand-gold hover:underline cursor-pointer inline-block"
+                          >
+                            {tAdmin("View More Orders →")}
+                          </span>
                         </div>
-                      )) : <p className="text-[10px] text-white/30 italic">{tAdmin("No sales in this period")}</p>}
+                      )}
                       <div className="flex justify-between text-xs pt-2 border-t border-brand-gold/20 font-bold">
                         <span className="text-brand-gold">{tAdmin("Total")}</span>
                         <span className="text-white font-mono">₹{totalRevenue.toLocaleString("en-IN")}</span>
