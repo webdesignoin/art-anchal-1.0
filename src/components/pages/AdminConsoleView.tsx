@@ -137,7 +137,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
         "Sales vs Purchases Comparison": "बिक्री बनाम खरीद तुलना",
         "Sales (Inflow)": "बिक्री (आवक)",
         "Purchases (Outflow)": "खरीद (जावक)",
-        "Consolidated Daybook (Recent Transactions)": "समेकित दिन-बही (हाल के लेनदेन)",
+        "Consolidated Daybook (Today's Transactions)": "समेकित दिन-बही (आज के लेनदेन)",
         "Live Feed": "लाइव फीड",
         "Type": "प्रकार",
         "Ref No.": "संदर्भ संख्या",
@@ -1967,7 +1967,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
               <div className="bg-[#FAF7F2] border border-brand-gold/15 rounded-xl p-5 shadow-sm space-y-4">
                 <div className="flex items-center justify-between border-b border-brand-gold/10 pb-3">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-brand-maroon flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-brand-gold" /> {tAdmin("Consolidated Daybook (Recent Transactions)")}
+                    <FileText className="w-4 h-4 text-brand-gold" /> {tAdmin("Consolidated Daybook (Today's Transactions)")}
                   </h3>
                   <span className="text-[8px] font-mono uppercase bg-brand-sand px-2 py-1 rounded">{tAdmin("Live Feed")}</span>
                 </div>
