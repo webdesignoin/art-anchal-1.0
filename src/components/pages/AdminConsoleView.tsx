@@ -160,6 +160,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
         "Total Revenue": "कुल राजस्व",
         "All paid orders in date range": "तिथि सीमा में सभी भुगतान किए गए ऑर्डर",
         "Calculation Breakdown": "गणना विवरण",
+        "Recent Orders": "हाल के ऑर्डर",
         "No sales in this period": "इस अवधि में कोई बिक्री नहीं",
         "Total": "कुल",
         "Net Profit / Loss": "शुद्ध लाभ / हानि",
@@ -1664,7 +1665,7 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                   </div>
                   {expandedKpi === "revenue" && (
                     <div className="mt-4 pt-4 border-t border-white/10 space-y-2">
-                      <p className="text-[9px] uppercase font-bold text-brand-gold tracking-wider mb-2">{tAdmin("Calculation Breakdown")}</p>
+                      <p className="text-[9px] uppercase font-bold text-brand-gold tracking-wider mb-2">{tAdmin("Recent Orders")}</p>
                       <div className="space-y-2 max-h-40 overflow-y-auto">
                         {filteredDbOrders.length > 0 ? filteredDbOrders.slice(0, 3).map(o => (
                           <div key={o.id} className="flex justify-between text-[10px] py-1.5 border-b border-white/5 last:border-0">
@@ -1686,10 +1687,6 @@ export default function AdminConsoleView({ userSession, setUserSession, setView,
                           </span>
                         </div>
                       )}
-                      <div className="flex justify-between text-xs pt-2 border-t border-brand-gold/20 font-bold">
-                        <span className="text-brand-gold">{tAdmin("Total")}</span>
-                        <span className="text-white font-mono">₹{totalRevenue.toLocaleString("en-IN")}</span>
-                      </div>
                     </div>
                   )}
                 </div>
